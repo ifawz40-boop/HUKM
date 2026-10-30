@@ -65,6 +65,8 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   );
   const [fontSize, setFontSize] = useState<number>(19);
   const [fontFamily, setFontFamily] = useState<'cairo' | 'amiri' | 'tajawal'>('cairo');
+  const [theme, setTheme] = useState<'navy' | 'sepia' | 'black'>('navy');
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [copiedShare, setCopiedShare] = useState(false);
   const [lightboxMedia, setLightboxMedia] = useState<ChapterMedia | null>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(true);
@@ -72,6 +74,19 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   const currentChapterIndex = book.chapters.findIndex((c) => c.id === selectedChapterId);
   const currentChapter = book.chapters[currentChapterIndex] || book.chapters[0];
+
+  // Scroll listener for reading progress bar
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScroll > 0) {
+        const currentProgress = (window.scrollY / totalScroll) * 100;
+        setScrollProgress(Math.min(100, Math.max(0, currentProgress)));
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Trigger real-time view increment and record chapter opened
   useEffect(() => {
@@ -124,9 +139,22 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   const wordCount = currentChapter.wordCount || calculateWordsCount(currentChapter.content);
   const readTime = calculateReadingTimeMinutes(wordCount);
+  const themeClasses = {
+    navy: 'bg-[#070d1e] text-[#f4efe6]',
+    sepia: 'bg-[#18140e] text-[#ede0cb]',
+    black: 'bg-[#030508] text-[#e2e8f0]',
+  }[theme];
 
   return (
-    <div className="min-h-screen bg-[#070d1e] text-[#f4efe6] pb-16 printable-book" dir="rtl">
+    <div className={`min-h-screen ${themeClasses} pb-16 printable-book transition-colors duration-300`} dir="rtl">
+      {/* Floating Reading Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-black/50 no-print">
+        <div
+          className="h-full bg-gradient-to-r from-[#d4af37] via-[#f0cb69] to-[#c59b27] transition-all duration-100"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       {/* Sticky Reader Top Bar */}
       <header className="sticky top-0 z-30 border-b border-[#c59b27]/25 bg-[#070d1e]/95 backdrop-blur-md no-print">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
@@ -154,7 +182,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
             <div className="min-w-0 pr-1">
               <span className="block text-[11px] text-[#94a3b8] truncate font-cairo">
-                {book.title} · <strong className="text-[#d4af37]">{book.author || 'إبراهيم فوزي'}</strong>
+                {book.title} · <strong className="text-[#d4af37]">{book.author || 'Dr/ Islam Mohamed'}</strong>
               </span>
               <h2 className="text-xs sm:text-sm font-bold text-[#f0cb69] truncate">
                 فصل {currentChapter.chapterNumber}: {currentChapter.title}
@@ -164,6 +192,40 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
           {/* Quick Reader Controls */}
           <div className="flex items-center gap-2">
+            {/* Reading Theme Selector */}
+            <div className="hidden md:flex items-center gap-1 rounded-xl bg-[#0a1226] border border-white/10 p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setTheme('navy')}
+                className={`rounded-lg px-2 py-1 text-[11px] font-bold cursor-pointer transition-colors ${
+                  theme === 'navy' ? 'bg-[#c59b27] text-[#070d1e]' : 'text-[#cbd5e1] hover:text-white'
+                }`}
+                title="الوضع الكحلي الملكي"
+              >
+                كحلي
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('sepia')}
+                className={`rounded-lg px-2 py-1 text-[11px] font-bold cursor-pointer transition-colors ${
+                  theme === 'sepia' ? 'bg-[#d4af37] text-[#18140e]' : 'text-[#cbd5e1] hover:text-white'
+                }`}
+                title="الوضع الورقي الدافئ (سيبيا)"
+              >
+                سيبيا
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('black')}
+                className={`rounded-lg px-2 py-1 text-[11px] font-bold cursor-pointer transition-colors ${
+                  theme === 'black' ? 'bg-slate-200 text-black' : 'text-[#cbd5e1] hover:text-white'
+                }`}
+                title="الوضع الداكن الحالك"
+              >
+                داكن
+              </button>
+            </div>
+
             {/* Mark as read toggle */}
             <button
               onClick={handleToggleRead}

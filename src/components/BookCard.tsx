@@ -1,7 +1,8 @@
 import React from 'react';
-import { BookOpen, PenTool, Eye, Video, Bookmark, BookmarkCheck } from 'lucide-react';
+import { BookOpen, PenTool, Eye, Video, Bookmark, BookmarkCheck, PlayCircle } from 'lucide-react';
 import { BookProject, CategoryItem } from '../types/hukm';
 import { calculateBookStats, getCategoryName } from '../utils/hukmEngine';
+import { getBookReadingProgress } from '../utils/readingTracker';
 
 interface BookCardProps {
   book: BookProject;
@@ -9,6 +10,7 @@ interface BookCardProps {
   isOwner?: boolean;
   isBookmarked?: boolean;
   onRead: () => void;
+  onQuickResume?: (chapterId: string) => void;
   onEdit?: () => void;
   onToggleBookmark?: () => void;
 }
@@ -19,11 +21,16 @@ export const BookCard: React.FC<BookCardProps> = ({
   isOwner = false,
   isBookmarked = false,
   onRead,
+  onQuickResume,
   onEdit,
   onToggleBookmark,
 }) => {
   const stats = calculateBookStats(book.chapters, book.viewsCount);
   const categoryLabel = getCategoryName(categories, book.category);
+  const readingProgress = getBookReadingProgress(book.id);
+  const lastChapter = readingProgress.lastChapterId
+    ? book.chapters.find((c) => c.id === readingProgress.lastChapterId)
+    : null;
 
   return (
     <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#c59b27]/25 bg-[#0a1226] p-4 text-right transition-all duration-300 hover:-translate-y-1 hover:border-[#c59b27]/60 hover:shadow-xl hover:shadow-black/60">
@@ -132,18 +139,47 @@ export const BookCard: React.FC<BookCardProps> = ({
       </div>
 
       {/* Action Buttons based on Role */}
-      <div className="mt-4 flex items-center gap-2 border-t border-white/5 pt-3">
-        <button
-          onClick={onRead}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] py-2.5 text-xs font-black text-[#070d1e] shadow transition-transform hover:scale-102 active:scale-98 cursor-pointer"
-        >
-          <BookOpen className="h-3.5 w-3.5" />
-          <span>استعراض الكتاب والفصول</span>
-        </button>
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3">
+        {lastChapter && onQuickResume ? (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickResume(lastChapter.id);
+              }}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] py-2.5 px-3 text-xs font-black text-[#070d1e] shadow transition-transform hover:scale-102 active:scale-98 cursor-pointer"
+              title={`متابعة القراءة مباشرة من الفصل ${lastChapter.chapterNumber}: ${lastChapter.title}`}
+            >
+              <PlayCircle className="h-3.5 w-3.5" />
+              <span>استئناف: ف{lastChapter.chapterNumber}</span>
+            </button>
 
-        {/* Owner ONLY Edit CTA */}
+            <button
+              type="button"
+              onClick={onRead}
+              className="flex items-center justify-center gap-1 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/30 px-3 py-2.5 text-xs font-semibold text-[#cbd5e1] hover:text-white transition-colors cursor-pointer"
+              title="عرض فهرس وتفاصيل الكتاب"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-[#d4af37]" />
+              <span>الفهرس</span>
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onRead}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] py-2.5 text-xs font-black text-[#070d1e] shadow transition-transform hover:scale-102 active:scale-98 cursor-pointer"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>استعراض الكتاب والفصول</span>
+          </button>
+        )}
+
+        {/* Owner/Admin Edit CTA */}
         {isOwner && onEdit && (
           <button
+            type="button"
             onClick={onEdit}
             className="flex items-center justify-center gap-1 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/30 px-3 py-2 text-xs font-semibold text-[#cbd5e1] hover:text-white transition-colors"
             title="فتح في استوديو الكتابة"

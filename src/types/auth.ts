@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'reader';
+export type UserRole = 'owner' | 'admin' | 'reader';
 
 export interface UserProfile {
   id: string;
@@ -10,6 +10,30 @@ export interface UserProfile {
   joinedDate: string;
   bookmarks: string[]; // Book IDs
   readHistory: string[]; // Chapter IDs
+}
+
+export interface AdminAccount {
+  id: string;
+  email: string;
+  name: string;
+  title: string; // e.g. "مدير تحرير", "مشرف محتوى", "مؤسس المنصة"
+  addedBy: string;
+  addedAt: string;
+  canEditBooks: boolean;
+  canManageBans: boolean;
+  isFounder?: boolean;
+}
+
+export interface BannedAccount {
+  id: string;
+  email: string;
+  name?: string;
+  banType: 'temporary' | 'permanent';
+  reason: string;
+  bannedBy: string; // email or name of the moderator
+  bannedAt: string;
+  expiresAt?: string; // ISO string for temporary bans
+  isActive: boolean; // true if ban is currently active
 }
 
 export type NotificationType = 'new_chapter' | 'new_book' | 'announcement' | 'milestone';

@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Check if user is registered as admin or matches platform owner
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'dr.islam.mohamed@hukm.media' ||
+        request.auth.token.email == 'ifawz40@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 1. Books collection: Public can read, Admins/Owner can write
+    match /books/{bookId} {
+      allow read: if true;
+      allow create: if isValidId(bookId);
+      allow update: if isValidId(bookId);
+      allow delete: if isValidId(bookId);
+    }
+
+    // 2. Categories collection: Public can read, Admins can write
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create: if isValidId(categoryId);
+      allow update: if isValidId(categoryId);
+      allow delete: if isValidId(categoryId);
+    }
+
+    // 3. Admins registry
+    match /admins/{adminId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(adminId);
+    }
+
+    // 4. Bans and moderation registry
+    match /bans/{banId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(banId);
+    }
+
+    // 5. Email Subscribers
+    match /subscribers/{subscriberId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(subscriberId);
+    }
+
+    // 6. Test connection collection
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

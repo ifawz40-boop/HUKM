@@ -1,15 +1,29 @@
 import { UserProfile, AppNotification, UserRole } from '../types/auth';
+import { isAuthorizedAdminEmail, isUserBanned } from './moderationTracker';
 
-export const OWNER_USER: UserProfile = {
-  id: 'owner-ibrahim-fawzy',
-  name: 'إبراهيم فوزي',
-  email: 'ifawz40@gmail.com',
+export const FOUNDER_USER: UserProfile = {
+  id: 'founder-islam-mohamed',
+  name: 'Dr/ Islam Mohamed',
+  email: 'dr.islam.mohamed@hukm.media',
   role: 'owner',
-  bio: 'صاحب المنصة والمؤلف الرئيسي لسلسلة «وعشان الموضوع مش زي ما إنت فاكر… تعالى نعرف» ومؤسس حُكم MEDIA.',
+  bio: 'مؤسس منصة حُكم | HUKM MEDIA والمشرف العام على التحقيقات والمشاريع المعرفية والوثائقية.',
   joinedDate: '2024-01-01',
   bookmarks: ['investigation-01', 'economy-02'],
   readHistory: [],
 };
+
+export const MANAGING_ADMIN_USER: UserProfile = {
+  id: 'admin-ibrahim-fawzy',
+  name: 'إبراهيم فوزي',
+  email: 'ifawz40@gmail.com',
+  role: 'admin',
+  bio: 'المدير التنفيذي والناشر المعتمد لسلسلة «وعشان الموضوع مش زي ما إنت فاكر» في حُكم MEDIA.',
+  joinedDate: '2024-01-01',
+  bookmarks: ['investigation-01', 'economy-02'],
+  readHistory: [],
+};
+
+export const OWNER_USER: UserProfile = MANAGING_ADMIN_USER;
 
 export const DEMO_READER_USER: UserProfile = {
   id: 'reader-demo-ahmed',
@@ -117,16 +131,22 @@ export function registerNewUser(name: string, email: string): UserProfile {
   const users = getAllRegisteredUsers();
   const normalizedEmail = email.trim().toLowerCase();
   
-  // If email is owner email, grant owner role automatically
-  const isOwnerEmail = normalizedEmail === 'ifawz40@gmail.com';
-  const role: UserRole = isOwnerEmail ? 'owner' : 'reader';
+  const isAdmin = isAuthorizedAdminEmail(normalizedEmail);
+  const isFounder = normalizedEmail === 'dr.islam.mohamed@hukm.media';
+  const role: UserRole = isFounder ? 'owner' : (isAdmin ? 'admin' : 'reader');
   
+  const defaultName = isFounder
+    ? 'Dr/ Islam Mohamed'
+    : (normalizedEmail === 'ifawz40@gmail.com' ? 'إبراهيم فوزي' : 'قارئ حُكم الجديد');
+
   const newUser: UserProfile = {
     id: `user-${Date.now()}`,
-    name: name.trim() || (isOwnerEmail ? 'إبراهيم فوزي' : 'قارئ حُكم الجديد'),
+    name: name.trim() || defaultName,
     email: normalizedEmail,
     role,
-    bio: isOwnerEmail ? OWNER_USER.bio : 'قارئ جديد مسجل في منصة حُكم.',
+    bio: isFounder
+      ? FOUNDER_USER.bio
+      : (isAdmin ? 'مدير معتمد في منصة حُكم | HUKM MEDIA.' : 'قارئ جديد مسجل في منصة حُكم.'),
     joinedDate: new Date().toISOString().split('T')[0],
     bookmarks: [],
     readHistory: [],
@@ -162,20 +182,21 @@ export function toggleUserBookmark(user: UserProfile, bookId: string): UserProfi
 }
 
 export const OWNER_EMAIL = 'ifawz40@gmail.com';
+export const FOUNDER_EMAIL = 'dr.islam.mohamed@hukm.media';
 
 export function isAuthorizedOwnerEmail(email?: string): boolean {
   if (!email) return false;
-  return email.trim().toLowerCase() === OWNER_EMAIL;
+  return isAuthorizedAdminEmail(email);
 }
 
 export function canSwitchViewMode(user: UserProfile | null | undefined): boolean {
   if (!user) return false;
-  return isAuthorizedOwnerEmail(user.email);
+  return isAuthorizedAdminEmail(user.email);
 }
 
 export function isOwner(user: UserProfile | null | undefined): boolean {
   if (!user) return false;
-  return isAuthorizedOwnerEmail(user.email);
+  return isAuthorizedAdminEmail(user.email);
 }
 
 // ----------------------------------------------------

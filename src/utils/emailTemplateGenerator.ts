@@ -9,8 +9,8 @@ export function getHukmEmailHeader(): string {
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="max-width: 520px; width: 100%;">
           <tr>
             <td align="center">
-              <div style="display: inline-block; padding: 4px; border: 1.5px solid rgba(197, 155, 39, 0.45); border-radius: 16px; background-color: #070d1e; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
-                <img src="${HUKM_LOGO}" alt="حُكم | HUKM MEDIA" width="76" height="76" style="display: block; border-radius: 12px; object-fit: contain;" />
+              <div style="display: inline-block; overflow: hidden; border: 2px solid rgba(197, 155, 39, 0.65); border-radius: 18px; background-color: #050a16; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
+                <img src="${HUKM_LOGO}" alt="حُكم | HUKM MEDIA" width="80" height="80" style="display: block; border-radius: 16px; object-fit: cover;" />
               </div>
             </td>
           </tr>

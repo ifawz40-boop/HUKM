@@ -9,17 +9,22 @@ import {
   CheckCircle,
   Crown,
   BellRing,
+  Shield,
 } from 'lucide-react';
 import { UserProfile } from '../types/auth';
 import {
   OWNER_USER,
+  FOUNDER_USER,
+  MANAGING_ADMIN_USER,
   DEMO_READER_USER,
   registerNewUser,
   addSubscriber,
   addEmailLog,
 } from '../utils/authStorage';
+import { getActiveBanDetails, formatRemainingTime } from '../utils/moderationTracker';
 import { generateWelcomeEmailHtml } from '../utils/emailTemplateGenerator';
 import { HUKM_LOGO } from '../data/hukmData';
+import { loginWithFirebaseGoogle } from '../firebase/firestoreService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -75,8 +80,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Check if account is banned
+    const ban = getActiveBanDetails(cleanEmail);
+    if (ban) {
+      setErrorMsg(`تم تعليق هذا الحساب لمخالفة المعايير (${ban.banType === 'permanent' ? 'حظر دائم' : `متبقي: ${formatRemainingTime(ban.expiresAt)}`}). السبب: ${ban.reason}`);
+      return;
+    }
+
+    if (cleanEmail === 'dr.islam.mohamed@hukm.media') {
+      onLoginSuccess(FOUNDER_USER);
+      onClose();
+      return;
+    }
+
     if (cleanEmail === 'ifawz40@gmail.com') {
-      onLoginSuccess(OWNER_USER);
+      onLoginSuccess(MANAGING_ADMIN_USER);
       onClose();
       return;
     }
@@ -90,15 +108,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      // Simulate real OAuth Google Sign-in
-      const googleUserEmail = email && email.includes('@') ? email.trim().toLowerCase() : 'tariq.investigator@gmail.com';
-      const googleUserName = name.trim() || 'طارق الدوسري';
+    setErrorMsg('');
+
+    try {
+      const googleResult = await loginWithFirebaseGoogle();
+      const googleUserEmail =
+        googleResult?.email ||
+        (email && email.includes('@') ? email.trim().toLowerCase() : 'tariq.investigator@gmail.com');
+      const googleUserName = googleResult?.name || name.trim() || 'قارئ Google حُكم';
+
+      const ban = getActiveBanDetails(googleUserEmail);
+      if (ban) {
+        setIsLoading(false);
+        setErrorMsg(`هذا الحساب محظور حالياً (${ban.banType === 'permanent' ? 'حظر دائم' : `متبقي: ${formatRemainingTime(ban.expiresAt)}`}). السبب: ${ban.reason}`);
+        return;
+      }
+
+      if (googleUserEmail === 'dr.islam.mohamed@hukm.media') {
+        onLoginSuccess(FOUNDER_USER);
+        setIsLoading(false);
+        onClose();
+        return;
+      }
 
       if (googleUserEmail === 'ifawz40@gmail.com') {
-        onLoginSuccess(OWNER_USER);
+        onLoginSuccess(MANAGING_ADMIN_USER);
         setIsLoading(false);
         onClose();
         return;
@@ -111,7 +147,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setIsLoading(false);
       onLoginSuccess(user);
       onClose();
-    }, 450);
+    } catch {
+      setIsLoading(false);
+    }
   };
 
   const handleAppleSignIn = () => {
@@ -130,8 +168,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }, 400);
   };
 
+  const handleQuickLoginAsFounder = () => {
+    onLoginSuccess(FOUNDER_USER);
+    onClose();
+  };
+
   const handleQuickLoginAsOwner = () => {
-    onLoginSuccess(OWNER_USER);
+    onLoginSuccess(MANAGING_ADMIN_USER);
     onClose();
   };
 
@@ -157,8 +200,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center space-y-2 mb-5">
-          <div className="h-14 w-14 overflow-hidden rounded-2xl border border-[#c59b27]/40 p-1 bg-[#070d1e] shadow-lg">
-            <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-contain" />
+          <div className="h-16 w-16 overflow-hidden rounded-2xl border-2 border-[#c59b27]/50 bg-[#050a16] shadow-xl">
+            <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-cover scale-105" />
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white font-cairo">
             منصة <span className="gold-gradient-text">حُكم | HUKM</span>
@@ -336,23 +379,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Quick Direct Sign-in for Convenience */}
         <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
           <span className="block text-[11px] font-bold text-[#f0cb69]">⚡ وصول فوري تجريبي:</span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={handleQuickLoginAsFounder}
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27] px-2 py-1.5 text-[10px] font-bold text-[#f0cb69] transition-colors cursor-pointer"
+              title="المؤسس والمشرف العام: Dr/ Islam Mohamed"
+            >
+              <Crown className="h-3 w-3 text-amber-400" />
+              <span>المؤسس د. إسلام</span>
+            </button>
             <button
               type="button"
               onClick={handleQuickLoginAsOwner}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-2 py-1.5 text-[11px] font-bold text-[#f0cb69] transition-colors"
-              title="صاحب المنصة: ifawz40@gmail.com"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-blue-500/40 px-2 py-1.5 text-[10px] font-bold text-blue-300 transition-colors cursor-pointer"
+              title="المدير التنفيذي: ifawz40@gmail.com"
             >
-              <Crown className="h-3 w-3 text-amber-400" />
-              <span>حساب صاحب المنصة</span>
+              <Shield className="h-3 w-3 text-blue-400" />
+              <span>المدير إبراهيم</span>
             </button>
             <button
               type="button"
               onClick={handleQuickLoginAsReader}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-white/10 px-2 py-1.5 text-[11px] font-semibold text-[#cbd5e1] hover:text-white transition-colors"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-white/10 px-2 py-1.5 text-[10px] font-semibold text-[#cbd5e1] hover:text-white transition-colors cursor-pointer"
             >
               <BookOpen className="h-3 w-3 text-[#d4af37]" />
-              <span>حساب قارئ تجريبي</span>
+              <span>قارئ تجريبي</span>
             </button>
           </div>
         </div>

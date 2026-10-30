@@ -7,8 +7,8 @@ export const HUKM_DESCRIPTION =
   'من العلوم والتكنولوجيا إلى مجالات التاريخ والفلسفة؛ نقتفي أثر الأسئلة التي تستحق البحث، ونقرأ ما بين السطور لنستخرج من بينها الـ "حُكم". نبحث، نفكك، ونفهم.';
 
 export const DEFAULT_CREATOR: CreatorAccount = {
-  name: 'إبراهيم فوزي (HUKM Author)',
-  email: 'ifawz40@gmail.com',
+  name: 'Dr/ Islam Mohamed',
+  email: 'dr.islam.mohamed@hukm.media',
   channelName: 'حُكم | HUKM MEDIA',
   role: 'official_publisher',
   isOfficialVerified: true,

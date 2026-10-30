@@ -31,7 +31,18 @@ import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SendAnnouncementModal } from './components/SendAnnouncementModal';
 import { HukmEmailModal } from './components/HukmEmailModal';
+import { AdminManagementModal } from './components/AdminManagementModal';
+import { BannedNoticeModal } from './components/BannedNoticeModal';
 import { HukmFooter } from './components/HukmFooter';
+import { getActiveBanDetails } from './utils/moderationTracker';
+import { testFirestoreConnection } from './firebase/config';
+import {
+  fetchBooksFromFirestore,
+  saveBookToFirestore,
+  fetchCategoriesFromFirestore,
+  saveCategoryToFirestore,
+  deleteCategoryFromFirestore,
+} from './firebase/firestoreService';
 import {
   INITIAL_BOOKS,
   INITIAL_CATEGORIES,
@@ -110,6 +121,10 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isAdminManagementOpen, setIsAdminManagementOpen] = useState(false);
+
+  // Active Ban verification for current session
+  const activeBan = getActiveBanDetails(currentUser?.email);
 
   // In-app interactive Toast Banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -119,6 +134,19 @@ export default function App() {
     setTimeout(() => {
       setToastMessage(null);
     }, 3800);
+  };
+
+  const handleQuickResumeChapter = (bookId: string, chapterId: string) => {
+    setSelectedBookId(bookId);
+    setSelectedChapterId(chapterId);
+    setCurrentView('reader');
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  };
+
+  const handleBannedLogout = () => {
+    setCurrentUser(DEMO_READER_USER);
+    saveStoredCurrentUser(DEMO_READER_USER);
+    showToast('تم تسجيل الخروج بنجاح.');
   };
 
   // Sync state to local storage
@@ -141,6 +169,29 @@ export default function App() {
       localStorage.setItem('hukm_categories_v1', JSON.stringify(categories));
     } catch {}
   }, [categories]);
+
+  // Initial Firestore Cloud Connection & Seed/Sync
+  useEffect(() => {
+    testFirestoreConnection();
+
+    // Pull or Seed Books
+    fetchBooksFromFirestore().then((remoteBooks) => {
+      if (remoteBooks && remoteBooks.length > 0) {
+        setBooks(remoteBooks);
+      } else {
+        INITIAL_BOOKS.forEach((b) => saveBookToFirestore(b));
+      }
+    });
+
+    // Pull or Seed Categories
+    fetchCategoriesFromFirestore().then((remoteCats) => {
+      if (remoteCats && remoteCats.length > 0) {
+        setCategories(remoteCats);
+      } else {
+        INITIAL_CATEGORIES.forEach((c) => saveCategoryToFirestore(c));
+      }
+    });
+  }, []);
 
   // Support direct URL params
   useEffect(() => {
@@ -202,12 +253,14 @@ export default function App() {
     setBooks((prev) =>
       prev.map((b) => (b.id === updatedBook.id ? updatedBook : b))
     );
-    showToast(`تم حفظ وتحديث كتاب «${updatedBook.title}» بنجاح!`);
+    saveBookToFirestore(updatedBook);
+    showToast(`تم حفظ وتحديث كتاب «${updatedBook.title}» في السحابة بنجاح!`);
   };
 
   const handleCreateBook = (newBook: BookProject) => {
     setBooks((prev) => [newBook, ...prev]);
     setSelectedBookId(newBook.id);
+    saveBookToFirestore(newBook);
 
     // 1. Dispatch automatic notification for readers
     const newNotif: AppNotification = {
@@ -234,7 +287,7 @@ export default function App() {
       delivered: true,
     });
 
-    showToast(`تم نشر كتاب «${newBook.title}» وإرسال بريد إلكتروني فاخر وإشعار إلى ${activeSubs.length} مشتركاً! ✉️`);
+    showToast(`تم نشر كتاب «${newBook.title}» ومزامنته سحابياً مع قاعدة البيانات! ☁️`);
     setCurrentView('writer');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
@@ -242,19 +295,32 @@ export default function App() {
   // Views increment: when a real reader views a chapter, increment from the custom baseline!
   const handleChapterViewed = (chapterId: string) => {
     setBooks((prev) =>
-      prev.map((b) => (b.id === currentBook.id ? incrementBookViews(b, chapterId) : b))
+      prev.map((b) => {
+        if (b.id === currentBook.id) {
+          const updated = incrementBookViews(b, chapterId);
+          saveBookToFirestore(updated);
+          return updated;
+        }
+        return b;
+      })
     );
   };
 
   // Category management
   const handleAddCategory = (newCat: { name: string; description?: string }) => {
-    setCategories((prev) => addCategory(prev, newCat));
-    showToast(`تمت إضافة قسم «${newCat.name}» بنجاح!`);
+    setCategories((prev) => {
+      const updated = addCategory(prev, newCat);
+      const added = updated[updated.length - 1];
+      if (added) saveCategoryToFirestore(added);
+      return updated;
+    });
+    showToast(`تمت إضافة قسم «${newCat.name}» ومزامنته سحابياً!`);
   };
 
   const handleDeleteCategory = (categoryId: string) => {
     const catName = categories.find((c) => c.id === categoryId)?.name;
     setCategories((prev) => deleteCategory(prev, categoryId));
+    deleteCategoryFromFirestore(categoryId);
     setBooks((prev) =>
       prev.map((b) =>
         b.category === categoryId
@@ -413,6 +479,7 @@ export default function App() {
           onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
           onOpenSendAnnouncement={() => setIsAnnouncementModalOpen(true)}
           onOpenEmailModal={() => setIsEmailModalOpen(true)}
+          onOpenAdminManagement={() => setIsAdminManagementOpen(true)}
         />
       )}
 
@@ -504,6 +571,7 @@ export default function App() {
                     isOwner={isOwner}
                     isBookmarked={currentUser.bookmarks.includes(book.id)}
                     onRead={() => handleOpenBookOverview(book.id)}
+                    onQuickResume={(chapterId) => handleQuickResumeChapter(book.id, chapterId)}
                     onEdit={isOwner ? () => handleOpenWriter(book.id) : undefined}
                     onToggleBookmark={() => handleToggleBookmark(book.id)}
                   />
@@ -686,6 +754,21 @@ export default function App() {
         onClose={() => setIsEmailModalOpen(false)}
         books={books}
         onShowToast={showToast}
+      />
+
+      {/* Admin & Moderation Management Modal (Admins / Founder) */}
+      <AdminManagementModal
+        isOpen={isAdminManagementOpen}
+        onClose={() => setIsAdminManagementOpen(false)}
+        currentUser={currentUser}
+        onShowToast={showToast}
+      />
+
+      {/* Official Banned Account Decree Modal */}
+      <BannedNoticeModal
+        isOpen={activeBan !== null}
+        banDetails={activeBan}
+        onLogout={handleBannedLogout}
       />
 
       {/* Footer */}

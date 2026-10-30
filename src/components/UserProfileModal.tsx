@@ -72,12 +72,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-black text-white font-cairo">{user.name}</h3>
-              {isOwnerUser ? (
+              {user.email === 'dr.islam.mohamed@hukm.media' ? (
                 <span className="rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-[#f0cb69] border border-amber-500/40">
-                  صاحب المنصة 👑
+                  المؤسس والمشرف العام 👑
+                </span>
+              ) : isOwnerUser ? (
+                <span className="rounded-md bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-300 border border-blue-500/40">
+                  مدير المنصة والناشر 🛡️
                 </span>
               ) : (
-                <span className="rounded-md bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-300 border border-blue-500/30">
+                <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
                   قارئ معتمد 📖
                 </span>
               )}

@@ -13,11 +13,11 @@ export const HukmFooter: React.FC<HukmFooterProps> = ({ onNavigate }) => {
           {/* Brand info */}
           <div className="md:col-span-2 space-y-3 text-right">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl overflow-hidden border border-[#c59b27]/40 p-0.5 bg-[#0a1226]">
+              <div className="h-14 w-14 rounded-2xl overflow-hidden border-2 border-[#c59b27]/50 bg-[#050a16] shadow-lg">
                 <img
                   src={HUKM_LOGO}
                   alt="حُكم"
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover scale-105"
                 />
               </div>
               <div>
@@ -102,7 +102,7 @@ export const HukmFooter: React.FC<HukmFooterProps> = ({ onNavigate }) => {
 
         {/* Copyright notice */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-between border-t border-white/5 pt-6 text-xs text-[#64748b] gap-2">
-          <p>جميع الحقوق الفكرية والمادية محفوظة © حُكم | HUKM MEDIA</p>
+          <p>جميع الحقوق الفكرية والمادية محفوظة © حُكم | HUKM MEDIA — إشراف المؤسس: <strong className="text-[#f0cb69]">Dr/ Islam Mohamed</strong></p>
           <p className="flex items-center gap-1">
             صُنع لخدمة صناع المحتوى والباحثين في العالم العربي
           </p>

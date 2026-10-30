@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "BookProject": {
+      "title": "BookProject",
+      "description": "Represents a research book or investigative project published on HUKM MEDIA.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256 },
+        "subtitle": { "type": "string", "maxLength": 512 },
+        "author": { "type": "string", "maxLength": 128 },
+        "category": { "type": "string", "maxLength": 64 },
+        "coverImage": { "type": "string", "maxLength": 1024 },
+        "status": { "type": "string", "enum": ["published", "in_progress", "draft"] },
+        "summary": { "type": "string", "maxLength": 4096 },
+        "viewsCount": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "title", "category", "status"]
+    },
+    "CategoryItem": {
+      "title": "CategoryItem",
+      "description": "Dynamic categories and pillars for organizing HUKM knowledge projects.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 512 }
+      },
+      "required": ["id", "name"]
+    },
+    "AdminAccount": {
+      "title": "AdminAccount",
+      "description": "Official administrators and editors authorized by Founder Dr. Islam Mohamed.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "name": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 128 },
+        "addedBy": { "type": "string", "maxLength": 128 },
+        "addedAt": { "type": "string", "maxLength": 64 },
+        "isFounder": { "type": "boolean" }
+      },
+      "required": ["id", "email", "name"]
+    },
+    "BannedAccount": {
+      "title": "BannedAccount",
+      "description": "Accounts suspended or restricted from accessing HUKM platform for policy violations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "name": { "type": "string", "maxLength": 128 },
+        "banType": { "type": "string", "enum": ["temporary", "permanent"] },
+        "reason": { "type": "string", "maxLength": 1024 },
+        "bannedBy": { "type": "string", "maxLength": 128 },
+        "bannedAt": { "type": "string", "maxLength": 64 },
+        "expiresAt": { "type": "string", "maxLength": 64 },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "email", "banType", "reason", "isActive"]
+    },
+    "HukmSubscriber": {
+      "title": "HukmSubscriber",
+      "description": "Automated email subscriber list receiving new chapter and investigation notifications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "name": { "type": "string", "maxLength": 128 },
+        "subscribedAt": { "type": "string", "maxLength": 64 },
+        "source": { "type": "string", "maxLength": 64 },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "email", "active"]
+    }
+  },
+  "firestore": {
+    "/books/{bookId}": {
+      "schema": { "$ref": "#/entities/BookProject" },
+      "description": "Collection of all published books and investigation series."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/CategoryItem" },
+      "description": "Pillars and dynamic categories of HUKM MEDIA."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminAccount" },
+      "description": "Official administrators and editors of the platform."
+    },
+    "/bans/{banId}": {
+      "schema": { "$ref": "#/entities/BannedAccount" },
+      "description": "Registry of banned/suspended accounts and moderation logs."
+    },
+    "/subscribers/{subscriberId}": {
+      "schema": { "$ref": "#/entities/HukmSubscriber" },
+      "description": "Subscribers registry for automatic email notifications."
+    }
+  }
+}

@@ -148,8 +148,8 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
         {/* Modal Top Bar */}
         <div className="flex items-center justify-between border-b border-[#c59b27]/25 bg-[#0a1226] px-5 sm:px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#070d1e] border border-[#c59b27]/40 p-1.5 shadow">
-              <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-contain" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#050a16] border border-[#c59b27]/50 overflow-hidden shadow">
+              <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-cover scale-105" />
             </div>
             <div>
               <div className="flex items-center gap-2">

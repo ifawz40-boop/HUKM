@@ -37,15 +37,19 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
       <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
         {/* Brand & Motto */}
         <div className="flex items-center gap-4 text-right">
-          <div className="h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-2xl border border-[#c59b27]/40 bg-[#070d1e] p-1.5 shadow-lg">
-            <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-contain" />
+          <div className="h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-2xl border-2 border-[#c59b27]/50 bg-[#050a16] shadow-xl shadow-black/80">
+            <img
+              src={HUKM_LOGO}
+              alt="حُكم | HUKM MEDIA"
+              className="h-full w-full object-cover scale-105"
+            />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-[#c59b27]/15 border border-[#c59b27]/30 px-2.5 py-0.5 text-[11px] font-bold text-[#f0cb69]">
                 مكتبة القراءة الرسمية
               </span>
-              <span className="text-xs text-[#94a3b8]">إبراهيم فوزي</span>
+              <span className="text-xs text-[#d4af37] font-semibold">المؤسس: Dr/ Islam Mohamed</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white font-cairo mt-1">
               مرحباً بك في منصة <span className="gold-gradient-text">حُكم | HUKM MEDIA</span>

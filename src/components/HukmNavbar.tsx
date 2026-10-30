@@ -41,6 +41,7 @@ interface HukmNavbarProps {
   onMarkAllNotificationsAsRead: () => void;
   onOpenSendAnnouncement: () => void;
   onOpenEmailModal?: () => void;
+  onOpenAdminManagement?: () => void;
 }
 
 export const HukmNavbar: React.FC<HukmNavbarProps> = ({
@@ -62,25 +63,26 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
   onMarkAllNotificationsAsRead,
   onOpenSendAnnouncement,
   onOpenEmailModal,
+  onOpenAdminManagement,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  // Strict Security Check: ONLY ifawz40@gmail.com has owner rights and access to the switcher
+  // Security Check: Authorized admins or owner
   const isActualOwnerUser = isAuthorizedOwnerEmail(currentUser.email);
   const isOwner = isActualOwnerUser && !isReaderPreviewMode;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#c59b27]/20 bg-[#070d1e]/90 backdrop-blur-md transition-colors" dir="rtl">
-      {/* Top micro-bar: ONLY visible to ifawz40@gmail.com exclusively */}
+      {/* Top micro-bar: visible to owner/admins */}
       {isActualOwnerUser && (
         <div className="bg-[#050a17] border-b border-[#c59b27]/30 py-1 px-4 text-xs">
           <div className="mx-auto flex max-w-7xl items-center justify-between text-[11px]">
             <div className="flex items-center gap-2">
-              <span className="text-[#94a3b8]">خاص بصاحب المنصة ({currentUser.email}):</span>
+              <span className="text-[#94a3b8]">خاص بالإدارة ({currentUser.email}):</span>
               {isOwner ? (
                 <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-0.5 font-black text-[#f0cb69] border border-amber-500/30">
                   <Crown className="h-3 w-3 text-amber-400" />
-                  واجهة صاحب المنصة والناشر الرسمي (تحكم كامل)
+                  صلاحيات الإدارة والتحرير (تحكم كامل)
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/20 px-2 py-0.5 font-bold text-blue-300 border border-blue-500/30">
@@ -91,10 +93,23 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {onOpenAdminManagement && (
+                <button
+                  type="button"
+                  onClick={onOpenAdminManagement}
+                  className="flex items-center gap-1 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-blue-500/40 px-2.5 py-0.5 text-[11px] font-bold text-blue-300 transition-all hover:scale-102 cursor-pointer"
+                  title="إدارة المدراء وتعيين الصلاحيات وحظر الحسابات"
+                >
+                  <ShieldCheck className="h-3 w-3 text-blue-400" />
+                  <span>إدارة المدراء والحظر 🛡️</span>
+                </button>
+              )}
+
               {onOpenEmailModal && (
                 <button
+                  type="button"
                   onClick={onOpenEmailModal}
-                  className="flex items-center gap-1 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-2 py-0.5 text-[11px] font-bold text-[#f0cb69] transition-all hover:scale-102"
+                  className="flex items-center gap-1 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-2 py-0.5 text-[11px] font-bold text-[#f0cb69] transition-all hover:scale-102 cursor-pointer"
                   title="مركز وهوية رسائل البريد الإلكتروني للمشتركين"
                 >
                   <Mail className="h-3 w-3 text-[#d4af37]" />
@@ -102,14 +117,15 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                 </button>
               )}
 
-              <span className="hidden sm:inline text-[#64748b]">ميزة التبديل الحصرية لبريدك:</span>
+              <span className="hidden sm:inline text-[#64748b]">التبديل السريع:</span>
               <button
+                type="button"
                 onClick={onToggleReaderPreview}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-2.5 py-0.5 text-[11px] font-bold text-[#f0cb69] transition-all hover:scale-102"
-                title="التبديل بين واجهة القارئ وواجهة صاحب الموقع (حصري لبريدك)"
+                className="flex items-center gap-1.5 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-2.5 py-0.5 text-[11px] font-bold text-[#f0cb69] transition-all hover:scale-102 cursor-pointer"
+                title="التبديل بين واجهة القارئ وواجهة الإدارة"
               >
                 <RefreshCw className="h-3 w-3 text-[#d4af37]" />
-                <span>{isOwner ? 'معاينة كقارئ 👁️' : 'العودة لواجهة صاحب الموقع 👑'}</span>
+                <span>{isOwner ? 'معاينة كقارئ 👁️' : 'العودة لواجهة الإدارة 👑'}</span>
               </button>
             </div>
           </div>
@@ -125,11 +141,11 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
             className="flex items-center gap-3.5 text-right group cursor-pointer focus:outline-none"
             aria-label="الرئيسية - حُكم HUKM MEDIA"
           >
-            <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-xl border border-[#c59b27]/40 p-0.5 shadow-lg shadow-black/60 bg-[#0a1226] transition-transform group-hover:scale-105">
+            <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-xl border border-[#c59b27]/50 shadow-lg shadow-black/70 bg-[#050a16]">
               <img
                 src={HUKM_LOGO}
                 alt="حُكم | HUKM MEDIA"
-                className="h-full w-full object-contain"
+                className="h-full w-full object-cover scale-105 transition-transform duration-300 group-hover:scale-110"
               />
             </div>
             <div>
