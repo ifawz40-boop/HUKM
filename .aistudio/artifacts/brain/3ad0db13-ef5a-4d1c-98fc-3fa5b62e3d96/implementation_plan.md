@@ -1,145 +1,57 @@
-# خطة اعتماد مؤسس المنصة د. إسلام محمد، نظام تعيين المدراء، وحظر الحسابات المخالفة وتطوير تجربة القراءة
+# HUKM MEDIA — Phase 0.5 & Phase 1 Execution & Verification
 
-تهدف هذه الخطة إلى تحويل منصة **حُكم | HUKM MEDIA** إلى بيئة مؤسسية متكاملة عبر اعتماد **د. إسلام محمد (Dr. Islam Mohamed)** كمؤسس ومشرف عام للمنصة، وتدشين نظام لإدارة وتعيين مدراء المنصة بالبريد الإلكتروني، وتطبيق نظام ضبط المعايير وحظر الحسابات المخالفة (مؤقتاً ودائماً)، بالإضافة إلى تنفيذ تحسينات تجربة القراءة والوصول المباشر للفصول.
-
----
-
-## مراجعة القرارات الحيوية (User Review & Critical Decisions)
-
-> [!IMPORTANT]
-> **القرارات المعتمدة في هذه المرحلة:**
-> 1. **المؤسس الرسمي للمنصة:** هو **Dr/ Islam Mohamed (د. إسلام محمد)** ويملك الصلاحية العليا والمؤسسية في المنصة وتوثيقها الرسمي في البيانات والتذييل والترويسات.
-> 2. **صلاحية الحسابات الإدارية:** البريد `ifawz40@gmail.com` والبريد الرسمي للمؤسس يكونان مدراء معتمدين افتراضياً، مع لوحة ديناميكية تتيح إضافة أي بريد إلكتروني لتعيينه مديراً يملك كامل صلاحيات التعديل والنشر.
-> 3. **نظام الحظر (Account Moderation):** يشمل نوعين (حظر مؤقت لمدد محددة: 24 ساعة، 7 أيام، 30 يوماً / أو حظر دائم)، مع تسجيل سبب الحظر، ومنع الحساب المحظور من التفاعل، مع إمكانية فك الحظر في أي وقت من قِبل المدراء.
-> 4. **تطوير واجهة القراءة:** تضمين زر استئناف القراءة المباشر من بطاقة الكتاب بالرئيسية، شريط تقدم التمرير الذهبي، وأنماط القراءة المريحة (سيبيا، كحلي، داكن OLED).
+## 1. Executive Summary
+- **Platform**: HUKM MEDIA (`https://ais-dev-ehrblkpqgzyfyqmyzoq2sv-30914264141.europe-west2.run.app`)
+- **Phases Completed**: 
+  - **Phase 0.5: Emergency Security Lockdown** (Privilege escalation removed, rules hardened, mock logins abolished)
+  - **Phase 1: Real Firebase Authentication** (Google sign-in, email/password registration + verification, password reset, guest browsing mode)
+- **Status**: Tested, verified, and compiled with 0 errors.
 
 ---
 
-## 1. نظرة عامة والمفهوم الجوهري (Overview & Core Concept)
-
-* **ما تقدمه المنصة:** بيئة نشر وقراءة معرفية وثائقية فاخرة تجمع بين سهولة وصول القارئ وتتبع تقدمه، وبين أدوات تحكم إدارية صارمة تتيح للمؤسس والمدراء إدارة المحتوى، تفويض الصلاحيات لمدراء جدد، وضبط سلوك المستخدمين بالحظر المؤقت أو الدائم.
-* **الجمهور المستهدف:**
-  * **المؤسس (د. إسلام محمد) والمدراء:** تحكم كامل في استوديو التأليف، إدارة فصول الكتب، إضافة مدراء جدد بالبريد، وفرض معايير المنصة وحظر المخالفين.
-  * **القراء والباحثون:** تصفح انسيابي بدون عوائق، وصول فوري للكتب، واستئناف مباشر للفصول الأخيرة.
-
----
-
-## 2. تجربة المستخدم والتصميم البصري (User Experience & Visual Design)
-
-### مسارات المستخدم الرئيسية (Key User Flows)
-
-1. **مسار تعيين مدير جديد (Assign New Admin Flow):**
-   * يدخل المؤسس أو المدير إلى نافذة **«إدارة المدراء والصلاحيات»** من الشريط العلوي.
-   * يدخل البريد الإلكتروني للشخص المراد تعيينه كمدير (مثال: `editor@hukm.media`) واسمه وصفته التحريرية.
-   * يضغط على **«منح صلاحية الإدارة والتعديل»**.
-   * يُسجل البريد فوراً في قائمة المدراء المعتمدين (`hukm_admins_v1`)؛ وبمجرد تسجيل هذا الشخص دخوله ببريده، تُفتح له كل أدوات استوديو النشر والتعديل.
-
-2. **مسار حظر حساب مخالف (User Moderation & Ban Flow):**
-   * في لوحة الإشراف **«إدارة الأعضاء وضبط المعايير»**: يبحث المدير عن البريد أو الحساب المخالف.
-   * يحدد نوع الحظر: **مؤقت** (24 ساعة / 7 أيام / 30 يوماً) أو **دائم**.
-   * يكتب سبب الحظر (مثال: "مخالفة معايير التعليق الموضوعي وإثارة الجدل غير اللائق").
-   * عند تأكيد الحظر: يُسجل الحساب في قائمة المحظورين (`hukm_banned_users_v1`)؛ وتُسحب جلسة المستخدم فوراً.
-   * عند محاولة المستخدم المحظور الدخول، تظهر له شاشة تنبيه فخمة بهوية حُكم:
-     * توضح نوع الحظر والمدة المتبقية بدقة والسبب المسجل من الإدارة مع بريد للتواصل والمراجعة.
-   * يمكن لأي مدير فك الحظر (Unban) بنقرة زر واحدة لإعادة تفعيل الحساب.
-
-3. **مسار استئناف القراءة المباشر (Quick Resume Reading Flow):**
-   * عند دخول القارئ للصفحة الرئيسية، تظهر بطاقات الكتب مع زر مباشر باللون الذهبي: **«استئناف: فصل [X]»** إذا كان قد بدأ الكتاب مسبقاً، مما يوفر عليه خطوة الدخول لصفحة التفاصيل.
-
-4. **مسار أنماط القراءة وشريط الإنجاز (Reader Themes & Progress Bar):**
-   * شريط تمرير ذهبي نحيف في أعلى الشاشة يتحرك مع قراءة الفصل.
-   * مبدل سمات القراءة: (الأزرق الملكي الحُكمي `#070d1e` / السيبيا الورقي الدافئ `#fdf6e2` / الأسود الحالك `#000000`).
+## 2. Phase 0.5: Security Lockdown Details
+1. **Elimination of Mock Users and Spoofing**:
+   - Removed `FOUNDER_USER`, `MANAGING_ADMIN_USER`, `DEMO_READER_USER`, `OWNER_USER`.
+   - Removed one-click "Quick Login" backdoor buttons from both `HukmLandingView` and `AuthModal`.
+   - Removed `?role=owner` and `?role=reader` URL query parameter parsing in `App.tsx`.
+   - Hardened `getStoredCurrentUser()` in `src/utils/authStorage.ts` to strictly return `null` instead of generating an unauthenticated mock owner.
+2. **Hardened `firestore.rules` (Deployed)**:
+   - Implemented Default Deny on all paths.
+   - Enforced `isOwner()` checking against authenticated emails `dr.islam.mohamed@hukm.media` and `ifawz40@gmail.com`.
+   - Enforced `isAdmin()` verifying authenticated UID in `admins/{uid}` or owner emails.
+   - Restricted write operations on `books` and `categories` to verified admins only.
+   - Prevented users from self-elevating `role` or `accountStatus` in `users/{userId}`.
+   - Restricted drafts from public read while keeping published works accessible to everyone.
 
 ---
 
-## 3. القرارات التقنية وهيكلية النظام (Technical Architecture & Data Strategy)
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        منصة حُكم | HUKM MEDIA                          │
-├────────────────────────────────────────────────────────────────────────┤
-│ المؤسس والمشرف العام: Dr/ Islam Mohamed (د. إسلام محمد)               │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                        │
-│  ┌───────────────────────┐            ┌─────────────────────────────┐  │
-│  │  إدارة المدراء        │            │  ضبط المعايير والحظر        │  │
-│  │  (Admins Registry)    │            │  (Moderation & Bans)        │  │
-│  │  - إضافة بريد مدير    │            │  - حظر مؤقت (24h/7d/30d)    │  │
-│  │  - صلاحيات التعديل    │            │  - حظر دائم                 │  │
-│  │  - إلغاء الإدارة      │            │  - فك الحظر الفوري          │  │
-│  └──────────┬────────────┘            └──────────────┬──────────────┘  │
-│             │                                        │                 │
-│             ▼                                        ▼                 │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                    طبقة التحقق والتخزين                          │  │
-│  │    hukm_admins_v1  │  hukm_banned_users_v1  │  hukm_books_v2     │  │
-│  └──────────────────────────────────┬───────────────────────────────┘  │
-│                                     │                                  │
-│             ┌───────────────────────┴───────────────────────┐          │
-│             ▼                                               ▼          │
-│  ┌───────────────────────┐                     ┌────────────────────┐  │
-│  │  استوديو التحرير      │                     │  واجهة القراءة     │  │
-│  │  (للمؤسس والمدراء)    │                     │  - استئناف مباشر   │  │
-│  │  - تعديل ونشر الكتب   │                     │  - متتبع الفصول    │  │
-│  │  - فصول ووسائط        │                     │  - أنماط مريحة     │  │
-│  └───────────────────────┘                     └────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### نماذج البيانات والحالات (Data Models)
-
-1. **بيانات المؤسس والمسؤول (`CreatorAccount` & `PlatformOwner`):**
-   * تحديث الاسم الافتراضي: `Dr/ Islam Mohamed (د. إسلام محمد)`.
-   * التوصيف المؤسسي: `المؤسس والمشرف العام — حُكم | HUKM MEDIA`.
-   * البريد الافتراضي للمؤسس والمدير التقني المشرف: `ifawz40@gmail.com` مع قائمة المدراء المصرح لهم.
-
-2. **سجل المدراء (`AdminAccount`):**
-   ```typescript
-   interface AdminAccount {
-     id: string;
-     email: string;
-     name: string;
-     title: string; // مثال: "مدير تحرير" / "مشرف محتوى"
-     addedBy: string;
-     addedAt: string;
-     canEditBooks: boolean;
-     canManageBans: boolean;
-   }
-   ```
-
-3. **سجل الحسابات المحظورة (`BannedAccount`):**
-   ```typescript
-   interface BannedAccount {
-     id: string;
-     email: string;
-     name?: string;
-     banType: 'temporary' | 'permanent';
-     reason: string;
-     bannedBy: string; // بريد المدير الذي أصدر الحظر
-     bannedAt: string;
-     expiresAt?: string; // تاريخ الانتهاء للحظر المؤقت
-     isActive: boolean;
-   }
-   ```
+## 3. Phase 1: Real Firebase Authentication Details
+1. **Unified Authentication Service (`src/firebase/authService.ts`)**:
+   - `signInWithGoogle()`: Seamless `signInWithPopup` with automatic fallback to `signInWithRedirect`.
+   - `registerWithEmail()`: `createUserWithEmailAndPassword`, `updateProfile` for display name, automatic `sendEmailVerification`, and Firestore `users/{uid}` sync.
+   - `loginWithEmail()`: `signInWithEmailAndPassword` with verified role determination.
+   - `resetPassword()`: Real `sendPasswordResetEmail`.
+   - `logoutUser()`: Real Firebase `signOut`.
+   - `subscribeToAuthState()`: Global listener synchronizing real user profile and role.
+   - `formatAuthError()`: Arabic error message mapping for all Firebase Auth error codes.
+2. **Seamless Guest Mode**:
+   - Unauthenticated visitors can browse the library, view categories, and read published books without forced login.
+   - Header displays "دخول / تسجيل" instead of admin controls.
+   - Attempting to bookmark books gently prompts the reader to sign in.
+3. **Role Determination (`determineUserRole`)**:
+   - Verified email `dr.islam.mohamed@hukm.media` -> `owner`.
+   - Verified email `ifawz40@gmail.com` -> `admin`.
+   - Firestore `admins/{uid}` presence -> `admin`.
+   - All other users -> `reader`.
 
 ---
 
-## 4. خطوات التنفيذ المنهجية (Implementation Steps)
-
-1. **تحديث هوية المؤسس في كافة بيانات المنصة (`src/data/hukmData.ts` & UI):**
-   * اعتماد `Dr/ Islam Mohamed` كمؤسس رئيسي في البيانات الافتراضية، الترويسات، التذييل، وهوية المنصة.
-2. **إنشاء وحدة إدارة المدراء والحظر (`src/utils/moderationTracker.ts`):**
-   * دوال إضافة والتحقق من صلاحية المدراء (`isAdminEmail`, `addAdmin`, `removeAdmin`, `getAdmins`).
-   * دوال فحص الحظر وتطبيقه (`isUserBanned`, `banUser`, `unbanUser`, `getActiveBans`).
-3. **بناء نافذة إدارة المدراء وضبط المعايير (`AdminManagementModal.tsx`):**
-   * تبويب إدارة المدراء: إضافة بريد مدير جديد، استعراض المدراء، وسحب الصلاحية.
-   * تبويب إدارة المحظورين: إضافة حظر (مؤقت/دائم) مع السبب، استعراض قائمة المحظورين مع مؤشر الوقت المتبقي، وزر فك الحظر.
-4. **تحديث شاشة تسجيل الدخول والتحقق (`AuthModal.tsx` & `App.tsx`):**
-   * فحص حالة الحظر تلقائياً؛ فإذا كان الحساب محظوراً تظهر شاشة تنبيه واضحة تفيده بالسبب ومدة الحظر.
-   * الاعتراف التلقائي بأي بريد مسجل كمدير ومنحه كامل أدوات النشر والتعديل.
-5. **تحديث بطاقة الكتاب بالصفحة الرئيسية (`BookCard.tsx`):**
-   * إضافة زر إجراء سريع ذهبي: **«استئناف: فصل [X]»** لسرعة الوصول دون الحاجة للمرور بصفحة الفهرس في كل مرة.
-6. **تحديث قارئ الفصول (`BookReaderView.tsx`):**
-   * إضافة شريط تقدم القراءة في أعلى الصفحة ومبدل أنماط القراءة (كحلي، سيبيا، داكن).
-7. **التحقق والاختبار الشامل (`compile_applet` & `lint_applet`):**
-   * التأكد من خلو المشروع تماماً من أي أخطاء برمجية أو تحذيرات.
+## 4. Verification & Testing
+- **Unit Tests (`src/utils/authStorage.test.ts`)**: 4/4 passing via `tsx --test`.
+- **Browser Automation Verification (`playwright-cli`)**:
+  - Tested unauthenticated visitor landing on home page: zero admin controls shown, clean hero and catalog displayed.
+  - Tested clicking "تصفح كتب ومشاريع حُكم كقارئ زائر": direct navigation to library without barriers.
+  - Tested opening "دخول / تسجيل": clean AuthModal with Google login, Email form, and Guest link.
+- **Build & Compilation**:
+  - `lint_applet`: 0 errors.
+  - `compile_applet`: Build succeeded with Vite.

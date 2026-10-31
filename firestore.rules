@@ -9,11 +9,27 @@ service cloud.firestore {
 
     // Helper functions
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && (
+        request.auth.token.firebase.sign_in_provider == 'google.com' ||
+        request.auth.token.email_verified == true
+      );
+    }
+
+    // Authoritative Custom Claims based roles (No email checking)
+    function isOwner() {
+      return isSignedIn() && isEmailVerified() && request.auth.token.role == 'owner';
+    }
+
+    function isAdmin() {
+      return isOwner() || (isSignedIn() && isEmailVerified() && request.auth.token.role == 'admin');
     }
 
     function incoming() {
@@ -24,52 +40,78 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Check if user is registered as admin or matches platform owner
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'dr.islam.mohamed@hukm.media' ||
-        request.auth.token.email == 'ifawz40@gmail.com' ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+    // 1. Users Collection
+    match /users/{userId} {
+      // User can read their own profile, or verified Admins can read profiles
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      
+      // User can create their initial profile only as reader
+      allow create: if isSignedIn() && request.auth.uid == userId && (
+        !('role' in incoming()) || incoming().role == 'reader' || isOwner()
       );
+
+      // User can update basic profile info, but CANNOT self-escalate role or accountStatus
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && 
+         incoming().role == existing().role && 
+         (!('accountStatus' in existing()) || incoming().accountStatus == existing().accountStatus)) ||
+        isOwner()
+      );
+
+      allow delete: if isOwner();
     }
 
-    // 1. Books collection: Public can read, Admins/Owner can write
+    // 2. Books Collection
     match /books/{bookId} {
-      allow read: if true;
-      allow create: if isValidId(bookId);
-      allow update: if isValidId(bookId);
-      allow delete: if isValidId(bookId);
+      // Public users can ONLY read published, ongoing, or completed books. Drafts are restricted to admins!
+      allow read: if (resource.data.status in ['published', 'completed', 'ongoing', 'ready']) || isAdmin();
+      
+      // Only verified Admins and Owner can create, update, or delete books
+      allow create, update, delete: if isAdmin() && isValidId(bookId);
     }
 
-    // 2. Categories collection: Public can read, Admins can write
+    // 3. Categories Collection: Public can read, Admins can write
     match /categories/{categoryId} {
       allow read: if true;
-      allow create: if isValidId(categoryId);
-      allow update: if isValidId(categoryId);
-      allow delete: if isValidId(categoryId);
+      allow create, update, delete: if isAdmin() && isValidId(categoryId);
     }
 
-    // 3. Admins registry
+    // 4. Admins Registry:
+    // Only verified Admins and Owner can read.
+    // ONLY OWNER can create, update, or delete admins. ADMINS CANNOT ASSIGN OR REVOKE ADMIN ROLES!
     match /admins/{adminId} {
-      allow read: if true;
-      allow create, update, delete: if isValidId(adminId);
+      allow read: if isAdmin();
+      allow create, update, delete: if isOwner() && isValidId(adminId);
     }
 
-    // 4. Bans and moderation registry
+    // 5. Bans and Moderation:
+    // Public users CANNOT read private bans. Only Admins can read or write bans.
     match /bans/{banId} {
-      allow read: if true;
-      allow create, update, delete: if isValidId(banId);
+      allow read, write: if isAdmin() && isValidId(banId);
     }
 
-    // 5. Email Subscribers
+    // 6. Notifications Collection:
+    // Public announcements can be read by anyone. Private notifications only by recipient or Admin.
+    match /notifications/{notificationId} {
+      allow read: if (resource.data.targetRole == 'all') || 
+                     (isSignedIn() && (request.auth.uid == resource.data.targetUid || isAdmin()));
+      allow create, update, delete: if isAdmin() && isValidId(notificationId);
+    }
+
+    // 7. Subscribers Collection:
+    // Public users cannot read subscriber information! Only Admins can read or manage subscribers.
     match /subscribers/{subscriberId} {
-      allow read: if true;
-      allow create, update, delete: if isValidId(subscriberId);
+      allow create: if isValidId(subscriberId);
+      allow read, update, delete: if isAdmin();
     }
 
-    // 6. Test connection collection
-    match /test/{docId} {
-      allow read, write: if true;
+    // 8. Reading Progress:
+    match /readingProgress/{progressId} {
+      allow read, write: if isSignedIn() && (
+        request.auth.uid == resource.data.userId || 
+        request.auth.uid == incoming().userId ||
+        isAdmin()
+      );
     }
   }
 }

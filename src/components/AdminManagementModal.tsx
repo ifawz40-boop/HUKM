@@ -5,7 +5,6 @@ import {
   ShieldCheck,
   ShieldAlert,
   UserPlus,
-  UserMinus,
   Ban,
   Clock,
   CheckCircle,
@@ -14,23 +13,33 @@ import {
   User,
   Crown,
   Trash2,
-  RotateCcw,
+  Search,
+  Loader2,
+  Lock,
 } from 'lucide-react';
 import { AdminAccount, BannedAccount, UserProfile } from '../types/auth';
 import {
-  getStoredAdmins,
-  addAdmin,
-  removeAdmin,
   getStoredBans,
   banUser,
   unbanUser,
   formatRemainingTime,
 } from '../utils/moderationTracker';
+import {
+  fetchAdminsFromFirestore,
+  fetchBansFromFirestore,
+  saveBanToFirestore,
+} from '../firebase/firestoreService';
+import { canManageAdmins, isOwner, isAdmin } from '../services/permissionService';
+import {
+  lookupUserByEmail,
+  assignAdminRole,
+  revokeAdminRole,
+} from '../services/adminClaimsClient';
 
 interface AdminManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUser: UserProfile;
+  currentUser: UserProfile | null;
   onShowToast: (message: string) => void;
 }
 
@@ -40,14 +49,27 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
   currentUser,
   onShowToast,
 }) => {
-  const [activeTab, setActiveTab] = useState<'admins' | 'bans'>('admins');
+  const isUserOwner = isOwner(currentUser);
+  const isUserAdmin = isAdmin(currentUser);
+
+  // If user is owner, default to admins tab; if regular admin, lock to bans tab
+  const [activeTab, setActiveTab] = useState<'admins' | 'bans'>(isUserOwner ? 'admins' : 'bans');
   const [adminsList, setAdminsList] = useState<AdminAccount[]>([]);
   const [bansList, setBansList] = useState<BannedAccount[]>([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
 
-  // Add Admin form state
-  const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [newAdminName, setNewAdminName] = useState('');
+  // User Lookup & Add Admin state
+  const [searchEmail, setSearchEmail] = useState('');
+  const [isSearchingUser, setIsSearchingUser] = useState(false);
+  const [foundUser, setFoundUser] = useState<{
+    uid: string;
+    email: string;
+    displayName: string;
+    emailVerified: boolean;
+    currentRole: string;
+  } | null>(null);
   const [newAdminTitle, setNewAdminTitle] = useState('مدير تحرير معتمد');
+  const [isAssigningRole, setIsAssigningRole] = useState(false);
 
   // Ban form state
   const [banEmail, setBanEmail] = useState('');
@@ -56,48 +78,95 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
   const [banDurationDays, setBanDurationDays] = useState<number>(7);
   const [banReason, setBanReason] = useState('مخالفة معايير الحوار الموضوعي وإساءة استخدام المنصة.');
 
-  useEffect(() => {
-    if (isOpen) {
-      setAdminsList(getStoredAdmins());
+  // Load admins and bans from Firestore
+  const loadAdmins = async () => {
+    setIsLoadingAdmins(true);
+    const remote = await fetchAdminsFromFirestore();
+    if (remote && remote.length > 0) {
+      setAdminsList(remote);
+    }
+    setIsLoadingAdmins(false);
+  };
+
+  const loadBans = async () => {
+    const remote = await fetchBansFromFirestore();
+    if (remote && remote.length > 0) {
+      setBansList(remote);
+    } else {
       setBansList(getStoredBans());
     }
-  }, [isOpen]);
+  };
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+      if (!isUserOwner) {
+        setActiveTab('bans');
+      }
+      loadAdmins();
+      loadBans();
+    }
+  }, [isOpen, isUserOwner]);
 
-  // Handlers for Admins
-  const handleAddAdmin = (e: React.FormEvent) => {
+  if (!isOpen || !currentUser || !isUserAdmin) return null;
+
+  // Search User by Email in Firebase Auth
+  const handleLookupUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdminEmail.trim()) {
-      onShowToast('يرجى كتابة البريد الإلكتروني للمدير.');
+    if (!searchEmail.trim() || !searchEmail.includes('@')) {
+      onShowToast('يرجى كتابة بريد إلكتروني صالح للبحث.');
       return;
     }
 
-    const res = addAdmin({
-      email: newAdminEmail,
-      name: newAdminName,
-      title: newAdminTitle,
-      addedBy: currentUser.name || 'إدارة حُكم',
-      canEditBooks: true,
-      canManageBans: true,
-    });
+    setIsSearchingUser(true);
+    setFoundUser(null);
+
+    const res = await lookupUserByEmail(searchEmail.trim());
+    setIsSearchingUser(false);
+
+    if (res.success && res.user) {
+      setFoundUser(res.user);
+      onShowToast(`تم العثور على الحساب: ${res.user.displayName}`);
+    } else {
+      onShowToast(res.message || 'لم يتم العثور على حساب مسجل بهذا البريد.');
+    }
+  };
+
+  // Assign Admin Custom Claim and UID identity
+  const handleConfirmAssignAdmin = async () => {
+    if (!foundUser) return;
+
+    if (!foundUser.emailVerified) {
+      onShowToast('عذراً، لا يمكن منح رتبة إدارية لحساب غير مؤكد بريدياً طبقاً لسياسة الأمان.');
+      return;
+    }
+
+    setIsAssigningRole(true);
+    const res = await assignAdminRole(foundUser.uid, newAdminTitle);
+    setIsAssigningRole(false);
 
     if (res.success) {
-      setAdminsList(getStoredAdmins());
-      setNewAdminEmail('');
-      setNewAdminName('');
       onShowToast(res.message);
+      setFoundUser(null);
+      setSearchEmail('');
+      await loadAdmins();
     } else {
       onShowToast(res.message);
     }
   };
 
-  const handleRemoveAdmin = (adminId: string, adminName: string) => {
-    if (confirm(`هل أنت متأكد من سحب صلاحية الإدارة من ${adminName}؟`)) {
-      const res = removeAdmin(adminId);
+  // Revoke Admin Custom Claim and revoke tokens
+  const handleRevokeAdmin = async (adminAccount: AdminAccount) => {
+    if (adminAccount.isFounder || adminAccount.role === 'owner') {
+      onShowToast('لا يمكن سحب صلاحيات المؤسس الرئيسي.');
+      return;
+    }
+
+    const targetUid = adminAccount.uid || adminAccount.id;
+    if (confirm(`هل أنت متأكد من سحب صلاحية الإدارة نهائياً من ${adminAccount.name}؟`)) {
+      const res = await revokeAdminRole(targetUid);
       if (res.success) {
-        setAdminsList(getStoredAdmins());
         onShowToast(res.message);
+        await loadAdmins();
       } else {
         onShowToast(res.message);
       }
@@ -118,11 +187,14 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
       banType,
       durationDays: banType === 'temporary' ? banDurationDays : undefined,
       reason: banReason,
-      bannedBy: currentUser.name || 'Dr/ Islam Mohamed',
+      bannedBy: currentUser.name || 'إدارة حُكم',
     });
 
     if (res.success) {
       setBansList(getStoredBans());
+      if (res.ban) {
+        saveBanToFirestore(res.ban);
+      }
       setBanEmail('');
       setBanName('');
       onShowToast(res.message);
@@ -131,7 +203,7 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
     }
   };
 
-  const handleUnban = (banId: string, email: string) => {
+  const handleUnban = (banId: string) => {
     const res = unbanUser(banId);
     if (res.success) {
       setBansList(getStoredBans());
@@ -158,18 +230,22 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black text-white font-cairo">
-                  مركز الإدارة وضبط المعايير والحظر | <span className="gold-gradient-text">HUKM MEDIA</span>
+                  مركز الإدارة والرقابة المعرفية | <span className="gold-gradient-text">HUKM MEDIA</span>
                 </h2>
               </div>
               <p className="text-xs text-[#94a3b8] font-cairo">
-                إشراف المؤسس: <strong className="text-[#f0cb69]">Dr/ Islam Mohamed</strong>
+                {isUserOwner ? (
+                  <span className="text-[#f0cb69] font-bold">صاحب المنصة والمشرف العام (صلاحيات كاملة تشمل تعيين وسحب المدراء) 👑</span>
+                ) : (
+                  <span className="text-blue-300 font-bold">مدير معتمد (إدارة المحتوى وضبط المعايير والحظر) 🛡️</span>
+                )}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-[#94a3b8] hover:bg-white/10 hover:text-white transition-colors"
+            className="rounded-full p-2 text-[#94a3b8] hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
             aria-label="إغلاق"
           >
             <X className="h-5 w-5" />
@@ -179,15 +255,24 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
         {/* Tab Navigation */}
         <div className="flex border-b border-white/10 bg-[#081023] px-6 pt-3 gap-4">
           <button
-            onClick={() => setActiveTab('admins')}
+            onClick={() => {
+              if (isUserOwner) {
+                setActiveTab('admins');
+              } else {
+                onShowToast('خاص بصاحب المنصة: تعيين وسحب المدراء مقتصر حصرياً على رتبة Owner.');
+              }
+            }}
             className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'admins'
                 ? 'border-[#c59b27] text-[#f0cb69]'
-                : 'border-transparent text-[#94a3b8] hover:text-white'
+                : isUserOwner
+                ? 'border-transparent text-[#94a3b8] hover:text-white'
+                : 'border-transparent text-slate-500 opacity-60 cursor-not-allowed'
             }`}
           >
-            <Shield className="h-4 w-4" />
+            {isUserOwner ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
             <span>تعيين وإدارة المدراء ({adminsList.length})</span>
+            {!isUserOwner && <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Owner فقط</span>}
           </button>
 
           <button
@@ -205,360 +290,333 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
-          {/* TAB 1: ADMINS MANAGEMENT */}
+          {/* TAB 1: ADMINS MANAGEMENT (OWNER ONLY) */}
           {activeTab === 'admins' && (
-            <div className="space-y-6">
-              {/* Add Admin Card */}
-              <div className="rounded-2xl border border-[#c59b27]/30 bg-[#0a142c] p-4 sm:p-5">
-                <div className="flex items-center gap-2 mb-3 text-white font-cairo text-sm font-bold">
-                  <UserPlus className="h-4 w-4 text-[#d4af37]" />
-                  <span>تعيين بريد شخص كمدير للمنصة (منح صلاحيات التعديل والنشر)</span>
-                </div>
-                <p className="text-xs text-[#94a3b8] mb-4 leading-relaxed">
-                  بمجرد إضافة البريد الإلكتروني، سيتمكن صاحبه فور تسجيل الدخول من الدخول إلى استوديو تأليف ونشر الكتب، وتعديل الفصول، وإدارة التصنيفات.
-                </p>
+            isUserOwner ? (
+              <div className="space-y-6">
+                {/* Search & Assign Admin Card */}
+                <div className="rounded-2xl border border-[#c59b27]/30 bg-[#0a142c] p-4 sm:p-5">
+                  <div className="flex items-center gap-2 mb-2 text-white font-cairo text-sm font-bold">
+                    <UserPlus className="h-4 w-4 text-[#d4af37]" />
+                    <span>تعيين مدير موثق عبر معرف Firebase UID الحقيقي</span>
+                  </div>
+                  <p className="text-xs text-[#94a3b8] mb-4 leading-relaxed">
+                    لحماية المنصة، يتم التحقق أولاً من وجود حساب المستخدم في Firebase وتأكيد بريده الإلكتروني قبل منح Custom Claims.
+                  </p>
 
-                <form onSubmit={handleAddAdmin} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#cbd5e1] mb-1">
-                      البريد الإلكتروني للمدير <span className="text-red-400">*</span>
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute right-3 top-2.5 h-4 w-4 text-[#94a3b8]" />
+                  <form onSubmit={handleLookupUser} className="flex flex-col sm:flex-row gap-2.5 mb-4">
+                    <div className="relative flex-1">
+                      <Mail className="absolute right-3.5 top-3 h-4 w-4 text-[#64748b]" />
                       <input
                         type="email"
                         required
-                        value={newAdminEmail}
-                        onChange={(e) => setNewAdminEmail(e.target.value)}
-                        placeholder="editor@hukm.media"
-                        className="w-full rounded-xl border border-white/15 bg-[#050a16] pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:border-[#c59b27] focus:outline-none"
+                        value={searchEmail}
+                        onChange={(e) => setSearchEmail(e.target.value)}
+                        placeholder="ابحث بالبريد الإلكتروني المسجل في المنصة..."
+                        className="w-full rounded-xl bg-[#050a16] border border-white/15 px-3.5 py-2.5 pr-10 text-xs text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#cbd5e1] mb-1">
-                      اسم المدير
-                    </label>
-                    <div className="relative">
-                      <User className="absolute right-3 top-2.5 h-4 w-4 text-[#94a3b8]" />
-                      <input
-                        type="text"
-                        value={newAdminName}
-                        onChange={(e) => setNewAdminName(e.target.value)}
-                        placeholder="مثال: د. كمال رضوان"
-                        className="w-full rounded-xl border border-white/15 bg-[#050a16] pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:border-[#c59b27] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#cbd5e1] mb-1">
-                      المسمى التحريري
-                    </label>
-                    <input
-                      type="text"
-                      value={newAdminTitle}
-                      onChange={(e) => setNewAdminTitle(e.target.value)}
-                      placeholder="مدير تحرير / باحث استقصائي"
-                      className="w-full rounded-xl border border-white/15 bg-[#050a16] px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-[#c59b27] focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-3 flex justify-end pt-2">
                     <button
                       type="submit"
-                      className="flex items-center gap-2 rounded-xl gold-gradient-btn px-5 py-2.5 text-xs font-bold text-[#070d1e] shadow transition-all hover:scale-101 cursor-pointer"
+                      disabled={isSearchingUser}
+                      className="flex items-center justify-center gap-2 rounded-xl gold-gradient-btn px-5 py-2.5 text-xs font-bold text-[#070d1e] shadow-md hover:scale-102 transition-transform cursor-pointer shrink-0 disabled:opacity-50"
                     >
-                      <UserPlus className="h-4 w-4" />
-                      <span>منح صلاحيات الإدارة والتعديل</span>
+                      {isSearchingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      <span>فحص الحساب وتأكيده</span>
                     </button>
-                  </div>
-                </form>
-              </div>
+                  </form>
 
-              {/* Current Admins List */}
-              <div>
-                <h3 className="text-sm font-bold text-white font-cairo mb-3">
-                  قائمة المدراء المعتمدين حالياً بالمنصة
-                </h3>
-                <div className="space-y-2.5">
-                  {adminsList.map((admin) => (
-                    <div
-                      key={admin.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#091124] p-3.5 hover:border-[#c59b27]/30 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-sm ${
-                            admin.isFounder
-                              ? 'bg-[#c59b27]/20 border border-[#c59b27] text-[#f0cb69]'
-                              : 'bg-blue-950/40 border border-blue-500/30 text-blue-400'
-                          }`}
-                        >
-                          {admin.isFounder ? <Crown className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
-                        </div>
-                        <div>
+                  {/* Found Account Preview Card */}
+                  {foundUser && (
+                    <div className="rounded-2xl bg-[#070d1e] border border-[#c59b27]/40 p-4 space-y-3 animate-in fade-in duration-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                        <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="text-xs sm:text-sm font-bold text-white font-cairo">
-                              {admin.name}
-                            </h4>
-                            {admin.isFounder && (
-                              <span className="rounded-full bg-[#c59b27]/20 border border-[#c59b27]/50 px-2 py-0.5 text-[10px] font-bold text-[#f0cb69]">
-                                المؤسس الرسمي
-                              </span>
-                            )}
-                            <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-[#cbd5e1]">
-                              {admin.title}
+                            <span className="text-sm font-bold text-white">{foundUser.displayName}</span>
+                            <span className="text-xs text-[#94a3b8]">({foundUser.email})</span>
+                          </div>
+                          <span className="text-[11px] text-[#64748b] font-mono block">Firebase UID: {foundUser.uid}</span>
+                        </div>
+
+                        <div>
+                          {foundUser.emailVerified ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 text-xs font-bold">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              البريد مؤكد وموثق
                             </span>
-                          </div>
-                          <div className="flex items-center gap-3 text-[11px] text-[#94a3b8] mt-0.5">
-                            <span>{admin.email}</span>
-                            <span>• أضيف بواسطة: {admin.addedBy}</span>
-                          </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 text-xs font-bold">
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              بريد غير مؤكد (لا يمكن ترقيته)
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 self-end sm:self-center">
-                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                          <CheckCircle className="h-3 w-3" />
-                          <span>صلاحيات التعديل كاملة</span>
-                        </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[11px] text-[#cbd5e1] mb-1 font-bold">المسمى الإداري:</label>
+                          <input
+                            type="text"
+                            value={newAdminTitle}
+                            onChange={(e) => setNewAdminTitle(e.target.value)}
+                            placeholder="مثلاً: مدير تحرير معتمد"
+                            className="w-full rounded-xl bg-[#050a16] border border-white/15 px-3 py-2 text-xs text-white focus:border-[#c59b27] focus:outline-none"
+                          />
+                        </div>
 
-                        {!admin.isFounder && (
+                        <div className="flex items-end">
                           <button
                             type="button"
-                            onClick={() => handleRemoveAdmin(admin.id, admin.name)}
-                            className="rounded-lg p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="سحب صلاحية الإدارة"
+                            onClick={handleConfirmAssignAdmin}
+                            disabled={!foundUser.emailVerified || isAssigningRole}
+                            className="w-full flex items-center justify-center gap-2 rounded-xl gold-gradient-btn py-2 text-xs font-bold text-[#070d1e] shadow-md hover:scale-101 transition-transform cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           >
-                            <UserMinus className="h-4 w-4" />
+                            {isAssigningRole ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>جاري تعيين Custom Claims...</span>
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck className="h-4 w-4" />
+                                <span>منح رتبة مدير وتفعيل Custom Claims</span>
+                              </>
+                            )}
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  )}
+                </div>
+
+                {/* Admins Table */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-[#d4af37]" />
+                      <span>قائمة المدراء والمشرفين المعتمدين في النظام ({adminsList.length})</span>
+                    </h3>
+                  </div>
+
+                  {isLoadingAdmins ? (
+                    <div className="text-center py-8 text-xs text-[#94a3b8] flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#d4af37]" />
+                      <span>جاري مزامنة قائمة المدراء من Firestore...</span>
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a1226]">
+                      <table className="w-full text-right text-xs">
+                        <thead className="bg-[#050a16] text-[#94a3b8] border-b border-white/10 font-bold">
+                          <tr>
+                            <th className="py-3 px-4">المدير / المشرف</th>
+                            <th className="py-3 px-4">المسمى والرتبة</th>
+                            <th className="py-3 px-4 hidden md:table-cell">معرف Firebase UID</th>
+                            <th className="py-3 px-4 text-center">إجراءات الصلاحية</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {adminsList.map((admin) => (
+                            <tr key={admin.uid || admin.id} className="hover:bg-white/5 transition-colors">
+                              <td className="py-3.5 px-4">
+                                <div className="font-bold text-white flex items-center gap-1.5">
+                                  {admin.role === 'owner' || admin.isFounder ? (
+                                    <Crown className="h-3.5 w-3.5 text-amber-400" />
+                                  ) : (
+                                    <Shield className="h-3.5 w-3.5 text-blue-400" />
+                                  )}
+                                  <span>{admin.name}</span>
+                                </div>
+                                <span className="text-[11px] text-[#94a3b8] block">{admin.email}</span>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold border ${
+                                  admin.role === 'owner' || admin.isFounder
+                                    ? 'bg-amber-500/20 text-[#f0cb69] border-amber-500/30'
+                                    : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                                }`}>
+                                  {admin.title}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4 hidden md:table-cell text-[#64748b] font-mono text-[10px]">
+                                {admin.uid || admin.id}
+                              </td>
+
+                              <td className="py-3.5 px-4 text-center">
+                                {admin.role === 'owner' || admin.isFounder ? (
+                                  <span className="text-[11px] text-[#64748b]">المؤسس (محمي)</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRevokeAdmin(admin)}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 px-2.5 py-1 text-[11px] font-bold text-red-300 transition-colors cursor-pointer"
+                                    title="سحب صلاحية الإدارة وإلغاء Custom Claims فوراً"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    <span>سحب الصلاحية</span>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-8 text-center text-slate-400">
+                <Lock className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                <p className="font-bold text-white">إدارة المدراء مخصصة لصاحب المنصة (Owner) حصرياً.</p>
+              </div>
+            )
           )}
 
-          {/* TAB 2: BANS & USER MODERATION */}
+          {/* TAB 2: BANS & MODERATION (ACCESSIBLE TO ADMIN & OWNER) */}
           {activeTab === 'bans' && (
             <div className="space-y-6">
-              {/* Ban Form */}
-              <div className="rounded-2xl border border-red-500/30 bg-[#160a0f] p-4 sm:p-5">
-                <div className="flex items-center gap-2 mb-3 text-red-400 font-cairo text-sm font-bold">
-                  <ShieldAlert className="h-4 w-4" />
-                  <span>حظر حساب غير ملتزم بالمعايير (مؤقت أو دائم)</span>
+              {/* Add Ban Card */}
+              <div className="rounded-2xl border border-red-500/30 bg-[#160b13]/60 p-4 sm:p-5">
+                <div className="flex items-center gap-2 mb-2 text-red-300 font-cairo text-sm font-bold">
+                  <ShieldAlert className="h-4 w-4 text-red-400" />
+                  <span>إصدار قرار حظر / تعليق حساب مخالف للمعاير</span>
                 </div>
-                <p className="text-xs text-slate-300 mb-4 leading-relaxed">
-                  يمنع الحساب المحظور من تسجيل الدخول والمشاركة على المنصة، وتظهر له رسالة توضح نوع ومدة الحظر والسبب المسجل من الإدارة.
+                <p className="text-xs text-[#94a3b8] mb-4 leading-relaxed">
+                  الحساب المحظور يُمنع فورياً من التفاعل أو القراءة وتظهر له وثيقة المخالفة الرسمية وتوقيت انتهاء التعليق.
                 </p>
 
-                <form onSubmit={handleBanUser} className="space-y-3">
+                <form onSubmit={handleBanUser} className="space-y-3.5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                        البريد الإلكتروني المراد حظره <span className="text-red-400">*</span>
-                      </label>
+                      <label className="block text-[11px] text-[#cbd5e1] mb-1 font-bold">بريد الحساب المخالف:</label>
                       <input
                         type="email"
                         required
                         value={banEmail}
                         onChange={(e) => setBanEmail(e.target.value)}
-                        placeholder="user.violator@domain.com"
-                        className="w-full rounded-xl border border-red-500/20 bg-[#070d1e] px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                        placeholder="user@example.com"
+                        className="w-full rounded-xl bg-[#070d1e] border border-white/15 px-3 py-2 text-xs text-white focus:border-red-500 focus:outline-none"
                       />
                     </div>
-
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                        اسم صاحب الحساب (اختياري)
-                      </label>
+                      <label className="block text-[11px] text-[#cbd5e1] mb-1 font-bold">اسم صاحب الحساب (اختياري):</label>
                       <input
                         type="text"
                         value={banName}
                         onChange={(e) => setBanName(e.target.value)}
-                        placeholder="اسم المستخدم إن وُجد"
-                        className="w-full rounded-xl border border-red-500/20 bg-[#070d1e] px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                        placeholder="اسم المستخدم"
+                        className="w-full rounded-xl bg-[#070d1e] border border-white/15 px-3 py-2 text-xs text-white focus:border-red-500 focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                        نوع الحظر
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setBanType('temporary')}
-                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
-                            banType === 'temporary'
-                              ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                              : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          حظر مؤقت
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setBanType('permanent')}
-                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
-                            banType === 'permanent'
-                              ? 'bg-red-500/20 border-red-500 text-red-300'
-                              : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          حظر دائم نهائي
-                        </button>
-                      </div>
+                      <label className="block text-[11px] text-[#cbd5e1] mb-1 font-bold">نوع الحظر:</label>
+                      <select
+                        value={banType}
+                        onChange={(e) => setBanType(e.target.value as 'temporary' | 'permanent')}
+                        className="w-full rounded-xl bg-[#070d1e] border border-white/15 px-3 py-2 text-xs text-white focus:border-red-500 focus:outline-none"
+                      >
+                        <option value="temporary">تعليق مؤقت (محدد بأيام)</option>
+                        <option value="permanent">حظر دائم وشامل</option>
+                      </select>
                     </div>
 
                     {banType === 'temporary' && (
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                          مدة الحظر المؤقت
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setBanDurationDays(1)}
-                            className={`py-2 rounded-xl text-xs font-bold border cursor-pointer ${
-                              banDurationDays === 1
-                                ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                                : 'bg-white/5 border-white/10 text-slate-400'
-                            }`}
-                          >
-                            24 ساعة
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setBanDurationDays(7)}
-                            className={`py-2 rounded-xl text-xs font-bold border cursor-pointer ${
-                              banDurationDays === 7
-                                ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                                : 'bg-white/5 border-white/10 text-slate-400'
-                            }`}
-                          >
-                            7 أيام
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setBanDurationDays(30)}
-                            className={`py-2 rounded-xl text-xs font-bold border cursor-pointer ${
-                              banDurationDays === 30
-                                ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                                : 'bg-white/5 border-white/10 text-slate-400'
-                            }`}
-                          >
-                            30 يوماً
-                          </button>
-                        </div>
+                        <label className="block text-[11px] text-[#cbd5e1] mb-1 font-bold">المدة بالأيام:</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={banDurationDays}
+                          onChange={(e) => setBanDurationDays(parseInt(e.target.value) || 1)}
+                          className="w-full rounded-xl bg-[#070d1e] border border-white/15 px-3 py-2 text-xs text-white focus:border-red-500 focus:outline-none"
+                        />
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      سبب الحظر (يظهر للمستخدم عند محاولة الدخول)
-                    </label>
-                    <textarea
-                      rows={2}
+                    <label className="block text-[11px] text-[#cbd5e1] mb-1 font-bold">سبب المخالفة الصريح:</label>
+                    <input
+                      type="text"
+                      required
                       value={banReason}
                       onChange={(e) => setBanReason(e.target.value)}
-                      className="w-full rounded-xl border border-red-500/20 bg-[#070d1e] p-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                      placeholder="سبب القرار الذي سيظهر للمستخدم..."
+                      className="w-full rounded-xl bg-[#070d1e] border border-white/15 px-3 py-2 text-xs text-white focus:border-red-500 focus:outline-none"
                     />
                   </div>
 
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="submit"
-                      className="flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 py-2.5 px-5 text-xs font-bold text-white shadow transition-all cursor-pointer"
-                    >
-                      <Ban className="h-4 w-4" />
-                      <span>تأكيد فرض الحظر على الحساب</span>
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-red-950/50 transition-all cursor-pointer"
+                  >
+                    تطبيق قرار الحظر والتعليق
+                  </button>
                 </form>
               </div>
 
-              {/* Banned Accounts List */}
-              <div>
-                <h3 className="text-sm font-bold text-white font-cairo mb-3 flex items-center justify-between">
-                  <span>سجل الحسابات المحظورة والمقيدة</span>
-                  <span className="text-xs text-slate-400 font-normal">
-                    {activeBansCount} حسابات محظورة حالياً
-                  </span>
+              {/* Bans List */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Ban className="h-4 w-4 text-red-400" />
+                  <span>سجل الحسابات المحظورة والمعلقة ({bansList.length})</span>
                 </h3>
 
                 {bansList.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-[#091124] p-8 text-center text-[#94a3b8]">
-                    لا توجد أي حسابات محظورة حالياً.
+                  <div className="rounded-xl border border-white/5 bg-[#0a1226] p-6 text-center text-xs text-[#64748b]">
+                    لا توجد حسابات معلقة حالياً. المنصة في حالة استقرار تام.
                   </div>
                 ) : (
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {bansList.map((ban) => (
                       <div
                         key={ban.id}
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-4 transition-colors ${
+                        className={`rounded-2xl border p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-colors ${
                           ban.isActive
-                            ? 'border-red-500/30 bg-[#14080c]'
-                            : 'border-white/10 bg-[#091124] opacity-60'
+                            ? 'bg-[#150a11] border-red-500/30'
+                            : 'bg-[#0a1226] border-white/5 opacity-60'
                         }`}
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs sm:text-sm font-bold text-white font-cairo">
-                              {ban.email}
-                            </span>
-                            {ban.name && (
-                              <span className="text-xs text-slate-400">({ban.name})</span>
-                            )}
+                            <span className="font-bold text-white">{ban.name || ban.email}</span>
+                            <span className="text-[#94a3b8]">({ban.email})</span>
                             <span
                               className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                                !ban.isActive
-                                ? 'bg-slate-700 text-slate-300'
-                                : ban.banType === 'permanent'
-                                ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                ban.isActive
+                                  ? ban.banType === 'permanent'
+                                    ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                  : 'bg-slate-700 text-slate-300'
                               }`}
                             >
-                              {!ban.isActive
-                                ? 'تم رفع الحظر'
-                                : ban.banType === 'permanent'
-                                ? 'حظر دائم'
-                                : 'حظر مؤقت'}
+                              {ban.isActive
+                                ? ban.banType === 'permanent'
+                                  ? 'حظر دائم'
+                                  : `مؤقت: ${formatRemainingTime(ban.expiresAt)}`
+                                : 'منتهي / ملغى'}
                             </span>
                           </div>
-
-                          <p className="text-xs text-slate-300 leading-relaxed">
-                            <strong className="text-slate-400">السبب:</strong> {ban.reason}
-                          </p>
-
-                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-0.5">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {ban.isActive ? formatRemainingTime(ban.expiresAt) : 'حظر غير نشط'}
-                            </span>
-                            <span>بواسطة: {ban.bannedBy}</span>
-                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">السبب: {ban.reason}</p>
+                          <span className="text-[10px] text-[#64748b] block">بواسطة: {ban.bannedBy}</span>
                         </div>
 
-                        <div>
-                          {ban.isActive && (
-                            <button
-                              type="button"
-                              onClick={() => handleUnban(ban.id, ban.email)}
-                              className="flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                              <span>رفع الحظر الآن</span>
-                            </button>
-                          )}
-                        </div>
+                        {ban.isActive && (
+                          <button
+                            type="button"
+                            onClick={() => handleUnban(ban.id)}
+                            className="rounded-xl bg-white/10 hover:bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
+                          >
+                            رفع الحظر
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

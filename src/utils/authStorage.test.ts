@@ -5,50 +5,95 @@ import {
   isAuthorizedOwnerEmail,
   canSwitchViewMode,
   toggleUserBookmark,
-  OWNER_USER,
-  DEMO_READER_USER,
-  OWNER_EMAIL,
+  getStoredCurrentUser,
 } from './authStorage';
+import { UserProfile } from '../types/auth';
 
-describe('Auth & Permission Engine Tests', () => {
-  it('correctly verifies Owner role exclusively for ifawz40@gmail.com', () => {
+describe('Hardened Auth & Permission Security Tests', () => {
+  it('strictly verifies owner authorization only for dr.islam.mohamed@hukm.media and ifawz40@gmail.com', () => {
+    assert.strictEqual(isAuthorizedOwnerEmail('dr.islam.mohamed@hukm.media'), true);
+    assert.strictEqual(isAuthorizedOwnerEmail('DR.ISLAM.MOHAMED@HUKM.MEDIA '), true);
     assert.strictEqual(isAuthorizedOwnerEmail('ifawz40@gmail.com'), true);
     assert.strictEqual(isAuthorizedOwnerEmail('IFAWZ40@GMAIL.COM '), true);
+
+    // Unauthenticated or arbitrary emails must be rejected
     assert.strictEqual(isAuthorizedOwnerEmail('reader@hukm.media'), false);
-    assert.strictEqual(isAuthorizedOwnerEmail('random_user@gmail.com'), false);
-
-    assert.strictEqual(isOwner(OWNER_USER), true);
-    assert.strictEqual(isOwner({ ...DEMO_READER_USER, email: 'ifawz40@gmail.com' }), true);
+    assert.strictEqual(isAuthorizedOwnerEmail('random_hacker@gmail.com'), false);
+    assert.strictEqual(isAuthorizedOwnerEmail(null), false);
+    assert.strictEqual(isAuthorizedOwnerEmail(undefined), false);
   });
 
-  it('strictly limits view mode switching privilege to ifawz40@gmail.com only', () => {
-    assert.strictEqual(canSwitchViewMode(OWNER_USER), true);
-    assert.strictEqual(canSwitchViewMode({ ...DEMO_READER_USER, email: 'ifawz40@gmail.com' }), true);
+  it('verifies isOwner only when email is authorized AND role is owner/admin', () => {
+    const validFounder: UserProfile = {
+      id: 'uid-founder-1',
+      name: 'Dr. Islam Mohamed',
+      email: 'dr.islam.mohamed@hukm.media',
+      role: 'owner',
+      joinedDate: '2026-01-01',
+      bookmarks: [],
+      readHistory: [],
+    };
+    assert.strictEqual(isOwner(validFounder), true);
 
-    // Regular reader cannot switch view mode
-    assert.strictEqual(canSwitchViewMode(DEMO_READER_USER), false);
-    assert.strictEqual(canSwitchViewMode({ ...OWNER_USER, email: 'other@gmail.com' }), false);
-    assert.strictEqual(canSwitchViewMode(null), false);
-    assert.strictEqual(canSwitchViewMode(undefined), false);
-  });
+    const validManagingAdmin: UserProfile = {
+      id: 'uid-admin-1',
+      name: 'Ibrahim Fawzy',
+      email: 'ifawz40@gmail.com',
+      role: 'admin',
+      joinedDate: '2026-01-01',
+      bookmarks: [],
+      readHistory: [],
+    };
+    assert.strictEqual(isOwner(validManagingAdmin), true);
 
-  it('correctly verifies Reader role has no admin permissions', () => {
-    assert.strictEqual(isOwner(DEMO_READER_USER), false);
+    // Spoofed role without authorized email must fail
+    const spoofedUser: UserProfile = {
+      id: 'uid-spoof-1',
+      name: 'Imposter',
+      email: 'attacker@gmail.com',
+      role: 'owner',
+      joinedDate: '2026-01-01',
+      bookmarks: [],
+      readHistory: [],
+    };
+    assert.strictEqual(isOwner(spoofedUser), false);
+
+    // Normal reader must fail
+    const regularReader: UserProfile = {
+      id: 'uid-reader-1',
+      name: 'Karim Reader',
+      email: 'karim@gmail.com',
+      role: 'reader',
+      joinedDate: '2026-01-01',
+      bookmarks: [],
+      readHistory: [],
+    };
+    assert.strictEqual(isOwner(regularReader), false);
     assert.strictEqual(isOwner(null), false);
     assert.strictEqual(isOwner(undefined), false);
   });
 
-  it('correctly toggles bookmarks for a user', () => {
-    const user = { ...DEMO_READER_USER, bookmarks: ['book-1'] };
-    // Adding book-2
-    const withBook2 = toggleUserBookmark(user, 'book-2');
-    assert.ok(withBook2.bookmarks.includes('book-2'));
-    assert.ok(withBook2.bookmarks.includes('book-1'));
+  it('guarantees getStoredCurrentUser returns null (no mock owner bypass in local storage)', () => {
+    assert.strictEqual(getStoredCurrentUser(), null);
+  });
 
-    // Removing book-1
-    const withoutBook1 = toggleUserBookmark(withBook2, 'book-1');
-    assert.strictEqual(withoutBook1.bookmarks.includes('book-1'), false);
-    assert.strictEqual(withoutBook1.bookmarks.includes('book-2'), true);
+  it('correctly toggles bookmarks for authenticated user', () => {
+    const testUser: UserProfile = {
+      id: 'uid-test-1',
+      name: 'Reader',
+      email: 'reader@example.com',
+      role: 'reader',
+      joinedDate: '2026-01-01',
+      bookmarks: ['book-1'],
+      readHistory: [],
+    };
+
+    const added = toggleUserBookmark(testUser, 'book-2');
+    assert.ok(added.bookmarks.includes('book-2'));
+    assert.ok(added.bookmarks.includes('book-1'));
+
+    const removed = toggleUserBookmark(added, 'book-1');
+    assert.strictEqual(removed.bookmarks.includes('book-1'), false);
+    assert.strictEqual(removed.bookmarks.includes('book-2'), true);
   });
 });
-

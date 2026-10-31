@@ -1,7 +1,7 @@
 export type UserRole = 'owner' | 'admin' | 'reader';
 
 export interface UserProfile {
-  id: string;
+  id: string; // Firebase UID
   name: string;
   email: string;
   role: UserRole;
@@ -10,13 +10,17 @@ export interface UserProfile {
   joinedDate: string;
   bookmarks: string[]; // Book IDs
   readHistory: string[]; // Chapter IDs
+  emailVerified: boolean;
+  customClaims?: Record<string, any>;
 }
 
 export interface AdminAccount {
-  id: string;
+  id: string; // Firebase UID
+  uid: string; // Explicit Firebase UID
   email: string;
   name: string;
   title: string; // e.g. "مدير تحرير", "مشرف محتوى", "مؤسس المنصة"
+  role: 'owner' | 'admin';
   addedBy: string;
   addedAt: string;
   canEditBooks: boolean;
@@ -71,3 +75,5 @@ export interface EmailLogEntry {
   previewHtml: string;
   delivered: boolean;
 }
+
+export type HukmEmailLog = EmailLogEntry;

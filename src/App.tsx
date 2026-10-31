@@ -61,34 +61,46 @@ import {
   deleteCategory,
 } from './utils/hukmEngine';
 import {
-  getStoredCurrentUser,
-  saveStoredCurrentUser,
   getStoredNotifications,
   saveStoredNotifications,
   toggleUserBookmark,
-  isAuthorizedOwnerEmail,
-  canSwitchViewMode,
-  OWNER_USER,
-  DEMO_READER_USER,
   getStoredSubscribers,
   addEmailLog,
 } from './utils/authStorage';
+import { subscribeToAuthState, logoutUser } from './firebase/authService';
+import { isOwner as checkIsOwner, isAdmin as checkIsAdmin } from './services/permissionService';
 import { generateNewReleaseEmailHtml } from './utils/emailTemplateGenerator';
 
 export default function App() {
-  // Default entry view is now landing: Platform Introduction & Sign-in Portal
+  // Default entry view is landing: Platform Introduction & Sign-in Portal
   const [currentView, setCurrentView] = useState<string>('landing');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [selectedBookId, setSelectedBookId] = useState<string>('');
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
 
-  // User Auth & Role State
-  const [currentUser, setCurrentUser] = useState<UserProfile>(() => getStoredCurrentUser());
+  // Real User Auth & Role State (null when unauthenticated visitor / guest)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isReaderPreviewMode, setIsReaderPreviewMode] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
-  // Strict check: Founder Dr. Islam Mohamed and Managing Admin Ibrahim Fawzy
-  const isActualOwner = isAuthorizedOwnerEmail(currentUser.email);
-  const isOwner = isActualOwner && !isReaderPreviewMode;
+  // Authoritative permissions derived strictly from Firebase Custom Claims & verified state
+  const isUserOwner = checkIsOwner(currentUser);
+  const isActualAdminOrOwner = checkIsAdmin(currentUser);
+  const isOwner = isActualAdminOrOwner && !isReaderPreviewMode;
+
+  // Real Firebase Auth Lifecycle listener
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthState(
+      (profile) => {
+        setCurrentUser(profile);
+        setAuthLoading(false);
+      },
+      (loading) => {
+        setAuthLoading(loading);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
 
   // Dynamic Notifications State
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
@@ -127,7 +139,7 @@ export default function App() {
   const [isAdminManagementOpen, setIsAdminManagementOpen] = useState(false);
 
   // Active Ban verification for current session
-  const activeBan = getActiveBanDetails(currentUser?.email);
+  const activeBan = currentUser?.email ? getActiveBanDetails(currentUser.email) : null;
 
   // In-app interactive Toast Banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -146,17 +158,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
-  const handleBannedLogout = () => {
-    setCurrentUser(DEMO_READER_USER);
-    saveStoredCurrentUser(DEMO_READER_USER);
-    showToast('تم تسجيل الخروج بنجاح.');
+  const handleBannedLogout = async () => {
+    await logoutUser();
+    setCurrentUser(null);
+    showToast('تم تسجيل الخروج.');
   };
 
-  // Sync state to local storage
-  useEffect(() => {
-    saveStoredCurrentUser(currentUser);
-  }, [currentUser]);
-
+  // Sync state
   useEffect(() => {
     saveStoredNotifications(notifications);
   }, [notifications]);
@@ -199,37 +207,20 @@ export default function App() {
     });
   }, []);
 
-  // Support direct URL params
+  // Support direct deep link URL params (strictly for views/books, no role bypass)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const autostart = params.get('autostart');
     const bookParam = params.get('book');
     const viewParam = params.get('view');
-    const roleParam = params.get('role');
-
-    if (roleParam === 'reader') {
-      setCurrentUser(DEMO_READER_USER);
-    } else if (roleParam === 'owner') {
-      setCurrentUser(OWNER_USER);
-    }
 
     if (viewParam === 'home') {
       setCurrentView('home');
     } else if (viewParam === 'landing') {
       setCurrentView('landing');
-    } else if (viewParam === 'writer') {
-      if (isOwner) {
-        setCurrentView('writer');
-      } else {
-        showToast('عذراً، استوديو التأليف مخصص لصاحب المنصة والناشر الرسمي فقط.');
-      }
     } else if (bookParam) {
       setSelectedBookId(bookParam);
       setCurrentView('reader');
-    } else if (autostart === '1') {
-      if (isOwner) {
-        setCurrentView('writer');
-      }
     }
   }, []);
 
@@ -414,6 +405,12 @@ export default function App() {
 
   // Bookmark Toggle
   const handleToggleBookmark = (bookId: string) => {
+    if (!currentUser) {
+      setAuthModalMode('login');
+      setIsAuthModalOpen(true);
+      showToast('يرجى تسجيل الدخول لحفظ الكتب في مفضلتك.');
+      return;
+    }
     const updated = toggleUserBookmark(currentUser, bookId);
     setCurrentUser(updated);
     const bookTitle = books.find((b) => b.id === bookId)?.title || 'الكتاب';
@@ -444,9 +441,9 @@ export default function App() {
     showToast(`تم إرسال التنبيه «${newNotif.title}» بنجاح لجميع القراء! 📢`);
   };
 
-  // View Mode Switching (Strictly for ifawz40@gmail.com)
+  // View Mode Switching (Strictly for verified Admins & Owner)
   const handleToggleReaderPreview = () => {
-    if (!isActualOwner) return;
+    if (!isActualAdminOrOwner) return;
     setIsReaderPreviewMode((prev) => {
       const next = !prev;
       showToast(
@@ -461,22 +458,9 @@ export default function App() {
     });
   };
 
-  // User Switching
-  const handleSwitchUser = (targetUser: UserProfile) => {
-    setCurrentUser(targetUser);
-    setIsReaderPreviewMode(false);
-    if (targetUser.role === 'reader' && currentView === 'writer') {
-      setCurrentView('home');
-    }
-    showToast(
-      targetUser.email === 'ifawz40@gmail.com'
-        ? 'تم التبديل إلى حساب صاحب المنصة والناشر الرسمي 👑 (صلاحيات كاملة)'
-        : 'تم التبديل إلى حساب القارئ المعتمد 📖 (واجهة القراءة والتفاعل)'
-    );
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(DEMO_READER_USER);
+  const handleLogout = async () => {
+    await logoutUser();
+    setCurrentUser(null);
     setIsReaderPreviewMode(false);
     if (currentView === 'writer') {
       setCurrentView('home');
@@ -552,12 +536,14 @@ export default function App() {
             setIsAuthModalOpen(true);
           }}
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
-          onSwitchUser={handleSwitchUser}
           onSelectNotification={handleSelectNotification}
           onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
           onOpenSendAnnouncement={() => setIsAnnouncementModalOpen(true)}
           onOpenEmailModal={() => setIsEmailModalOpen(true)}
           onOpenAdminManagement={() => setIsAdminManagementOpen(true)}
+          onLogout={handleLogout}
+          onUserRefreshed={(refreshed) => setCurrentUser(refreshed)}
+          onShowToast={showToast}
         />
       )}
 
@@ -570,7 +556,6 @@ export default function App() {
             isOwner={isOwner}
             onLoginSuccess={(user) => {
               setCurrentUser(user);
-              saveStoredCurrentUser(user);
               showToast(`أهلاً بك يا ${user.name} في منصة حُكم.`);
             }}
             onEnterLibrary={() => {
@@ -579,6 +564,7 @@ export default function App() {
             }}
             onOpenWriter={() => handleOpenWriter()}
             onShowToast={showToast}
+            onLogout={handleLogout}
           />
         )}
 
@@ -725,7 +711,7 @@ export default function App() {
                       book={book}
                       categories={categories}
                       isOwner={isOwner}
-                      isBookmarked={currentUser.bookmarks.includes(book.id)}
+                      isBookmarked={Boolean(currentUser?.bookmarks?.includes(book.id))}
                       onRead={() => handleOpenBookOverview(book.id)}
                       onQuickResume={(chapterId) => handleQuickResumeChapter(book.id, chapterId)}
                       onEdit={isOwner ? () => handleOpenWriter(book.id) : undefined}
@@ -825,7 +811,7 @@ export default function App() {
               book={currentBook}
               categories={categories}
               isOwner={isOwner}
-              isBookmarked={currentUser.bookmarks.includes(currentBook.id)}
+              isBookmarked={Boolean(currentUser?.bookmarks?.includes(currentBook.id))}
               onBack={() => setCurrentView('home')}
               onSelectChapter={(chapterId) => handleOpenReader(currentBook.id, chapterId)}
               onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
@@ -852,7 +838,7 @@ export default function App() {
               book={currentBook}
               initialChapterId={selectedChapterId}
               isOwner={isOwner}
-              isBookmarked={currentUser.bookmarks.includes(currentBook.id)}
+              isBookmarked={Boolean(currentUser?.bookmarks?.includes(currentBook.id))}
               onBack={() => setCurrentView('home')}
               onOpenOverview={() => handleOpenBookOverview(currentBook.id)}
               onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
@@ -923,9 +909,10 @@ export default function App() {
         isReaderPreviewMode={isReaderPreviewMode}
         onToggleReaderPreview={handleToggleReaderPreview}
         onClose={() => setIsProfileModalOpen(false)}
-        onSwitchUser={handleSwitchUser}
         onLogout={handleLogout}
         onOpenBook={(bookId) => handleOpenBookOverview(bookId)}
+        onUserRefreshed={(refreshed) => setCurrentUser(refreshed)}
+        onShowToast={showToast}
       />
 
       {/* Send Announcement Modal (Owner only) */}
