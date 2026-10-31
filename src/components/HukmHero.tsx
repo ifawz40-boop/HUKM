@@ -6,6 +6,7 @@ import {
   PenTool,
   Bookmark,
   Layers,
+  Crown,
 } from 'lucide-react';
 import { HUKM_LOGO, HUKM_MOTTO } from '../data/hukmData';
 
@@ -47,15 +48,18 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-[#c59b27]/15 border border-[#c59b27]/30 px-2.5 py-0.5 text-[11px] font-bold text-[#f0cb69]">
-                مكتبة القراءة الرسمية
+                منصة الروايات والمؤلفات الرسمية
               </span>
-              <span className="text-xs text-[#d4af37] font-semibold">المؤسس: Dr/ Islam Mohamed</span>
+              <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1">
+                <Crown className="h-3.5 w-3.5 text-amber-400" />
+                <span>المؤسس: Dr/ Islam Mohamed</span>
+              </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white font-cairo mt-1">
-              مرحباً بك في منصة <span className="gold-gradient-text">حُكم | HUKM MEDIA</span>
+              منصة <span className="gold-gradient-text">حُكم | HUKM MEDIA</span> للروايات والتحقيقات
             </h1>
             <p className="text-xs sm:text-sm text-[#cbd5e1] font-medium font-amiri mt-0.5 text-[#f0cb69]">
-              «وعشان الموضوع مش زي ما إنت فاكر… تعالى نعرف»
+              {HUKM_MOTTO}
             </p>
           </div>
         </div>
@@ -65,12 +69,12 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
           <div className="flex items-center gap-3 rounded-2xl bg-[#070d1e]/80 border border-white/5 px-4 py-2 text-xs">
             <div>
               <span className="font-black text-[#f0cb69] block text-sm">{totalBooksCount}</span>
-              <span className="text-[10px] text-[#94a3b8]">كتب ومشاريع</span>
+              <span className="text-[10px] text-[#94a3b8]">أعمال وروايات</span>
             </div>
             <div className="h-6 w-px bg-white/10" />
             <div>
               <span className="font-black text-white block text-sm">{totalChaptersCount}</span>
-              <span className="text-[10px] text-[#94a3b8]">فصول جاهزة</span>
+              <span className="text-[10px] text-[#94a3b8]">فصول منشورة</span>
             </div>
           </div>
 
@@ -80,7 +84,7 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#c59b27] to-[#997314] hover:from-[#f0cb69] hover:to-[#b88c1b] px-4 py-2.5 text-xs font-bold text-[#070d1e] shadow transition-transform hover:scale-102 cursor-pointer"
             >
               <PenTool className="h-4 w-4" />
-              <span>استوديو التأليف</span>
+              <span>استوديو إدارة ونشر الأعمال</span>
             </button>
           ) : (
             <button
@@ -88,7 +92,7 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
               className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] px-4 py-2.5 text-xs font-black text-[#070d1e] shadow transition-transform hover:scale-102 cursor-pointer"
             >
               <BookOpen className="h-4 w-4" />
-              <span>تصفح الكتب أدناه</span>
+              <span>تصفح الأعمال أدناه</span>
               <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
             </button>
           )}

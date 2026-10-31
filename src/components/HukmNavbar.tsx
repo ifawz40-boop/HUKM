@@ -105,18 +105,6 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                 </button>
               )}
 
-              {onOpenEmailModal && (
-                <button
-                  type="button"
-                  onClick={onOpenEmailModal}
-                  className="flex items-center gap-1 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-2 py-0.5 text-[11px] font-bold text-[#f0cb69] transition-all hover:scale-102 cursor-pointer"
-                  title="مركز وهوية رسائل البريد الإلكتروني للمشتركين"
-                >
-                  <Mail className="h-3 w-3 text-[#d4af37]" />
-                  <span>هوية البريد التلقائي ✉️</span>
-                </button>
-              )}
-
               <span className="hidden sm:inline text-[#64748b]">التبديل السريع:</span>
               <button
                 type="button"
@@ -137,9 +125,9 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
         {/* Brand & Logo */}
         <div className="flex items-center gap-6">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => onNavigate('landing')}
             className="flex items-center gap-3.5 text-right group cursor-pointer focus:outline-none"
-            aria-label="الرئيسية - حُكم HUKM MEDIA"
+            aria-label="الرئيسية والتعريف - حُكم HUKM MEDIA"
           >
             <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-xl border border-[#c59b27]/50 shadow-lg shadow-black/70 bg-[#050a16]">
               <img
@@ -166,6 +154,18 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
           {/* Desktop Nav Links */}
           <nav className="hidden xl:flex items-center gap-1.5 mr-4" aria-label="روابط الموقع">
             <button
+              onClick={() => onNavigate('landing')}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                currentView === 'landing'
+                  ? 'bg-[#c59b27]/20 text-[#f0cb69] border border-[#c59b27]/40 shadow-sm'
+                  : 'text-[#cbd5e1] hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <Crown className="h-4 w-4 text-[#d4af37]" />
+              <span>عن حُكم والتسجيل</span>
+            </button>
+
+            <button
               onClick={() => onNavigate('home')}
               className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
                 currentView === 'home' && selectedCategoryId === 'all'
@@ -174,7 +174,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
               }`}
             >
               <Compass className="h-4 w-4 text-[#d4af37]" />
-              <span>المشاريع</span>
+              <span>المكتبة والمشاريع</span>
             </button>
 
             {/* Owner ONLY: Book Authoring Studio */}
@@ -323,12 +323,23 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
           <button
             onClick={() => {
               setMobileMenuOpen(false);
+              onNavigate('landing');
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-[#f0cb69] bg-[#c59b27]/10"
+          >
+            <Crown className="h-4 w-4 text-[#d4af37]" />
+            <span>عن حُكم وبوابة الدخول</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
               onNavigate('home');
             }}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-[#e2e8f0] hover:bg-white/5"
           >
             <Compass className="h-4 w-4 text-[#d4af37]" />
-            <span>المشاريع والمعرض</span>
+            <span>المكتبة والمشاريع</span>
           </button>
 
           {isOwner && (

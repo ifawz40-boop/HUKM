@@ -19,6 +19,7 @@ import {
   Check,
 } from 'lucide-react';
 import { HukmNavbar } from './components/HukmNavbar';
+import { HukmLandingView } from './components/HukmLandingView';
 import { HukmHero } from './components/HukmHero';
 import { BookCard } from './components/BookCard';
 import { BookWriterStudio } from './components/BookWriterStudio';
@@ -30,7 +31,6 @@ import { HukmSearchModal } from './components/HukmSearchModal';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SendAnnouncementModal } from './components/SendAnnouncementModal';
-import { HukmEmailModal } from './components/HukmEmailModal';
 import { AdminManagementModal } from './components/AdminManagementModal';
 import { BannedNoticeModal } from './components/BannedNoticeModal';
 import { HukmFooter } from './components/HukmFooter';
@@ -39,6 +39,7 @@ import { testFirestoreConnection } from './firebase/config';
 import {
   fetchBooksFromFirestore,
   saveBookToFirestore,
+  deleteBookFromFirestore,
   fetchCategoriesFromFirestore,
   saveCategoryToFirestore,
   deleteCategoryFromFirestore,
@@ -75,19 +76,19 @@ import {
 import { generateNewReleaseEmailHtml } from './utils/emailTemplateGenerator';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<string>('home');
+  // Default entry view is now landing: Platform Introduction & Sign-in Portal
+  const [currentView, setCurrentView] = useState<string>('landing');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
-  const [selectedBookId, setSelectedBookId] = useState<string>('investigation-01');
+  const [selectedBookId, setSelectedBookId] = useState<string>('');
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
 
   // User Auth & Role State
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => getStoredCurrentUser());
   const [isReaderPreviewMode, setIsReaderPreviewMode] = useState<boolean>(false);
 
-  // Strict check: only ifawz40@gmail.com is authorized as owner
+  // Strict check: Founder Dr. Islam Mohamed and Managing Admin Ibrahim Fawzy
   const isActualOwner = isAuthorizedOwnerEmail(currentUser.email);
   const isOwner = isActualOwner && !isReaderPreviewMode;
-
 
   // Dynamic Notifications State
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
@@ -103,10 +104,12 @@ export default function App() {
     return INITIAL_CATEGORIES;
   });
 
-  // Books data with localStorage persistence
+  // Books data: purged of mock books to start pristine with official publications
   const [books, setBooks] = useState<BookProject[]>(() => {
     try {
-      const saved = localStorage.getItem('hukm_books_v2');
+      localStorage.removeItem('hukm_books_v2');
+      localStorage.removeItem('hukm_books_v1');
+      const saved = localStorage.getItem('hukm_books_v3');
       if (saved) return JSON.parse(saved);
     } catch {}
     return INITIAL_BOOKS;
@@ -160,7 +163,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('hukm_books_v2', JSON.stringify(books));
+      localStorage.setItem('hukm_books_v3', JSON.stringify(books));
     } catch {}
   }, [books]);
 
@@ -174,12 +177,15 @@ export default function App() {
   useEffect(() => {
     testFirestoreConnection();
 
-    // Pull or Seed Books
+    // Pull or Seed Books (ensuring legacy mock books are not loaded)
     fetchBooksFromFirestore().then((remoteBooks) => {
       if (remoteBooks && remoteBooks.length > 0) {
-        setBooks(remoteBooks);
-      } else {
-        INITIAL_BOOKS.forEach((b) => saveBookToFirestore(b));
+        const realBooks = remoteBooks.filter(
+          (b) => !['investigation-01', 'science-ai-01', 'history-01'].includes(b.id)
+        );
+        if (realBooks.length > 0) {
+          setBooks(realBooks);
+        }
       }
     });
 
@@ -207,7 +213,11 @@ export default function App() {
       setCurrentUser(OWNER_USER);
     }
 
-    if (viewParam === 'writer') {
+    if (viewParam === 'home') {
+      setCurrentView('home');
+    } else if (viewParam === 'landing') {
+      setCurrentView('landing');
+    } else if (viewParam === 'writer') {
       if (isOwner) {
         setCurrentView('writer');
       } else {
@@ -223,7 +233,7 @@ export default function App() {
     }
   }, []);
 
-  const currentBook = books.find((b) => b.id === selectedBookId) || books[0];
+  const currentBook = (selectedBookId ? books.find((b) => b.id === selectedBookId) : books[0]) || null;
 
   // Actions
   const handleOpenBookOverview = (bookId: string) => {
@@ -292,8 +302,76 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
+  const handleDeleteBook = (bookId: string) => {
+    setBooks((prev) => prev.filter((b) => b.id !== bookId));
+    deleteBookFromFirestore(bookId);
+    if (selectedBookId === bookId) {
+      setSelectedBookId('');
+    }
+    showToast('تم حذف العمل بنجاح.');
+  };
+
+  const handleCreateSampleNovel = () => {
+    const now = Date.now();
+    const sampleId = `novel-${now}`;
+    const sample: BookProject = {
+      id: sampleId,
+      title: 'لورد الحقيقة: سقوط الأقنعة',
+      subtitle: 'تحقيق استقصائي في خفايا الأرشيف التاريخي والقرارات المصيرية',
+      author: 'Dr/ Islam Mohamed',
+      category: categories[0]?.id || 'investigations',
+      coverImage: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=800&q=80',
+      status: 'ongoing',
+      summary: 'في قلب القرن الثامن عشر، قادت وثيقة مفقودة في أرشيفات الشرق إلى تفكيك أعظم الأساطير السياسية والعلمية. تحقيق استقصائي روائي يبحث، يفكك، ويفهم الحقيقة من جذورها الأولى.',
+      rating: 5.0,
+      viewsCount: 320,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      chapters: [
+        {
+          id: `ch-${now}-1`,
+          bookId: sampleId,
+          chapterNumber: 1,
+          title: 'الفصل الأول: العثور على الأرشيف المفقود',
+          subtitle: 'حيث تبدأ كل قصة لا يريدونك أن تعرفها',
+          content: [
+            'لم تكن القضية تتعلق بمجرد خلاف على أوراق تاريخية صفراء، بل كانت معركة على الوعي برمته. حين دخل الباحث قبو المكتبة الوطنية في مساء يوم شتوي ممطر، لم يكن يدرك أن ما بين يديه سيعيد كتابة نصف قرن من المسلمات.',
+            '«وعشان الموضوع مش زي ما إنت فاكر… تعالى نعرف التفاصيل التي أخفتها السجلات الرسمية.»',
+            'كانت المخطوطة مؤرخة بعام 1792، وتحمل توقيعاً غامضاً كاد يمحوه الزمن. لكن ما جاء بين السطور لم يكن يقبل الشك: القرارات الكبرى التي غيّرت مصير المنطقة لم تُتخذ في الغرف المضيئة كما تروي كتب المناهج، بل في أروقة مغلقة وراء كواليس الصفقات التجارية السرية.',
+            'أخذ الباحث نفساً عميقاً، وبدأ بتدوين الملاحظات كلمة بكلمة، استعداداً لمواجهة العالم بالحقيقة التي طال انتظارها.',
+          ],
+          status: 'ready',
+          wordCount: 135,
+          readingTimeMinutes: 1,
+          viewsCount: 210,
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `ch-${now}-2`,
+          bookId: sampleId,
+          chapterNumber: 2,
+          title: 'الفصل الثاني: فك الشفرة والمواجهة الأولى',
+          subtitle: 'عندما تصطدم الوثيقة بالرواية الشائعة',
+          content: [
+            'في الصباح التالي، كانت الشفرات الأولى للوثيقة قد بدأت تتضح. لم تكن مجرد نصوص تاريخية متباعدة، بل كانت خطة عمل متكاملة تسلسلت على مدى ثلاثين عاماً.',
+            '«نبحث، نفكك، ونفهم» - كانت هذه هي القاعدة الذهبية التي سار عليها التحقيق. فكل سطر كُتب، كان يحيل إلى وثيقة مقابلة في أرشيفات أخرى مبعثرة بين العواصم.',
+            'وحين طُرحت أولى النتائج على طاولة النقاش، كان الصمت هو سيد الموقف. لم يستطع أحد أن ينكر دقة المراجع وقوة الأدلة المستخرجة.',
+          ],
+          status: 'ready',
+          wordCount: 105,
+          readingTimeMinutes: 1,
+          viewsCount: 110,
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    };
+
+    handleCreateBook(sample);
+  };
+
   // Views increment: when a real reader views a chapter, increment from the custom baseline!
   const handleChapterViewed = (chapterId: string) => {
+    if (!currentBook) return;
     setBooks((prev) =>
       prev.map((b) => {
         if (b.id === currentBook.id) {
@@ -485,6 +563,25 @@ export default function App() {
 
       {/* Main Content Area */}
       <div className="flex-1">
+        {/* VIEW 0: PLATFORM LANDING, VISION & AUTHENTICATION PORTAL */}
+        {currentView === 'landing' && (
+          <HukmLandingView
+            currentUser={currentUser}
+            isOwner={isOwner}
+            onLoginSuccess={(user) => {
+              setCurrentUser(user);
+              saveStoredCurrentUser(user);
+              showToast(`أهلاً بك يا ${user.name} في منصة حُكم.`);
+            }}
+            onEnterLibrary={() => {
+              setCurrentView('home');
+              window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+            }}
+            onOpenWriter={() => handleOpenWriter()}
+            onShowToast={showToast}
+          />
+        )}
+
         {/* VIEW 1: HOME & PROJECT DIRECTORY */}
         {currentView === 'home' && (
           <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-10">
@@ -561,22 +658,82 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Books Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {displayedBooks.map((book) => (
-                  <BookCard
-                    key={book.id}
-                    book={book}
-                    categories={categories}
-                    isOwner={isOwner}
-                    isBookmarked={currentUser.bookmarks.includes(book.id)}
-                    onRead={() => handleOpenBookOverview(book.id)}
-                    onQuickResume={(chapterId) => handleQuickResumeChapter(book.id, chapterId)}
-                    onEdit={isOwner ? () => handleOpenWriter(book.id) : undefined}
-                    onToggleBookmark={() => handleToggleBookmark(book.id)}
-                  />
-                ))}
-              </div>
+              {/* Books Grid or Elegant Empty Slate */}
+              {displayedBooks.length === 0 ? (
+                <div className="rounded-3xl border border-[#c59b27]/30 bg-gradient-to-b from-[#0a142c] to-[#050a16] p-8 sm:p-12 text-center space-y-5 shadow-2xl" dir="rtl">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#c59b27]/10 border border-[#c59b27]/30 text-[#d4af37]">
+                    <BookOpen className="h-8 w-8" />
+                  </div>
+                  <div className="space-y-2 max-w-lg mx-auto">
+                    <h3 className="text-xl sm:text-2xl font-black text-white font-cairo">
+                      مكتبة حُكم جاهزة لاستقبال النشرات والكتب الرسمية
+                    </h3>
+                    <p className="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+                      تم تفريغ كافة الكتب الافتراضية بنجاح لتكون المنصة صفحة بيضاء نقية جاهزة لإصدارات المؤسس د. إسلام محمد وهيئة التحرير والتحقيقات الاستقصائية الموثقة.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    {isOwner ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setCurrentView('writer');
+                            window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-6 py-3 text-xs sm:text-sm font-bold text-[#070d1e] shadow-lg hover:scale-105 transition-all cursor-pointer"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          <span>+ فتح استوديو التأليف والنشر</span>
+                        </button>
+
+                        <button
+                          onClick={handleCreateSampleNovel}
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#0e1935] border border-[#c59b27]/50 px-5 py-3 text-xs sm:text-sm font-bold text-[#f0cb69] hover:bg-[#15254d] transition-all cursor-pointer"
+                          title="إضافة رواية استقصائية تجريبية بفصلين للمعاينة والتجربة الفورية"
+                        >
+                          <Sparkles className="h-4 w-4 text-[#d4af37]" />
+                          <span>⚡ إضافة رواية تجريبية للمعاينة</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setAuthModalMode('signup');
+                          setIsAuthModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#0e1935] border border-[#c59b27]/50 px-6 py-3 text-xs sm:text-sm font-bold text-[#f0cb69] hover:bg-[#15254d] transition-all cursor-pointer"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        <span>اشترك لتصلك أولى الإصدارات فور نشرها</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setCurrentView('landing')}
+                      className="inline-flex items-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 text-xs sm:text-sm font-bold text-white transition-all cursor-pointer"
+                    >
+                      <span>التعريف برؤية المنصة ومؤسسيها</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                  {displayedBooks.map((book) => (
+                    <BookCard
+                      key={book.id}
+                      book={book}
+                      categories={categories}
+                      isOwner={isOwner}
+                      isBookmarked={currentUser.bookmarks.includes(book.id)}
+                      onRead={() => handleOpenBookOverview(book.id)}
+                      onQuickResume={(chapterId) => handleQuickResumeChapter(book.id, chapterId)}
+                      onEdit={isOwner ? () => handleOpenWriter(book.id) : undefined}
+                      onToggleBookmark={() => handleToggleBookmark(book.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 3. Featured Spotlight: Investigations series «وعشان الموضوع مش زي ما إنت فاكر» */}
@@ -595,32 +752,35 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 shrink-0">
-                  <button
-                    onClick={() => handleOpenBookOverview('investigation-01')}
-                    className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95"
-                  >
-                    استعراض فصول السلسلة
-                  </button>
-
-                  {isOwner ? (
+                  {books.length > 0 && books.some((b) => b.id === 'investigation-01') ? (
                     <button
-                      onClick={() => handleOpenWriter('investigation-01')}
-                      className="rounded-xl bg-[#0a1226] border border-[#c59b27]/40 px-4 py-3 text-xs font-bold text-[#f0cb69] hover:bg-[#122045] transition-colors"
+                      onClick={() => handleOpenBookOverview('investigation-01')}
+                      className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95"
                     >
-                      إضافة فصول جديدة في الاستوديو
+                      استعراض فصول السلسلة
+                    </button>
+                  ) : isOwner ? (
+                    <button
+                      onClick={() => setIsNewBookOpen(true)}
+                      className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      + بدء كتابة السلسلة في الاستوديو
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleToggleBookmark('investigation-01')}
-                      className={`rounded-xl border px-4 py-3 text-xs font-bold transition-colors ${
-                        currentUser.bookmarks.includes('investigation-01')
-                          ? 'bg-[#c59b27] text-[#070d1e] border-[#c59b27]'
-                          : 'bg-[#0a1226] border-[#c59b27]/40 text-[#f0cb69] hover:bg-[#122045]'
-                      }`}
+                      onClick={() => setCurrentView('landing')}
+                      className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
                     >
-                      {currentUser.bookmarks.includes('investigation-01')
-                        ? 'محفوظة في مفضلتي ⭐'
-                        : '+ حفظ في المفضلة'}
+                      التعرف على رؤية السلسلة
+                    </button>
+                  )}
+
+                  {isOwner && books.length > 0 && (
+                    <button
+                      onClick={() => handleOpenWriter()}
+                      className="rounded-xl bg-[#0a1226] border border-[#c59b27]/40 px-4 py-3 text-xs font-bold text-[#f0cb69] hover:bg-[#122045] transition-colors"
+                    >
+                      استوديو التأليف
                     </button>
                   )}
                 </div>
@@ -635,9 +795,15 @@ export default function App() {
             <BookWriterStudio
               books={books}
               currentBook={currentBook}
+              categories={categories}
               onSelectBook={(bookId) => setSelectedBookId(bookId)}
               onUpdateBook={handleUpdateBook}
+              onCreateBook={handleCreateBook}
+              onDeleteBook={handleDeleteBook}
               onPreviewBook={(bookId, chId) => handleOpenReader(bookId, chId)}
+              onAddCategory={handleAddCategory}
+              onDeleteCategory={handleDeleteCategory}
+              onOpenAdminModal={() => setIsAdminManagementOpen(true)}
             />
           ) : (
             <div className="p-12 text-center text-white" dir="rtl">
@@ -654,32 +820,56 @@ export default function App() {
 
         {/* VIEW 2.5: BOOK OVERVIEW & CHAPTERS INDEX */}
         {currentView === 'overview' && (
-          <BookOverviewView
-            book={currentBook}
-            categories={categories}
-            isOwner={isOwner}
-            isBookmarked={currentUser.bookmarks.includes(currentBook.id)}
-            onBack={() => setCurrentView('home')}
-            onSelectChapter={(chapterId) => handleOpenReader(currentBook.id, chapterId)}
-            onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
-            onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
-            onShowToast={showToast}
-          />
+          currentBook ? (
+            <BookOverviewView
+              book={currentBook}
+              categories={categories}
+              isOwner={isOwner}
+              isBookmarked={currentUser.bookmarks.includes(currentBook.id)}
+              onBack={() => setCurrentView('home')}
+              onSelectChapter={(chapterId) => handleOpenReader(currentBook.id, chapterId)}
+              onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
+              onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
+              onShowToast={showToast}
+            />
+          ) : (
+            <div className="p-12 text-center text-white max-w-md mx-auto my-12" dir="rtl">
+              <p className="text-lg font-bold text-[#f0cb69]">الكتاب المطلوب غير متوفر حالياً في المكتبة.</p>
+              <button
+                onClick={() => setCurrentView('home')}
+                className="mt-4 rounded-xl bg-[#c59b27] px-5 py-2.5 text-xs font-bold text-[#070d1e]"
+              >
+                العودة إلى المكتبة
+              </button>
+            </div>
+          )
         )}
 
         {/* VIEW 3: BOOK READER VIEW */}
         {currentView === 'reader' && (
-          <BookReaderView
-            book={currentBook}
-            initialChapterId={selectedChapterId}
-            isOwner={isOwner}
-            isBookmarked={currentUser.bookmarks.includes(currentBook.id)}
-            onBack={() => setCurrentView('home')}
-            onOpenOverview={() => handleOpenBookOverview(currentBook.id)}
-            onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
-            onChapterViewed={handleChapterViewed}
-            onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
-          />
+          currentBook ? (
+            <BookReaderView
+              book={currentBook}
+              initialChapterId={selectedChapterId}
+              isOwner={isOwner}
+              isBookmarked={currentUser.bookmarks.includes(currentBook.id)}
+              onBack={() => setCurrentView('home')}
+              onOpenOverview={() => handleOpenBookOverview(currentBook.id)}
+              onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
+              onChapterViewed={handleChapterViewed}
+              onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
+            />
+          ) : (
+            <div className="p-12 text-center text-white max-w-md mx-auto my-12" dir="rtl">
+              <p className="text-lg font-bold text-[#f0cb69]">الكتاب أو الفصل المطلوب غير متوفر حالياً للقراءة.</p>
+              <button
+                onClick={() => setCurrentView('home')}
+                className="mt-4 rounded-xl bg-[#c59b27] px-5 py-2.5 text-xs font-bold text-[#070d1e]"
+              >
+                العودة إلى المكتبة
+              </button>
+            </div>
+          )
         )}
       </div>
 
@@ -748,13 +938,6 @@ export default function App() {
         />
       )}
 
-      {/* Royal Hukm Email & Newsletter Modal */}
-      <HukmEmailModal
-        isOpen={isEmailModalOpen}
-        onClose={() => setIsEmailModalOpen(false)}
-        books={books}
-        onShowToast={showToast}
-      />
 
       {/* Admin & Moderation Management Modal (Admins / Founder) */}
       <AdminManagementModal

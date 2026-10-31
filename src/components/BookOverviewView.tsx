@@ -11,13 +11,13 @@ import {
   Bookmark,
   BookmarkCheck,
   Play,
-  Film,
-  Sparkles,
   Layers,
   ChevronLeft,
-  Video,
   PenTool,
   Check,
+  Search,
+  ArrowUpDown,
+  Sparkles,
 } from 'lucide-react';
 import { BookProject, BookChapter, CategoryItem } from '../types/hukm';
 import { calculateBookStats, getCategoryName } from '../utils/hukmEngine';
@@ -52,27 +52,45 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
 }) => {
   const [progress, setProgress] = useState(() => getBookReadingProgress(book.id));
   const [copiedShare, setCopiedShare] = useState(false);
+  const [chapterSearch, setChapterSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const stats = calculateBookStats(book.chapters, book.viewsCount);
   const categoryLabel = getCategoryName(categories, book.category);
-  const authorName = book.author || 'إبراهيم فوزي';
+  const authorName = book.author || 'Dr/ Islam Mohamed';
 
   const completedCount = progress.completedChapterIds.length;
   const totalChapters = book.chapters.length;
   const percentCompleted = totalChapters > 0 ? Math.round((completedCount / totalChapters) * 100) : 0;
 
-  // Determine last read chapter or first chapter
-  const lastReadChapter =
-    book.chapters.find((c) => c.id === progress.lastChapterId) ||
-    book.chapters.find((c) => progress.completedChapterIds.includes(c.id)) ||
-    book.chapters[0];
+  // Determine resume chapter
+  const hasHistory = progress.lastChapterId && book.chapters.some((c) => c.id === progress.lastChapterId);
+  const resumeChapter = hasHistory
+    ? book.chapters.find((c) => c.id === progress.lastChapterId)
+    : book.chapters[0];
 
-  const handleStartOrResumeReading = () => {
-    const targetChapter = lastReadChapter || book.chapters[0];
-    if (targetChapter) {
-      recordChapterOpened(book.id, targetChapter.id);
-      onSelectChapter(targetChapter.id);
+  const handleStartReading = () => {
+    if (book.chapters.length > 0) {
+      recordChapterOpened(book.id, book.chapters[0].id);
+      onSelectChapter(book.chapters[0].id);
+    } else {
+      onShowToast('لم تتم إضافة فصول بعد لهذه الرواية.');
     }
+  };
+
+  const handleResumeReading = () => {
+    if (resumeChapter) {
+      recordChapterOpened(book.id, resumeChapter.id);
+      onSelectChapter(resumeChapter.id);
+    } else {
+      handleStartReading();
+    }
+  };
+
+  const handleChapterClick = (chapterId: string) => {
+    recordChapterOpened(book.id, chapterId);
+    setProgress(getBookReadingProgress(book.id));
+    onSelectChapter(chapterId);
   };
 
   const handleToggleChapterStatus = (e: React.MouseEvent, chapterId: string) => {
@@ -83,385 +101,339 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
     onShowToast(isNowRead ? 'تم تعليم الفصل كـ «مقروء» ✓' : 'تمت إزالة علامة القراءة عن الفصل.');
   };
 
-  const handleChapterClick = (chapterId: string) => {
-    recordChapterOpened(book.id, chapterId);
-    setProgress(getBookReadingProgress(book.id));
-    onSelectChapter(chapterId);
-  };
-
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopiedShare(true);
-    onShowToast('تم نسخ رابط الكتاب للمشاركة!');
+    onShowToast('تم نسخ رابط الرواية بنجاح!');
     setTimeout(() => setCopiedShare(false), 2000);
   };
 
+  // Filter & Sort Chapters
+  let displayChapters = [...book.chapters];
+  if (chapterSearch.trim()) {
+    const q = chapterSearch.trim().toLowerCase();
+    displayChapters = displayChapters.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        c.chapterNumber.toString().includes(q)
+    );
+  }
+
+  displayChapters.sort((a, b) => {
+    return sortOrder === 'asc'
+      ? a.chapterNumber - b.chapterNumber
+      : b.chapterNumber - a.chapterNumber;
+  });
+
   return (
-    <div className="min-h-screen bg-[#070d1e] text-[#f4efe6] pb-20" dir="rtl">
-      {/* Top Header Navigation */}
-      <header className="sticky top-0 z-30 border-b border-[#c59b27]/25 bg-[#070d1e]/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
+    <div className="min-h-screen bg-[#070d1e] text-[#f4efe6] pb-24" dir="rtl">
+      {/* Top Navigation Bar */}
+      <div className="border-b border-white/10 bg-[#0a1226]/80 backdrop-blur-md sticky top-20 z-30 px-4 sm:px-8 py-3">
+        <div className="mx-auto max-w-7xl flex items-center justify-between">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 rounded-xl bg-[#0a1226] border border-white/10 hover:border-[#c59b27]/40 px-3 py-1.5 text-xs font-bold text-[#cbd5e1] hover:text-white transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 text-xs font-bold text-white transition-colors cursor-pointer"
           >
             <ArrowRight className="h-4 w-4" />
-            <span>العودة للمكتبة الرئيسية</span>
+            <span>العودة لكافة الأعمال</span>
           </button>
 
           <div className="flex items-center gap-2">
-            {/* Share button */}
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-1.5 rounded-xl bg-[#0a1226] border border-white/10 hover:border-[#c59b27]/40 px-3 py-1.5 text-xs font-semibold text-[#cbd5e1] hover:text-white transition-colors"
-              title="مشاركة الكتاب"
-            >
-              <Share2 className="h-3.5 w-3.5 text-[#d4af37]" />
-              <span className="hidden sm:inline">{copiedShare ? 'تم النسخ!' : 'مشاركة'}</span>
-            </button>
-
-            {/* Bookmark */}
             {onToggleBookmark && (
               <button
                 onClick={onToggleBookmark}
-                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
-                  isBookmarked
-                    ? 'bg-[#c59b27] text-[#070d1e] border-[#c59b27]'
-                    : 'bg-[#0a1226] border-white/10 text-[#cbd5e1] hover:text-white'
-                }`}
+                className="flex items-center gap-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs font-bold text-white transition-colors"
               >
-                {isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
-                <span>{isBookmarked ? 'محفوظ في مكتبتك' : 'حفظ'}</span>
+                {isBookmarked ? (
+                  <>
+                    <BookmarkCheck className="h-4 w-4 text-[#d4af37]" />
+                    <span className="text-[#f0cb69]">في المفضلة</span>
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="h-4 w-4" />
+                    <span>حفظ في المفضلة</span>
+                  </>
+                )}
               </button>
             )}
 
-            {/* Owner ONLY: Edit in Studio */}
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs font-bold text-white transition-colors"
+            >
+              {copiedShare ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4" />}
+              <span>مشاركة</span>
+            </button>
+
             {isOwner && onOpenWriter && (
               <button
                 onClick={() => onOpenWriter(book.id)}
-                className="flex items-center gap-1.5 rounded-xl bg-[#c59b27]/20 border border-[#c59b27]/40 px-3 py-1.5 text-xs font-bold text-[#f0cb69] hover:bg-[#c59b27] hover:text-[#070d1e] transition-colors"
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-3.5 py-1.5 text-xs font-bold text-[#070d1e] shadow hover:scale-102 transition-all cursor-pointer"
               >
                 <PenTool className="h-3.5 w-3.5" />
-                <span>تعديل في الاستوديو</span>
+                <span>استوديو التحرير ✏️</span>
               </button>
             )}
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Container */}
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 pt-8 space-y-10">
-        {/* Book Identity Showcase Card */}
-        <section className="relative overflow-hidden rounded-3xl border border-[#c59b27]/35 bg-gradient-to-b from-[#0a142c] via-[#091124] to-[#070d1e] p-6 sm:p-10 shadow-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            {/* Book Cover Visual (4 Cols) */}
-            <div className="md:col-span-5 flex justify-center">
-              <div className="relative aspect-[3/4] w-full max-w-[280px] overflow-hidden rounded-2xl border-2 border-[#c59b27]/50 shadow-2xl shadow-black/90 group">
-                {book.coverMediaType === 'video' || book.coverImage.endsWith('.mp4') ? (
-                  <video
-                    src={book.coverImage}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <img
-                    src={book.coverImage}
-                    alt={book.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 pointer-events-none" />
-
-                {/* Top badges */}
-                <div className="absolute top-3 right-3">
-                  <span className="rounded-lg bg-[#070d1e]/90 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold text-[#f0cb69] border border-[#c59b27]/30">
-                    {categoryLabel}
-                  </span>
-                </div>
-
-                <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-bold text-[#f0cb69] border border-white/10">
-                  <Eye className="h-3 w-3 text-[#d4af37]" />
-                  <span>{stats.totalViews.toLocaleString('ar-EG')}</span>
-                </div>
-
-                {/* Bottom Cover Author Label */}
-                <div className="absolute bottom-3 right-3 left-3 text-center">
-                  <div className="rounded-xl bg-black/80 backdrop-blur-md border border-[#c59b27]/30 py-1.5 px-3">
-                    <span className="text-[10px] text-[#94a3b8] block">المؤلف والباحث:</span>
-                    <span className="text-xs font-bold text-[#f0cb69]">{authorName}</span>
-                  </div>
-                </div>
-              </div>
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Novel Hero Card (like truthnovel.top) */}
+        <div className="relative overflow-hidden rounded-3xl border border-[#c59b27]/30 bg-gradient-to-br from-[#0a142c] via-[#091124] to-[#050a16] p-6 sm:p-10 shadow-2xl">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+            {/* Book Poster Cover */}
+            <div className="relative h-64 sm:h-80 w-48 sm:w-60 shrink-0 overflow-hidden rounded-2xl border-2 border-[#c59b27]/40 shadow-2xl bg-[#050a16]">
+              <img
+                src={book.coverImage}
+                alt={book.title}
+                className="h-full w-full object-cover"
+              />
+              <span
+                className={`absolute top-2.5 right-2.5 rounded-lg px-2.5 py-1 text-[11px] font-black shadow-md ${
+                  book.status === 'completed'
+                    ? 'bg-amber-500 text-[#070d1e]'
+                    : 'bg-emerald-600 text-white'
+                }`}
+              >
+                {book.status === 'completed' ? 'رواية مكتملة ✓' : 'رواية مستمرة ⚡'}
+              </span>
             </div>
 
-            {/* Book Information & Metadata (7 Cols) */}
-            <div className="md:col-span-7 space-y-5 text-right">
-              {/* Category & Verified seal */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#c59b27]/15 border border-[#c59b27]/30 px-3 py-1 text-xs font-bold text-[#f0cb69]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>سلسلة حُكم التوثيقية</span>
+            {/* Book Details */}
+            <div className="flex-1 space-y-4 text-center md:text-right">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                <span className="rounded-full bg-[#c59b27]/20 border border-[#c59b27]/40 px-3 py-1 text-xs font-bold text-[#f0cb69]">
+                  {categoryLabel}
                 </span>
-                <span className="text-xs text-[#94a3b8]">قسم: {categoryLabel}</span>
+                <span className="text-xs text-[#94a3b8] flex items-center gap-1">
+                  <User className="h-3.5 w-3.5 text-[#d4af37]" />
+                  <span>المؤلف: </span>
+                  <strong className="text-white">{authorName}</strong>
+                </span>
               </div>
 
-              {/* Title & Subtitle */}
-              <div>
-                <h1 className="text-2xl sm:text-4xl font-black text-white font-cairo leading-snug">
-                  {book.title}
-                </h1>
-                <p className="mt-2 text-sm sm:text-base text-[#d4af37] font-medium leading-relaxed">
+              <h1 className="text-2xl sm:text-4xl font-black text-white font-cairo leading-snug">
+                {book.title}
+              </h1>
+
+              {book.subtitle && (
+                <p className="text-sm sm:text-base text-[#d4af37] font-medium font-amiri">
                   {book.subtitle}
                 </p>
-              </div>
-
-              {/* Prominent Author Badge */}
-              <div className="inline-flex items-center gap-2 rounded-xl bg-[#070d1e] border border-[#c59b27]/30 px-4 py-2 text-xs font-bold text-[#f4efe6]">
-                <User className="h-4 w-4 text-[#d4af37]" />
-                <span>الكاتب والباحث:</span>
-                <span className="text-[#f0cb69] font-black">{authorName}</span>
-              </div>
-
-              {/* Summary */}
-              <p className="text-xs sm:text-sm text-[#cbd5e1] leading-relaxed">
-                {book.summary}
-              </p>
-
-              {/* Motto */}
-              {book.motto && (
-                <div className="border-r-2 border-[#c59b27] pr-3 py-1">
-                  <p className="text-xs sm:text-sm text-[#f0cb69] font-amiri font-bold italic">
-                    «{book.motto}»
-                  </p>
-                </div>
               )}
 
-              {/* Standalone Episode Card if present */}
-              {book.standaloneEpisode?.hasStandaloneEpisode && (
-                <div className="rounded-2xl bg-[#070d1e] border border-rose-500/40 p-3.5 flex items-center justify-between gap-3 shadow-lg">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600/20 text-rose-400 border border-rose-500/40">
-                      <Film className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <span className="rounded bg-rose-600 text-white px-1.5 py-0.5 text-[9px] font-bold block w-fit mb-0.5">
-                        {book.standaloneEpisode.badgeLabel || 'حلقة مفرقة 🎬'}
-                      </span>
-                      <h4 className="text-xs font-bold text-white font-cairo">
-                        {book.standaloneEpisode.title || book.title}
-                      </h4>
-                    </div>
-                  </div>
-
-                  {book.standaloneEpisode.videoUrl && (
-                    <a
-                      href={book.standaloneEpisode.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shrink-0 shadow transition-colors"
-                    >
-                      مشاهدة الحلقة ▶️
-                    </a>
-                  )}
+              {/* Statistics Row */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-1 text-xs text-[#94a3b8]">
+                <div className="flex items-center gap-1.5 bg-[#050a16] px-3 py-1.5 rounded-xl border border-white/5">
+                  <BookOpen className="h-4 w-4 text-[#d4af37]" />
+                  <span className="text-white font-bold">{book.chapters.length}</span>
+                  <span>فصول</span>
                 </div>
-              )}
+                <div className="flex items-center gap-1.5 bg-[#050a16] px-3 py-1.5 rounded-xl border border-white/5">
+                  <Clock className="h-4 w-4 text-blue-400" />
+                  <span className="text-white font-bold">{stats.totalWords.toLocaleString('ar-EG')}</span>
+                  <span>كلمة</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-[#050a16] px-3 py-1.5 rounded-xl border border-white/5">
+                  <Eye className="h-4 w-4 text-emerald-400" />
+                  <span className="text-white font-bold">{stats.totalViews}</span>
+                  <span>مشاهدة</span>
+                </div>
+              </div>
 
-              {/* Reading Progress Bar & Action CTA */}
-              <div className="pt-2 space-y-3">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs text-[#94a3b8]">
+              {/* Action Buttons Row (Start / Resume / Studio) */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-3">
+                {hasHistory && resumeChapter ? (
+                  <button
+                    onClick={handleResumeReading}
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 px-6 py-3 text-sm font-bold text-white shadow-xl transition-transform hover:scale-102 cursor-pointer"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    <span>متابعة القراءة من الفصل {resumeChapter.chapterNumber}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStartReading}
+                    disabled={book.chapters.length === 0}
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#c59b27] to-[#a37c18] hover:from-[#f0cb69] hover:to-[#b88c1b] px-6 py-3 text-sm font-black text-[#070d1e] shadow-xl transition-transform hover:scale-102 disabled:opacity-50 cursor-pointer"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span>ابدأ قراءة الفصل الأول</span>
+                  </button>
+                )}
+
+                {hasHistory && book.chapters.length > 0 && (
+                  <button
+                    onClick={handleStartReading}
+                    className="rounded-xl bg-[#050a16] hover:bg-white/5 border border-white/10 px-4 py-3 text-xs font-bold text-[#cbd5e1] transition-colors"
+                  >
+                    البدء من الفصل 1
+                  </button>
+                )}
+
+                {isOwner && onOpenWriter && (
+                  <button
+                    onClick={() => onOpenWriter(book.id)}
+                    className="flex items-center gap-1.5 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-4 py-3 text-xs font-bold text-[#f0cb69] transition-colors"
+                  >
+                    <PenTool className="h-4 w-4" />
+                    <span>+ إضافة فصول جديدة</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Reading Progress Indicator */}
+              {totalChapters > 0 && completedCount > 0 && (
+                <div className="pt-2 max-w-md">
+                  <div className="flex items-center justify-between text-xs text-[#94a3b8] mb-1">
                     <span>تقدمك في القراءة:</span>
-                    <span className="text-[#f0cb69] font-bold">
-                      {completedCount} من {totalChapters} فصول مقروءة ({percentCompleted}%)
+                    <span className="font-bold text-[#f0cb69]">
+                      {completedCount} من {totalChapters} فصول ({percentCompleted}%)
                     </span>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-[#070d1e] overflow-hidden border border-white/5">
+                  <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#c59b27] to-[#f0cb69] rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-[#d4af37] to-emerald-400 rounded-full"
                       style={{ width: `${percentCompleted}%` }}
                     />
                   </div>
                 </div>
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-                  <button
-                    onClick={handleStartOrResumeReading}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#d4af37] via-[#c59b27] to-[#997314] hover:from-[#f0cb69] hover:to-[#b88c1b] py-3.5 px-6 text-sm font-black text-[#070d1e] shadow-xl shadow-[#c59b27]/25 transition-transform hover:scale-102 active:scale-98 cursor-pointer"
-                  >
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>
-                      {progress.lastChapterId
-                        ? `استئناف القراءة: فصل ${lastReadChapter?.chapterNumber || 1}`
-                        : 'بدء قراءة الكتاب الآن 📖'}
-                    </span>
-                  </button>
-
-                  {progress.lastChapterId && (
-                    <button
-                      onClick={() => {
-                        if (book.chapters[0]) {
-                          recordChapterOpened(book.id, book.chapters[0].id);
-                          onSelectChapter(book.chapters[0].id);
-                        }
-                      }}
-                      className="rounded-2xl bg-[#0a1226] hover:bg-[#132247] border border-white/10 px-4 py-3 text-xs font-semibold text-[#cbd5e1] hover:text-white transition-colors"
-                    >
-                      بدء من الفصل الأول
-                    </button>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
           </div>
+        </div>
+
+        {/* Synopsis / Story Section */}
+        <section className="rounded-2xl border border-white/10 bg-[#0a1329] p-6 sm:p-8 space-y-3">
+          <h2 className="text-lg font-black text-white font-cairo flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#d4af37]" />
+            <span>نبذة عن العمل والرواية</span>
+          </h2>
+          <p className="text-sm sm:text-base text-[#cbd5e1] font-amiri leading-loose text-justify">
+            {book.summary || 'لا توجد نبذة مدخلة حالياً لهذا العمل.'}
+          </p>
         </section>
 
-        {/* Chapters Index & Selection Section */}
-        <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+        {/* Chapters Index & Catalog (فهرس الفصول - مثل truthnovel.top) */}
+        <section className="rounded-2xl border border-white/10 bg-[#0a1329] p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div>
-              <div className="flex items-center gap-2">
-                <Layers className="h-5 w-5 text-[#d4af37]" />
-                <h2 className="text-xl font-bold text-white font-cairo">
-                  فهرس الفصول المتاحة للقراءة
-                </h2>
-              </div>
-              <p className="text-xs text-[#94a3b8] mt-1">
-                اختر الفصل الذي تود قراءته، أو حدد الفصول التي أتممتها يدوياً لتتبع تقدمك.
+              <h2 className="text-lg sm:text-xl font-black text-white font-cairo flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-[#d4af37]" />
+                <span>فهرس الفصول ({book.chapters.length})</span>
+              </h2>
+              <p className="text-xs text-[#94a3b8] mt-0.5">
+                اضغط على أي فصل للبدء في القراءة مباشرة
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-xs">
-              <span className="rounded-xl bg-[#0a1226] border border-white/10 px-3 py-1.5 font-bold text-[#cbd5e1]">
-                📚 {totalChapters} فصول
-              </span>
-              <span className="rounded-xl bg-[#0a1226] border border-white/10 px-3 py-1.5 font-bold text-[#f0cb69]">
-                ⏱️ إجمالي ~ {stats.totalReadingTimeMinutes} دقيقة
-              </span>
+            {/* Filter & Sort Controls */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-48">
+                <Search className="absolute right-3 top-2.5 h-3.5 w-3.5 text-[#94a3b8]" />
+                <input
+                  type="text"
+                  value={chapterSearch}
+                  onChange={(e) => setChapterSearch(e.target.value)}
+                  placeholder="ابحث برقم أو عنوان الفصل..."
+                  className="w-full rounded-xl bg-[#050a16] border border-white/10 pr-8 pl-3 py-1.5 text-xs text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none"
+                />
+              </div>
+
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="flex items-center gap-1 rounded-xl bg-[#050a16] hover:bg-white/5 border border-white/10 px-3 py-1.5 text-xs font-bold text-[#f0cb69] transition-colors shrink-0"
+                title="تغيير اتجاه ترتيب الفصول"
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <span>{sortOrder === 'asc' ? 'من البداية' : 'الأحدث أولاً'}</span>
+              </button>
             </div>
           </div>
 
-          {/* Chapters List Cards */}
-          <div className="space-y-3">
-            {book.chapters.map((ch, idx) => {
-              const isRead = progress.completedChapterIds.includes(ch.id);
-              const isLastRead = progress.lastChapterId === ch.id;
-
-              return (
-                <div
-                  key={ch.id}
-                  onClick={() => handleChapterClick(ch.id)}
-                  className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border p-4 sm:p-5 transition-all duration-200 cursor-pointer ${
-                    isLastRead
-                      ? 'bg-[#0f1d3d] border-[#c59b27] shadow-lg shadow-black/50 ring-1 ring-[#c59b27]/40'
-                      : isRead
-                      ? 'bg-[#0a1226]/80 border-emerald-500/30 hover:border-emerald-500/60'
-                      : 'bg-[#0a1226] border-white/10 hover:border-[#c59b27]/50 hover:bg-[#0e1935]'
-                  }`}
+          {/* Chapters Grid List */}
+          {displayChapters.length === 0 ? (
+            <div className="py-12 text-center text-xs text-[#94a3b8] space-y-3">
+              <p>لم يتم العثور على فصول مطابقة للبحث أو لم تُضف فصول بعد.</p>
+              {isOwner && onOpenWriter && (
+                <button
+                  onClick={() => onOpenWriter(book.id)}
+                  className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-4 py-2 text-xs font-bold text-[#070d1e]"
                 >
-                  {/* Left (RTL Right): Chapter info */}
-                  <div className="flex items-start gap-4 min-w-0">
-                    <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-black text-sm transition-colors ${
-                        isRead
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : isLastRead
-                          ? 'bg-[#c59b27] text-[#070d1e] shadow'
-                          : 'bg-[#070d1e] text-[#f0cb69] border border-[#c59b27]/30'
-                      }`}
-                    >
-                      {idx + 1}
-                    </div>
+                  + كتابة أول فصل في الاستوديو
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {displayChapters.map((chapter) => {
+                const isRead = progress.completedChapterIds.includes(chapter.id);
+                const isLastRead = progress.lastChapterId === chapter.id;
 
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-[#d4af37]">
-                          الفصل {ch.chapterNumber}
-                        </span>
-                        {isLastRead && (
-                          <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 text-[10px] font-black">
-                            آخر موضع قراءة 📌
-                          </span>
-                        )}
-                        {isRead && (
-                          <span className="rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 text-[10px] font-bold flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            مقروء
-                          </span>
-                        )}
-                      </div>
+                return (
+                  <div
+                    key={chapter.id}
+                    onClick={() => handleChapterClick(chapter.id)}
+                    className={`group flex items-center justify-between rounded-xl border p-3.5 transition-all duration-200 cursor-pointer ${
+                      isLastRead
+                        ? 'bg-amber-500/15 border-amber-500/50 shadow-md'
+                        : isRead
+                        ? 'bg-[#050a16]/60 border-emerald-500/30 hover:border-emerald-500/60'
+                        : 'bg-[#050a16] border-white/5 hover:border-[#c59b27]/50 hover:bg-[#081024]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 truncate">
+                      <span
+                        className={`h-7 w-7 rounded-lg border flex items-center justify-center text-xs font-black shrink-0 ${
+                          isLastRead
+                            ? 'bg-amber-500 text-[#070d1e] border-amber-400'
+                            : isRead
+                            ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/30'
+                            : 'bg-white/5 text-[#d4af37] border-white/10'
+                        }`}
+                      >
+                        {chapter.chapterNumber}
+                      </span>
 
-                      <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-[#f0cb69] transition-colors font-cairo">
-                        {ch.title}
-                      </h3>
-
-                      {ch.subtitle && (
-                        <p className="text-xs text-[#94a3b8] line-clamp-1">
-                          {ch.subtitle}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-3 text-[11px] text-[#64748b] pt-0.5">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-[#d4af37]" />
-                          ~ {ch.readingTimeMinutes || 3} دقائق قراءة
-                        </span>
-                        <span>·</span>
-                        <span>{ch.wordCount || 100} كلمة</span>
-                        <span>·</span>
-                        <span className="flex items-center gap-1 text-[#cbd5e1]">
-                          <Eye className="h-3 w-3 text-[#d4af37]" />
-                          {(ch.viewsCount !== undefined ? ch.viewsCount : 1500).toLocaleString('ar-EG')} مشاهدة
+                      <div className="truncate">
+                        <h3 className="text-xs sm:text-sm font-bold text-white group-hover:text-[#f0cb69] transition-colors truncate">
+                          {chapter.title}
+                        </h3>
+                        <span className="text-[10px] text-[#94a3b8] block">
+                          {chapter.wordCount} كلمة • ~{chapter.readingTimeMinutes} دقيقة
                         </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Actions: Manual Mark Read Button + Read Button */}
-                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                    {/* Manual Read status toggle button */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleChapterStatus(e, ch.id)}
-                      className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all ${
-                        isRead
-                          ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-900/50'
-                          : 'bg-[#070d1e] text-[#94a3b8] border border-white/10 hover:text-white hover:border-[#c59b27]/40'
-                      }`}
-                      title={isRead ? 'إلغاء علامة القراءة' : 'تحديد هذا الفصل كمقروء'}
-                    >
-                      {isRead ? (
-                        <>
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>مقروء (إلغاء)</span>
-                        </>
-                      ) : (
-                        <>
-                          <Circle className="h-3.5 w-3.5 text-[#64748b]" />
-                          <span>تحديد كمقروء</span>
-                        </>
+                    <div className="flex items-center gap-2 shrink-0 mr-2">
+                      {isLastRead && (
+                        <span className="rounded-md bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold text-[#f0cb69]">
+                          آخر ما قرأت
+                        </span>
                       )}
-                    </button>
 
-                    {/* Open chapter button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleChapterClick(ch.id);
-                      }}
-                      className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] px-3.5 py-2 text-xs font-black text-[#070d1e] shadow transition-transform hover:scale-102"
-                    >
-                      <BookOpen className="h-3.5 w-3.5" />
-                      <span>اقرأ الآن</span>
-                    </button>
+                      <button
+                        onClick={(e) => handleToggleChapterStatus(e, chapter.id)}
+                        className="p-1 rounded hover:bg-white/10 transition-colors"
+                        title={isRead ? 'تعليم كغير مقروء' : 'تعليم كمقروء'}
+                      >
+                        {isRead ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-[#64748b]" />
+                        )}
+                      </button>
+
+                      <ChevronLeft className="h-4 w-4 text-[#64748b] group-hover:text-white transition-colors" />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </main>
     </div>

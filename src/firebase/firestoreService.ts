@@ -59,6 +59,15 @@ export async function saveBookToFirestore(book: BookProject): Promise<void> {
   }
 }
 
+export async function deleteBookFromFirestore(bookId: string): Promise<void> {
+  const path = `books/${bookId}`;
+  try {
+    await deleteDoc(doc(db, 'books', bookId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
 // ----------------------------------------------------
 // CATEGORIES COLLECTION
 // ----------------------------------------------------

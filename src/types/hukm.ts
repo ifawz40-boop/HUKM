@@ -5,39 +5,8 @@ export interface CategoryItem {
   icon?: string;
 }
 
-export type PublishingStatus = 'published' | 'in_progress' | 'draft';
-
-export type MediaType = 'image' | 'gif' | 'video';
-
-export interface ChapterMedia {
-  id: string;
-  type: MediaType;
-  url: string;
-  title?: string;
-  caption?: string; // شرح توضيحي وتوثيق للوسيط
-  durationSeconds?: number; // e.g., 5, 8, 12 seconds for short video loop
-  aspectRatio?: '16:9' | '4:3' | 'square' | 'banner';
-  placement?: 'header' | 'in_content' | 'footer';
-  loop?: boolean;
-  autoplay?: boolean;
-  badgeText?: string;
-}
-
-export interface SourceReference {
-  id: string;
-  title: string;
-  author: string;
-  year?: string;
-  url?: string;
-  type: 'book' | 'paper' | 'archive' | 'documentary';
-}
-
-export interface SocialQuote {
-  id: string;
-  quoteText: string;
-  context?: string;
-  chapterNumber?: number;
-}
+export type NovelStatus = 'ongoing' | 'completed';
+export type PublishingStatus = 'published' | 'in_progress' | 'draft' | 'ongoing' | 'completed';
 
 export interface BookChapter {
   id: string;
@@ -47,8 +16,7 @@ export interface BookChapter {
   subtitle?: string;
   content: string[];
   notes?: string;
-  references: string[];
-  media?: ChapterMedia[]; // الوسائط: صور، صور متحركة GIF، فيديوهات قصيرة
+  references?: string[];
   status: 'draft' | 'ready';
   wordCount: number;
   readingTimeMinutes: number;
@@ -56,64 +24,43 @@ export interface BookChapter {
   updatedAt: string;
 }
 
-export type PlatformType =
-  | 'youtube'
-  | 'x'
-  | 'spotify'
-  | 'apple_podcasts'
-  | 'soundcloud'
-  | 'instagram'
-  | 'telegram'
-  | 'custom';
+export type MediaType = 'image' | 'gif' | 'video';
 
-export interface PlatformLinkConfig {
-  id: string;
-  platform: PlatformType;
-  enabled: boolean;
-  url: string;
-  customLabel?: string;
-}
-
-export interface StandaloneEpisodeConfig {
-  hasStandaloneEpisode: boolean;
+export interface ChapterMedia {
+  id?: string;
+  type?: MediaType;
+  url?: string;
   title?: string;
-  episodeNumber?: string;
-  videoUrl?: string;
-  platformUrl?: string;
-  durationMinutes?: number;
-  badgeLabel?: string; // e.g. "حلقة مفرقة", "حلقة وثائقية مستقلة"
-  description?: string;
+  caption?: string;
+  durationSeconds?: number;
+  aspectRatio?: string;
+  placement?: string;
+  loop?: boolean;
+  autoplay?: boolean;
+  badgeText?: string;
 }
 
 export interface BookProject {
   id: string;
   title: string;
-  subtitle: string;
-  author?: string; // e.g. "إبراهيم فوزي"
+  subtitle?: string;
+  author?: string; // Dr/ Islam Mohamed or custom
   category: string; // Dynamic Category ID
   coverImage: string;
   coverMediaType?: MediaType;
-  coverMedia?: ChapterMedia;
   status: PublishingStatus;
   summary: string;
+  rating?: number;
   motto?: string;
   viewsCount: number;
-  socialLinks: {
-    youtubeUrl?: string;
-    podcastUrl?: string;
-    xThreadUrl?: string;
-    instagramPostUrl?: string;
-    telegramUrl?: string;
-    soundcloudUrl?: string;
-  };
-  standaloneEpisode?: StandaloneEpisodeConfig;
-  platformLinks?: PlatformLinkConfig[];
-  hidePodcastBadge?: boolean; // HUKM does not have an official podcast yet
   chapters: BookChapter[];
-  sources: SourceReference[];
-  quotes: SocialQuote[];
   createdAt: string;
   updatedAt: string;
+  // Optional legacy compatibility
+  sources?: any[];
+  quotes?: any[];
+  socialLinks?: Record<string, string>;
+  standaloneEpisode?: any;
 }
 
 export interface ReadingProgress {
@@ -130,4 +77,3 @@ export interface CreatorAccount {
   role: 'official_publisher';
   isOfficialVerified: boolean;
 }
-

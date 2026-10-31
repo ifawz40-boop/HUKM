@@ -129,8 +129,9 @@ export function filterBooks(
     result = result.filter(
       (b) =>
         b.title.toLowerCase().includes(q) ||
-        b.subtitle.toLowerCase().includes(q) ||
-        b.summary.toLowerCase().includes(q) ||
+        (b.subtitle || '').toLowerCase().includes(q) ||
+        (b.author || '').toLowerCase().includes(q) ||
+        (b.summary || '').toLowerCase().includes(q) ||
         b.chapters.some((c) => c.title.toLowerCase().includes(q))
     );
   }
