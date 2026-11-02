@@ -22,8 +22,14 @@ service cloud.firestore {
     }
 
     // Authoritative Custom Claims based roles (Strictly Token Claims, ZERO email fallbacks)
+    // Authoritative Custom Claims based roles:
+    // Requires verified Custom Claim 'owner' AND active registration in /admins/{uid}
+    // to guarantee that no orphaned or incomplete claim can bypass the bootstrap registry.
     function isOwner() {
-      return isSignedIn() && isEmailVerified() && request.auth.token.role == 'owner';
+      return isSignedIn() && 
+             isEmailVerified() && 
+             request.auth.token.role == 'owner' &&
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // Admin role requires Custom Claim 'admin' AND active registration in /admins/{uid} for instant revocation
