@@ -1,9 +1,9 @@
-import { Router, Request, Response } from 'express';
-import { adminAuth, adminDb } from './firebaseAdmin';
+import { Router, type Request, type Response } from 'express';
+import { adminAuth, adminDb } from './firebaseAdmin.ts';
 
 export const authClaimsRouter = Router();
 
-// Middleware to verify caller identity from Firebase ID token
+// Middleware to verify caller identity from Firebase ID token with strict token revocation checking
 export async function authenticateToken(req: Request, res: Response, next: () => void) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -12,18 +12,26 @@ export async function authenticateToken(req: Request, res: Response, next: () =>
 
   const token = authHeader.split('Bearer ')[1]!.trim();
   try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    // CRITICAL: checkRevoked = true ensures revoked tokens are immediately rejected by Firebase Admin
+    const decodedToken = await adminAuth.verifyIdToken(token, true);
     (req as any).user = decodedToken;
     next();
   } catch (err: any) {
+    if (err.code === 'auth/id-token-revoked') {
+      return res.status(401).json({
+        success: false,
+        code: 'TOKEN_REVOKED',
+        message: 'تم إلغاء صلاحية هذا التوكن نهائياً (Token Revoked). يرجى إعادة تسجيل الدخول.',
+      });
+    }
     return res.status(401).json({ success: false, message: 'رمز الدخول غير صالح أو منتهي الصلاحية' });
   }
 }
 
-// Middleware to enforce OWNER-only access
+// Middleware to enforce OWNER-only access strictly from Custom Claims
 export function requireOwnerRole(req: Request, res: Response, next: () => void) {
   const user = (req as any).user;
-  if (!user || user.role !== 'owner') {
+  if (!user || user.role !== 'owner' || !user.email_verified) {
     return res.status(403).json({
       success: false,
       message: 'غير مصرح: هذه العملية مقتصرة حصرياً على صاحب المنصة (Owner) ولا يملكها المشرفون الآخرون.',
@@ -33,105 +41,15 @@ export function requireOwnerRole(req: Request, res: Response, next: () => void) 
 }
 
 /**
- * 1. Initial One-Time Bootstrap Endpoint
- * Assigns Founder as OWNER and Executive Manager as ADMIN.
- * Rejects execution once bootstrap has already occurred.
+ * 1. Public /bootstrap endpoint is PERMANENTLY DISABLED
+ * Initial OWNER assignment must strictly occur via the operator-controlled CLI script:
+ *   npx tsx scripts/bootstrap-owner.ts
  */
-authClaimsRouter.post('/bootstrap', async (req: Request, res: Response) => {
-  try {
-    const bootstrapRef = adminDb.collection('_system').doc('bootstrap');
-    const bootstrapSnap = await bootstrapRef.get();
-
-    if (bootstrapSnap.exists && bootstrapSnap.data()?.completed) {
-      return res.status(403).json({
-        success: false,
-        message: 'تم تنفيذ التهيئة الأولية للمنصة مسبقاً، لا يمكن تكرار هذه العملية.',
-      });
-    }
-
-    const { founderEmail, managerEmail, bootstrapKey } = req.body;
-    const expectedKey = process.env.BOOTSTRAP_SECRET || 'HUKM_SECURE_INIT_2026';
-
-    if (bootstrapKey && bootstrapKey !== expectedKey) {
-      return res.status(401).json({ success: false, message: 'مفتاح التهيئة غير صالح.' });
-    }
-
-    const targetFounderEmail = (founderEmail || 'dr.islam.mohamed@hukm.media').toLowerCase().trim();
-    const targetManagerEmail = (managerEmail || 'ifawz40@gmail.com').toLowerCase().trim();
-
-    let founderUser;
-    let managerUser;
-
-    try {
-      founderUser = await adminAuth.getUserByEmail(targetFounderEmail);
-    } catch {
-      // If user hasn't registered yet in Firebase Auth
-    }
-
-    try {
-      managerUser = await adminAuth.getUserByEmail(targetManagerEmail);
-    } catch {
-      // If user hasn't registered yet in Firebase Auth
-    }
-
-    const results: Record<string, any> = {};
-
-    if (founderUser) {
-      await adminAuth.setCustomUserClaims(founderUser.uid, { role: 'owner' });
-      await adminAuth.revokeRefreshTokens(founderUser.uid);
-      await adminDb.collection('admins').doc(founderUser.uid).set({
-        id: founderUser.uid,
-        uid: founderUser.uid,
-        email: founderUser.email,
-        name: founderUser.displayName || 'Dr/ Islam Mohamed',
-        title: 'المؤسس والمشرف العام للمنصة',
-        role: 'owner',
-        isFounder: true,
-        canEditBooks: true,
-        canManageBans: true,
-        addedBy: 'SYSTEM_BOOTSTRAP',
-        addedAt: new Date().toISOString(),
-      });
-      results.founder = { uid: founderUser.uid, role: 'owner', email: founderUser.email };
-    }
-
-    if (managerUser) {
-      await adminAuth.setCustomUserClaims(managerUser.uid, { role: 'admin' });
-      await adminAuth.revokeRefreshTokens(managerUser.uid);
-      await adminDb.collection('admins').doc(managerUser.uid).set({
-        id: managerUser.uid,
-        uid: managerUser.uid,
-        email: managerUser.email,
-        name: managerUser.displayName || 'إبراهيم فوزي',
-        title: 'المدير التنفيذي والناشر',
-        role: 'admin',
-        isFounder: false,
-        canEditBooks: true,
-        canManageBans: true,
-        addedBy: 'SYSTEM_BOOTSTRAP',
-        addedAt: new Date().toISOString(),
-      });
-      results.manager = { uid: managerUser.uid, role: 'admin', email: managerUser.email };
-    }
-
-    if (founderUser || managerUser) {
-      await bootstrapRef.set({
-        completed: true,
-        bootstrappedAt: new Date().toISOString(),
-        founderUid: founderUser?.uid || null,
-        managerUid: managerUser?.uid || null,
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: 'تمت التهيئة الأمنية وتعيين صلاحيات Custom Claims بنجاح.',
-      results,
-    });
-  } catch (err: any) {
-    console.error('Bootstrap error:', err);
-    return res.status(500).json({ success: false, message: err.message || 'فشلت عملية التهيئة.' });
-  }
+authClaimsRouter.post('/bootstrap', (_req: Request, res: Response) => {
+  return res.status(403).json({
+    success: false,
+    message: 'تم تعطيل نقطة التهيئة عبر HTTP لدواعي أمنية مشددة. التهيئة الأولية تتم حصرًا بواسطة المشغل عبر السكربت الميداني scripts/bootstrap-owner.ts.',
+  });
 });
 
 /**
@@ -150,10 +68,7 @@ authClaimsRouter.post('/lookup-user', authenticateToken, requireOwnerRole, async
     const userRecord = await adminAuth.getUserByEmail(cleanEmail);
     const customClaims = userRecord.customClaims || {};
 
-    const isVerified = Boolean(
-      userRecord.emailVerified ||
-      userRecord.providerData.some((p) => p.providerId === 'google.com')
-    );
+    const isVerified = Boolean(userRecord.emailVerified);
 
     return res.json({
       success: true,
@@ -197,11 +112,8 @@ authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (r
   try {
     const targetUser = await adminAuth.getUser(targetUid);
 
-    // Prevent granting admin to unverified email/password accounts
-    const isVerified = Boolean(
-      targetUser.emailVerified ||
-      targetUser.providerData.some((p) => p.providerId === 'google.com')
-    );
+    // Prevent granting admin to unverified accounts (strictly check targetUser.emailVerified)
+    const isVerified = Boolean(targetUser.emailVerified);
 
     if (role === 'admin' && !isVerified) {
       return res.status(400).json({
@@ -232,13 +144,9 @@ authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (r
         addedBy: caller.uid,
         addedAt: new Date().toISOString(),
       });
-
-      // Sync users collection
-      await adminDb.collection('users').doc(targetUid).set({ role: 'admin' }, { merge: true });
     } else {
-      // Downgrade to reader: delete admin document
+      // Downgrade to reader: delete admin document immediately (cuts off Firestore access)
       await adminDocRef.delete();
-      await adminDb.collection('users').doc(targetUid).set({ role: 'reader' }, { merge: true });
     }
 
     return res.json({
@@ -254,6 +162,7 @@ authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (r
 /**
  * 4. Revoke Admin Role (Strictly for OWNER)
  * Completely strips administrative Custom Claims and deletes admins/{uid}.
+ * Immediately revokes active session refresh tokens and Firestore access.
  */
 authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async (req: Request, res: Response) => {
   const { targetUid } = req.body;
@@ -270,17 +179,18 @@ authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async
       return res.status(403).json({ success: false, message: 'لا يمكن سحب صلاحيات المؤسس الرئيسي للمنصة.' });
     }
 
-    // Revoke claim
+    // 1. Revoke claim
     await adminAuth.setCustomUserClaims(targetUid, { role: 'reader' });
+    
+    // 2. Revoke refresh tokens
     await adminAuth.revokeRefreshTokens(targetUid);
 
-    // Remove from registry
+    // 3. Remove from admins registry (instantly revokes Firestore access via rule: exists(/admins/$(uid)))
     await adminDocRef.delete();
-    await adminDb.collection('users').doc(targetUid).set({ role: 'reader' }, { merge: true });
 
     return res.json({
       success: true,
-      message: 'تم سحب صلاحيات الإدارة وإلغاء التوكنات القديمة فورياً بنجاح.',
+      message: 'تم سحب صلاحيات الإدارة وإلغاء الجلسات والتصاريح فورياً بنجاح.',
     });
   } catch (err: any) {
     console.error('Revoke role error:', err);

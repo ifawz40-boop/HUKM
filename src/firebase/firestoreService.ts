@@ -5,6 +5,8 @@ import {
   setDoc,
   deleteDoc,
   onSnapshot,
+  query,
+  where,
 } from 'firebase/firestore';
 import { signInWithPopup } from 'firebase/auth';
 import { db, auth, googleProvider, handleFirestoreError, OperationType } from './config';
@@ -34,11 +36,22 @@ export async function loginWithFirebaseGoogle(): Promise<{ email: string; name: 
 // BOOKS COLLECTION
 // ----------------------------------------------------
 
-export async function fetchBooksFromFirestore(): Promise<BookProject[] | null> {
+export async function fetchBooksFromFirestore(isAdminUser: boolean = false): Promise<BookProject[] | null> {
   const path = 'books';
   try {
-    const snapshot = await getDocs(collection(db, path));
-    if (snapshot.empty) return null;
+    let q;
+    if (isAdminUser) {
+      // Admins and Owner can query all books including drafts
+      q = collection(db, path);
+    } else {
+      // Public and reader queries strictly filter published statuses to comply with firestore.rules
+      q = query(
+        collection(db, path),
+        where('status', 'in', ['published', 'completed', 'ongoing', 'ready'])
+      );
+    }
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return [];
     const books: BookProject[] = [];
     snapshot.forEach((d) => {
       books.push(d.data() as BookProject);

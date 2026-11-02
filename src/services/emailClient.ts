@@ -1,0 +1,78 @@
+import { auth } from '../firebase/config';
+
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('يجب تسجيل الدخول لإجراء هذه العملية.');
+  }
+  const idToken = await currentUser.getIdToken(true);
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${idToken}`,
+  };
+}
+
+export interface EmailServiceStatus {
+  success: boolean;
+  configured: boolean;
+  provider: string | null;
+  message: string;
+}
+
+export interface SendEmailResponse {
+  success: boolean;
+  delivered: boolean;
+  message: string;
+  providerId?: string;
+  recipientCount?: number;
+}
+
+/**
+ * Checks if real email provider credentials exist on the server
+ */
+export async function getEmailServiceStatus(): Promise<EmailServiceStatus> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/email/status', {
+      method: 'GET',
+      headers,
+    });
+    return await res.json();
+  } catch (err: any) {
+    return {
+      success: false,
+      configured: false,
+      provider: null,
+      message: err.message || 'تعذر الاتصال بخدمة البريد.',
+    };
+  }
+}
+
+/**
+ * Dispatches real broadcast or individual email via server backend
+ */
+export async function dispatchRealEmail(params: {
+  subject: string;
+  htmlContent: string;
+  recipientEmail?: string;
+  type?: 'welcome' | 'new_release' | 'announcement';
+  bookTitle?: string;
+}): Promise<SendEmailResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/email/send', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    return {
+      success: false,
+      delivered: false,
+      message: err.message || 'فشل الاتصال بالخادم لإرسال البريد.',
+    };
+  }
+}

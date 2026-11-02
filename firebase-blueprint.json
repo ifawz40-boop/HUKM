@@ -1,5 +1,24 @@
 {
   "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Reader profile information, bookmarks, and read history.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 256 },
+        "photoURL": { "type": "string", "maxLength": 1024 },
+        "avatar": { "type": "string", "maxLength": 1024 },
+        "bio": { "type": "string", "maxLength": 1000 },
+        "joinedDate": { "type": "string", "maxLength": 64 },
+        "bookmarks": { "type": "array", "items": { "type": "string" } },
+        "readHistory": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid"]
+    },
     "BookProject": {
       "title": "BookProject",
       "description": "Represents a research book or investigative project published on HUKM MEDIA.",
@@ -11,7 +30,7 @@
         "author": { "type": "string", "maxLength": 128 },
         "category": { "type": "string", "maxLength": 64 },
         "coverImage": { "type": "string", "maxLength": 1024 },
-        "status": { "type": "string", "enum": ["published", "in_progress", "draft"] },
+        "status": { "type": "string", "enum": ["published", "completed", "ongoing", "ready", "draft"] },
         "summary": { "type": "string", "maxLength": 4096 },
         "viewsCount": { "type": "number" },
         "createdAt": { "type": "string", "maxLength": 64 },
@@ -36,14 +55,17 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
         "email": { "type": "string", "maxLength": 256 },
         "name": { "type": "string", "maxLength": 128 },
         "title": { "type": "string", "maxLength": 128 },
         "addedBy": { "type": "string", "maxLength": 128 },
         "addedAt": { "type": "string", "maxLength": 64 },
-        "isFounder": { "type": "boolean" }
+        "isFounder": { "type": "boolean" },
+        "canEditBooks": { "type": "boolean" },
+        "canManageBans": { "type": "boolean" }
       },
-      "required": ["id", "email", "name"]
+      "required": ["id", "uid", "email", "name"]
     },
     "BannedAccount": {
       "title": "BannedAccount",
@@ -72,12 +94,34 @@
         "name": { "type": "string", "maxLength": 128 },
         "subscribedAt": { "type": "string", "maxLength": 64 },
         "source": { "type": "string", "maxLength": 64 },
-        "active": { "type": "boolean" }
+        "active": { "type": "boolean" },
+        "receiveAllReleases": { "type": "boolean" }
       },
       "required": ["id", "email", "active"]
+    },
+    "ReadingProgress": {
+      "title": "ReadingProgress",
+      "description": "Reader progress bookmarks per book and chapter.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "bookId": { "type": "string", "maxLength": 128 },
+        "chapterId": { "type": "string", "maxLength": 128 },
+        "chapterIndex": { "type": "number" },
+        "scrollPercent": { "type": "number" },
+        "lastReadAt": { "type": "string", "maxLength": 64 },
+        "completed": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["userId", "bookId", "chapterId"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile collection."
+    },
     "/books/{bookId}": {
       "schema": { "$ref": "#/entities/BookProject" },
       "description": "Collection of all published books and investigation series."
@@ -97,6 +141,10 @@
     "/subscribers/{subscriberId}": {
       "schema": { "$ref": "#/entities/HukmSubscriber" },
       "description": "Subscribers registry for automatic email notifications."
+    },
+    "/readingProgress/{progressId}": {
+      "schema": { "$ref": "#/entities/ReadingProgress" },
+      "description": "Reading progress registry per user."
     }
   }
 }

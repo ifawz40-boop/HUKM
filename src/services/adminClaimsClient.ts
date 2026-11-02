@@ -85,22 +85,4 @@ export async function revokeAdminRole(
   }
 }
 
-/**
- * Initial One-Time Bootstrap Call
- */
-export async function bootstrapOwnerAccount(bootstrapKey?: string): Promise<{
-  success: boolean;
-  message: string;
-  results?: any;
-}> {
-  try {
-    const res = await fetch('/api/auth/bootstrap', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bootstrapKey }),
-    });
-    return await res.json();
-  } catch (err: any) {
-    return { success: false, message: err.message || 'فشلت عملية التهيئة الأولية.' };
-  }
-}
+

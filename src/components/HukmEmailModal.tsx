@@ -28,6 +28,11 @@ import {
   toggleSubscriberActive,
 } from '../utils/authStorage';
 import { HUKM_LOGO } from '../data/hukmData';
+import {
+  getEmailServiceStatus,
+  dispatchRealEmail,
+  type EmailServiceStatus,
+} from '../services/emailClient';
 
 interface HukmEmailModalProps {
   isOpen: boolean;
@@ -49,9 +54,16 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
   const [customBody, setCustomBody] = useState('');
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<EmailServiceStatus | null>(null);
 
   const [subscribers, setSubscribers] = useState<HukmSubscriber[]>(() => getStoredSubscribers());
   const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>(() => getStoredEmailLogs());
+
+  React.useEffect(() => {
+    if (isOpen) {
+      getEmailServiceStatus().then(setEmailStatus);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -87,7 +99,7 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
     setTimeout(() => setCopiedHtml(false), 2500);
   };
 
-  const handleSendBroadcast = (e: React.FormEvent) => {
+  const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customSubject.trim() || !customBody.trim()) {
       onShowToast('يرجى كتابة عنوان الرسالة ونصها.');
@@ -95,11 +107,21 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
     }
 
     setIsSending(true);
-    setTimeout(() => {
-      const html = generateCustomBroadcastEmailHtml(customSubject, customBody);
-      const newLog = addEmailLog({
-        subject: customSubject,
-        recipientCount: activeSubscribersCount,
+    const html = generateCustomBroadcastEmailHtml(customSubject, customBody);
+
+    const res = await dispatchRealEmail({
+      subject: customSubject.trim(),
+      htmlContent: html,
+      type: 'announcement',
+      bookTitle: currentBook?.title,
+    });
+
+    setIsSending(false);
+
+    if (res.delivered) {
+      addEmailLog({
+        subject: customSubject.trim(),
+        recipientCount: res.recipientCount || activeSubscribersCount,
         timestamp: 'الآن',
         type: 'announcement',
         bookTitle: currentBook?.title,
@@ -108,30 +130,45 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
       });
 
       setEmailLogs(getStoredEmailLogs());
-      setIsSending(false);
       setCustomSubject('');
       setCustomBody('');
-      onShowToast(`تم إرسال البريد بنجاح إلى ${activeSubscribersCount} مشتركاً معتمداً بهوية حُكم! ✉️`);
+      onShowToast(res.message);
       setActiveTab('logs');
-    }, 600);
+    } else {
+      // Honest reporting: show exact server/provider reason
+      onShowToast(res.message);
+    }
   };
 
-  const handleSendTestWelcome = () => {
+  const handleSendTestWelcome = async () => {
     setIsSending(true);
-    setTimeout(() => {
+    const testEmail = 'ifawz40@gmail.com';
+    const html = generateWelcomeEmailHtml('إبراهيم فوزي', testEmail);
+
+    const res = await dispatchRealEmail({
+      subject: 'أهلاً بك في منصة حُكم | HUKM MEDIA (رسالة ترحيب)',
+      htmlContent: html,
+      recipientEmail: testEmail,
+      type: 'welcome',
+    });
+
+    setIsSending(false);
+
+    if (res.delivered) {
       addEmailLog({
         subject: 'أهلاً بك في منصة حُكم | HUKM MEDIA (رسالة ترحيب)',
         recipientCount: 1,
-        recipientEmail: 'ifawz40@gmail.com',
+        recipientEmail: testEmail,
         timestamp: 'الآن',
         type: 'welcome',
-        previewHtml: generateWelcomeEmailHtml('إبراهيم فوزي', 'ifawz40@gmail.com'),
+        previewHtml: html,
         delivered: true,
       });
       setEmailLogs(getStoredEmailLogs());
-      setIsSending(false);
-      onShowToast('تم إرسال بريد الترحيب التجريبي بنجاح!');
-    }, 400);
+      onShowToast(res.message);
+    } else {
+      onShowToast(res.message);
+    }
   };
 
   const handleToggleSubscriber = (subId: string) => {
@@ -203,6 +240,18 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 no-scrollbar">
+          {emailStatus && !emailStatus.configured && (
+            <div className="flex items-start gap-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 text-xs text-amber-200">
+              <span className="text-base">⚠️</span>
+              <div>
+                <p className="font-bold text-amber-300">خدمة إرسال البريد الإلكتروني غير مهيأة على الخادم</p>
+                <p className="text-[11px] text-[#94a3b8] mt-0.5 leading-relaxed">
+                  لم يتم ضبط مفتاح مزود البريد <code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">RESEND_API_KEY</code> في متغيرات بيئة الخادم. تم إيقاف المحاكاة الوهمية، ولن يتم تسجيل أي إرسال كـ Delivered دون تأكيد مزود البريد.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: Live Royal Email Preview */}
           {activeTab === 'preview' && (
             <div className="space-y-4">

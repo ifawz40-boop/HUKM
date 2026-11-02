@@ -16,20 +16,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Strict email verification: email_verified == true strictly from ID Token (NO provider shortcuts)
     function isEmailVerified() {
-      return isSignedIn() && (
-        request.auth.token.firebase.sign_in_provider == 'google.com' ||
-        request.auth.token.email_verified == true
-      );
+      return isSignedIn() && request.auth.token.email_verified == true;
     }
 
-    // Authoritative Custom Claims based roles (No email checking)
+    // Authoritative Custom Claims based roles (Strictly Token Claims, ZERO email fallbacks)
     function isOwner() {
       return isSignedIn() && isEmailVerified() && request.auth.token.role == 'owner';
     }
 
+    // Admin role requires Custom Claim 'admin' AND active registration in /admins/{uid} for instant revocation
     function isAdmin() {
-      return isOwner() || (isSignedIn() && isEmailVerified() && request.auth.token.role == 'admin');
+      return isOwner() || (
+        isSignedIn() && 
+        isEmailVerified() && 
+        request.auth.token.role == 'admin' &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
     function incoming() {
@@ -41,32 +45,46 @@ service cloud.firestore {
     }
 
     // 1. Users Collection
-    match /users/{userId} {
-      // User can read their own profile, or verified Admins can read profiles
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      
-      // User can create their initial profile only as reader
-      allow create: if isSignedIn() && request.auth.uid == userId && (
-        !('role' in incoming()) || incoming().role == 'reader' || isOwner()
-      );
+    // Strict field-level validation: Users may update only approved profile fields.
+    // Users must NEVER set or change role, accountStatus, permissions, or administrative metadata.
+    function isValidUserProfileCreate() {
+      let data = incoming();
+      return data.keys().hasOnly(['uid', 'displayName', 'name', 'email', 'photoURL', 'avatar', 'bio', 'joinedDate', 'bookmarks', 'readHistory', 'updatedAt']) &&
+             data.uid == request.auth.uid &&
+             (!('email' in data) || data.email is string) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000)) &&
+             (!('bookmarks' in data) || data.bookmarks is list) &&
+             (!('readHistory' in data) || data.readHistory is list);
+    }
 
-      // User can update basic profile info, but CANNOT self-escalate role or accountStatus
+    function isValidUserProfileUpdate() {
+      let incomingData = incoming();
+      let existingData = existing();
+      let affected = incomingData.diff(existingData).affectedKeys();
+      return affected.hasOnly(['displayName', 'name', 'photoURL', 'avatar', 'bio', 'bookmarks', 'readHistory', 'updatedAt']) &&
+             (!('displayName' in incomingData) || (incomingData.displayName is string && incomingData.displayName.size() <= 100)) &&
+             (!('name' in incomingData) || (incomingData.name is string && incomingData.name.size() <= 100)) &&
+             (!('bio' in incomingData) || (incomingData.bio is string && incomingData.bio.size() <= 1000)) &&
+             (!('bookmarks' in incomingData) || incomingData.bookmarks is list) &&
+             (!('readHistory' in incomingData) || incomingData.readHistory is list);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUserProfileCreate();
       allow update: if isSignedIn() && (
-        (request.auth.uid == userId && 
-         incoming().role == existing().role && 
-         (!('accountStatus' in existing()) || incoming().accountStatus == existing().accountStatus)) ||
+        (request.auth.uid == userId && isValidUserProfileUpdate()) ||
         isOwner()
       );
-
       allow delete: if isOwner();
     }
 
     // 2. Books Collection
+    // Public users can ONLY read published books. Drafts are restricted to admins/owner!
     match /books/{bookId} {
-      // Public users can ONLY read published, ongoing, or completed books. Drafts are restricted to admins!
       allow read: if (resource.data.status in ['published', 'completed', 'ongoing', 'ready']) || isAdmin();
-      
-      // Only verified Admins and Owner can create, update, or delete books
       allow create, update, delete: if isAdmin() && isValidId(bookId);
     }
 
@@ -101,17 +119,48 @@ service cloud.firestore {
     // 7. Subscribers Collection:
     // Public users cannot read subscriber information! Only Admins can read or manage subscribers.
     match /subscribers/{subscriberId} {
-      allow create: if isValidId(subscriberId);
-      allow read, update, delete: if isAdmin();
+      allow read: if isAdmin();
+      allow create: if isValidId(subscriberId) &&
+                       incoming().keys().hasOnly(['id', 'email', 'name', 'subscribedAt', 'source', 'active', 'receiveAllReleases']) &&
+                       incoming().id == subscriberId &&
+                       incoming().email is string &&
+                       incoming().email.size() <= 256 &&
+                       incoming().email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+                       incoming().active == true;
+      allow update, delete: if isAdmin();
     }
 
     // 8. Reading Progress:
+    // Strict user ownership and field validation. Users cannot alter userId or tamper with other users' records.
+    function isValidReadingProgressCreate() {
+      let data = incoming();
+      return data.keys().hasOnly(['id', 'userId', 'bookId', 'chapterId', 'chapterIndex', 'scrollPercent', 'lastReadAt', 'completed', 'updatedAt']) &&
+             data.keys().hasAll(['userId', 'bookId', 'chapterId']) &&
+             data.userId == request.auth.uid &&
+             data.bookId is string && data.bookId.size() <= 128 &&
+             data.chapterId is string && data.chapterId.size() <= 128 &&
+             (!('chapterIndex' in data) || (data.chapterIndex is int && data.chapterIndex >= 0)) &&
+             (!('scrollPercent' in data) || (data.scrollPercent is number && data.scrollPercent >= 0 && data.scrollPercent <= 100)) &&
+             (!('completed' in data) || data.completed is bool);
+    }
+
+    function isValidReadingProgressUpdate() {
+      let incomingData = incoming();
+      let existingData = existing();
+      let affected = incomingData.diff(existingData).affectedKeys();
+      return affected.hasOnly(['chapterId', 'chapterIndex', 'scrollPercent', 'lastReadAt', 'completed', 'updatedAt']) &&
+             incomingData.userId == existingData.userId &&
+             (!('chapterId' in incomingData) || (incomingData.chapterId is string && incomingData.chapterId.size() <= 128)) &&
+             (!('chapterIndex' in incomingData) || (incomingData.chapterIndex is int && incomingData.chapterIndex >= 0)) &&
+             (!('scrollPercent' in incomingData) || (incomingData.scrollPercent is number && incomingData.scrollPercent >= 0 && incomingData.scrollPercent <= 100)) &&
+             (!('completed' in incomingData) || incomingData.completed is bool);
+    }
+
     match /readingProgress/{progressId} {
-      allow read, write: if isSignedIn() && (
-        request.auth.uid == resource.data.userId || 
-        request.auth.uid == incoming().userId ||
-        isAdmin()
-      );
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(progressId) && isValidReadingProgressCreate();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && isValidReadingProgressUpdate();
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

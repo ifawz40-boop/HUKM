@@ -10,10 +10,12 @@ const STORAGE_KEY_BANS = 'hukm_banned_users_v1';
 
 export const INITIAL_ADMINS: AdminAccount[] = [
   {
-    id: 'admin-founder-1',
+    id: 'founder-bootstrap-uid',
+    uid: 'founder-bootstrap-uid',
     email: 'dr.islam.mohamed@hukm.media',
     name: 'Dr/ Islam Mohamed',
     title: 'المؤسس والمشرف العام للمنصة',
+    role: 'owner',
     addedBy: 'النظام التأسيسي',
     addedAt: '2024-01-01',
     canEditBooks: true,
@@ -21,10 +23,12 @@ export const INITIAL_ADMINS: AdminAccount[] = [
     isFounder: true,
   },
   {
-    id: 'admin-exec-2',
+    id: 'manager-bootstrap-uid',
+    uid: 'manager-bootstrap-uid',
     email: 'ifawz40@gmail.com',
     name: 'إبراهيم فوزي',
     title: 'المدير التنفيذي والناشر المعتمد',
+    role: 'admin',
     addedBy: 'Dr/ Islam Mohamed',
     addedAt: '2024-01-01',
     canEditBooks: true,
@@ -76,71 +80,17 @@ export function saveStoredAdmins(admins: AdminAccount[]): void {
   }
 }
 
-export function isAuthorizedAdminEmail(email?: string | null): boolean {
-  if (!email) return false;
-  const normalized = email.trim().toLowerCase();
-  
-  // Permanent system super-admins
-  if (normalized === 'dr.islam.mohamed@hukm.media' || normalized === 'ifawz40@gmail.com') {
-    return true;
-  }
-  
-  const admins = getStoredAdmins();
-  return admins.some((admin) => admin.email.trim().toLowerCase() === normalized);
-}
+/**
+ * NOTE: Email-based authorization has been permanently removed in Phase 1.1.
+ * All authorization must go through Firebase Custom Claims via `permissionService.ts`.
+ */
 
-export function addAdmin(params: {
-  email: string;
-  name: string;
-  title?: string;
-  addedBy: string;
-  canEditBooks?: boolean;
-  canManageBans?: boolean;
-}): { success: boolean; message: string; admin?: AdminAccount } {
-  const normalizedEmail = params.email.trim().toLowerCase();
-  if (!normalizedEmail || !normalizedEmail.includes('@')) {
-    return { success: false, message: 'يرجى إدخال بريد إلكتروني صحيح.' };
-  }
-
-  const admins = getStoredAdmins();
-  const exists = admins.some((a) => a.email.trim().toLowerCase() === normalizedEmail);
-  if (exists) {
-    return { success: false, message: 'هذا البريد مسجل بالفعل كمدير في المنصة.' };
-  }
-
-  const newAdmin: AdminAccount = {
-    id: `admin-${Date.now()}`,
-    email: normalizedEmail,
-    name: params.name.trim() || 'مدير جديد',
-    title: params.title?.trim() || 'مدير تحرير معتمد',
-    addedBy: params.addedBy,
-    addedAt: new Date().toISOString().split('T')[0],
-    canEditBooks: params.canEditBooks ?? true,
-    canManageBans: params.canManageBans ?? true,
-    isFounder: false,
-  };
-
-  const updated = [newAdmin, ...admins];
-  saveStoredAdmins(updated);
-  saveAdminToFirestore(newAdmin);
-  return { success: true, message: `تم تعيين ${newAdmin.name} مديراً بنجاح!`, admin: newAdmin };
-}
-
-export function removeAdmin(adminId: string): { success: boolean; message: string } {
-  const admins = getStoredAdmins();
-  const target = admins.find((a) => a.id === adminId);
-  if (!target) {
-    return { success: false, message: 'الحساب غير موجود.' };
-  }
-  if (target.isFounder) {
-    return { success: false, message: 'لا يمكن سحب صلاحيات المؤسس الرسمي Dr/ Islam Mohamed.' };
-  }
-
-  const updated = admins.filter((a) => a.id !== adminId);
-  saveStoredAdmins(updated);
-  deleteAdminFromFirestore(adminId);
-  return { success: true, message: `تم سحب صلاحيات الإدارة من ${target.name}.` };
-}
+/**
+ * NOTE: Admin creation and revocation with mock UIDs is strictly forbidden.
+ * All administrative identity management MUST go through the trusted backend API
+ * (/api/auth/lookup-user, /api/auth/set-role, /api/auth/revoke-role) which sets
+ * authoritative Firebase Custom Claims and records verified Firebase UIDs.
+ */
 
 // ----------------------------------------------------
 // BANS & MODERATION MANAGEMENT

@@ -185,8 +185,8 @@ export default function App() {
   useEffect(() => {
     testFirestoreConnection();
 
-    // Pull or Seed Books (ensuring legacy mock books are not loaded)
-    fetchBooksFromFirestore().then((remoteBooks) => {
+    // Pull or Seed Books (filtered to published for readers, unfiltered for admins)
+    fetchBooksFromFirestore(checkIsAdmin(currentUser)).then((remoteBooks) => {
       if (remoteBooks && remoteBooks.length > 0) {
         const realBooks = remoteBooks.filter(
           (b) => !['investigation-01', 'science-ai-01', 'history-01'].includes(b.id)
@@ -205,7 +205,7 @@ export default function App() {
         INITIAL_CATEGORIES.forEach((c) => saveCategoryToFirestore(c));
       }
     });
-  }, []);
+  }, [currentUser]);
 
   // Support direct deep link URL params (strictly for views/books, no role bypass)
   useEffect(() => {

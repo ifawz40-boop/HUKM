@@ -96,7 +96,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
 
-        const user = await registerWithEmail(email.trim(), password, name.trim());
+        const { user } = await registerWithEmail(email.trim(), password, name.trim());
         onLoginSuccess(user);
         onClose();
       } else {

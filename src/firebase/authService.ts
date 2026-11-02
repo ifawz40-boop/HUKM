@@ -59,12 +59,10 @@ export async function determineUserRole(firebaseUser: FirebaseUser): Promise<Use
     const tokenResult = await firebaseUser.getIdTokenResult();
     const roleClaim = tokenResult.claims.role as string | undefined;
 
-    const isVerified = Boolean(
-      firebaseUser.emailVerified || 
-      firebaseUser.providerData.some((p) => p.providerId === 'google.com')
-    );
+    // CRITICAL: Strictly check emailVerified without any provider shortcuts
+    const isVerified = Boolean(firebaseUser.emailVerified);
 
-    // Administrative roles require verified identity
+    // Administrative roles require verified identity and EXCLUSIVE Custom Claims
     if (roleClaim === 'owner' && isVerified) {
       return 'owner';
     }
@@ -96,10 +94,7 @@ export async function syncUserProfile(firebaseUser: FirebaseUser): Promise<UserP
     console.warn('Could not fetch existing user document:', err);
   }
 
-  const isVerified = Boolean(
-    firebaseUser.emailVerified || 
-    firebaseUser.providerData.some((p) => p.providerId === 'google.com')
-  );
+  const isVerified = Boolean(firebaseUser.emailVerified);
 
   const profile: UserProfile = {
     id: firebaseUser.uid,
@@ -121,21 +116,21 @@ export async function syncUserProfile(firebaseUser: FirebaseUser): Promise<UserP
     customClaims: tokenResult.claims,
   };
 
-  // Upsert profile in Firestore safely
+  // Upsert user profile: CRITICAL SECURITY: Never write role or administrative metadata from frontend
   try {
     await setDoc(
       userRef,
       {
         uid: firebaseUser.uid,
         displayName: profile.name,
+        name: profile.name,
         email: profile.email,
         photoURL: profile.avatar || null,
-        role: profile.role,
-        bio: profile.bio,
+        avatar: profile.avatar || null,
+        bio: profile.bio || '',
         joinedDate: profile.joinedDate,
-        bookmarks: profile.bookmarks,
-        readHistory: profile.readHistory,
-        emailVerified: isVerified,
+        bookmarks: profile.bookmarks || [],
+        readHistory: profile.readHistory || [],
         updatedAt: serverTimestamp(),
       },
       { merge: true }
