@@ -216,11 +216,27 @@ emailApiRouter.get('/subscribers', authenticateToken, async (req: Request, res: 
       });
     }
 
-    const requestedLimit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 1000);
-    const snap = await adminDb.collection('subscribers').limit(requestedLimit).get();
+    const requestedLimit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const cursor = typeof req.query.cursor === 'string' && req.query.cursor.trim() ? req.query.cursor.trim() : null;
+
+    let query = adminDb.collection('subscribers')
+      .orderBy('subscribedAt', 'desc')
+      .orderBy('__name__', 'desc');
+
+    if (cursor) {
+      const cursorDoc = await adminDb.collection('subscribers').doc(cursor).get();
+      if (cursorDoc.exists) {
+        query = query.startAfter(cursorDoc);
+      }
+    }
+
+    // Fetch requestedLimit + 1 to reliably determine if more records exist without extra round-trip
+    const snap = await query.limit(requestedLimit + 1).get();
+    const hasMore = snap.docs.length > requestedLimit;
+    const resultDocs = hasMore ? snap.docs.slice(0, requestedLimit) : snap.docs;
 
     const subscribers: any[] = [];
-    snap.forEach((doc) => {
+    resultDocs.forEach((doc) => {
       const data = doc.data();
       subscribers.push({
         id: doc.id,
@@ -233,12 +249,13 @@ emailApiRouter.get('/subscribers', authenticateToken, async (req: Request, res: 
       });
     });
 
-    // Sort descending by subscribedAt
-    subscribers.sort((a, b) => new Date(b.subscribedAt || 0).getTime() - new Date(a.subscribedAt || 0).getTime());
+    const nextCursor = hasMore && resultDocs.length > 0 ? resultDocs[resultDocs.length - 1].id : null;
 
     return res.json({
       success: true,
       count: subscribers.length,
+      hasMore,
+      nextCursor,
       subscribers,
     });
   } catch (err: any) {

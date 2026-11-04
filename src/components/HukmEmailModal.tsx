@@ -69,6 +69,9 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
   // Cloud Subscribers State
   const [subscribers, setSubscribers] = useState<HukmSubscriber[]>(() => getStoredSubscribers());
   const [isLoadingSubscribers, setIsLoadingSubscribers] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [subscriberError, setSubscriberError] = useState<string | null>(null);
   const [subscriberSearch, setSubscriberSearch] = useState('');
   const [isRefreshingSubscribers, setIsRefreshingSubscribers] = useState(false);
@@ -76,46 +79,79 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
 
   const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>(() => getStoredEmailLogs());
 
-  // Real Cloud Subscriber Fetch with multi-tier fallback
-  const loadSubscribers = async (showFullLoading = true) => {
-    if (showFullLoading) setIsLoadingSubscribers(true);
-    setIsRefreshingSubscribers(true);
-    setSubscriberError(null);
+  const PAGE_SIZE = 20;
+
+  // Real Cloud Subscriber Fetch with cursor-based pagination & multi-tier fallback
+  const loadSubscribers = async (reset = true) => {
+    if (reset) {
+      setIsLoadingSubscribers(true);
+      setIsRefreshingSubscribers(true);
+      setSubscriberError(null);
+      setNextCursor(null);
+      setHasMore(false);
+    } else {
+      if (!hasMore || !nextCursor || isLoadingMore) return;
+      setIsLoadingMore(true);
+      setSubscriberError(null);
+    }
 
     try {
-      // 1. Preferred Tier: Protected Server API endpoint (strictly checks server-side admin claims & firestore doc)
-      const res = await fetchSubscribersApi();
+      const cursorToUse = reset ? null : nextCursor;
+      // 1. Preferred Tier: Protected Server API endpoint with pagination
+      const res = await fetchSubscribersApi(PAGE_SIZE, cursorToUse);
       if (res && res.success && Array.isArray(res.subscribers)) {
-        setSubscribers(res.subscribers);
+        if (reset) {
+          setSubscribers(res.subscribers);
+        } else {
+          // Prevent duplicates when appending next page
+          setSubscribers((prev) => {
+            const existingIds = new Set(prev.map((s) => s.id));
+            const uniqueIncoming = res.subscribers.filter((s) => !existingIds.has(s.id));
+            return [...prev, ...uniqueIncoming];
+          });
+        }
+        setHasMore(Boolean(res.hasMore));
+        setNextCursor(res.nextCursor || null);
         setIsLoadingSubscribers(false);
         setIsRefreshingSubscribers(false);
+        setIsLoadingMore(false);
         return;
       }
 
-      // 2. Fallback Tier: Direct Firestore client query (enforces firestore.rules isAdmin())
-      const direct = await fetchSubscribersFromFirestore();
-      if (direct && Array.isArray(direct)) {
-        setSubscribers(direct);
-        setIsLoadingSubscribers(false);
-        setIsRefreshingSubscribers(false);
-        return;
+      // 2. Fallback Tier: Direct Firestore client query (initial page only)
+      if (reset) {
+        const direct = await fetchSubscribersFromFirestore();
+        if (direct && Array.isArray(direct)) {
+          setSubscribers(direct);
+          setHasMore(false);
+          setNextCursor(null);
+          setIsLoadingSubscribers(false);
+          setIsRefreshingSubscribers(false);
+          setIsLoadingMore(false);
+          return;
+        }
       }
 
-      // If both cloud mechanisms returned error or empty response with failure message
+      // If both cloud mechanisms returned error
       const errMsg = res?.message || 'تعذر تحميل سجلات المشتركين من قاعدة البيانات السحابية.';
       setSubscriberError(errMsg);
-      // Fallback gracefully to locally stored data so admin never sees a broken screen
-      const local = getStoredSubscribers();
-      if (local && local.length > 0) {
-        setSubscribers(local);
+      if (reset) {
+        // Fallback gracefully to locally stored data so admin never sees a broken screen
+        const local = getStoredSubscribers();
+        if (local && local.length > 0) {
+          setSubscribers(local);
+        }
       }
     } catch (err: any) {
       console.warn('Could not load subscribers from cloud:', err);
       setSubscriberError(err?.message || 'خطأ في الاتصال بالخادم أثناء استرجاع بيانات المشتركين.');
-      setSubscribers(getStoredSubscribers());
+      if (reset) {
+        setSubscribers(getStoredSubscribers());
+      }
     } finally {
       setIsLoadingSubscribers(false);
       setIsRefreshingSubscribers(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -252,27 +288,55 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
     setTogglingSubId(subId);
 
     try {
+      let cloudSuccess = false;
+      let failureReason = '';
+
       // 1. Try server-side protected endpoint first
-      const apiRes = await toggleSubscriberApi(subId, nextState);
-      if (!apiRes.success) {
-        // 2. Direct client fallback
-        await toggleSubscriberInFirestore(subId, nextState);
+      try {
+        const apiRes = await toggleSubscriberApi(subId, nextState);
+        if (apiRes && apiRes.success) {
+          cloudSuccess = true;
+        } else if (apiRes && apiRes.message) {
+          failureReason = apiRes.message;
+        }
+      } catch (apiErr: any) {
+        failureReason = apiErr?.message || '';
       }
 
-      // Update local storage and component state
-      toggleSubscriberActive(subId);
-      setSubscribers((prev) =>
-        prev.map((s) => (s.id === subId ? { ...s, active: nextState } : s))
-      );
-      onShowToast(nextState ? 'تم تفعيل استقبال المشترك للإصدارات.' : 'تم تعطيل استقبال الإشعارات للمشترك.');
+      // 2. If API did not succeed, try existing authorized Firestore SDK fallback
+      if (!cloudSuccess) {
+        try {
+          const directSuccess = await toggleSubscriberInFirestore(subId, nextState);
+          if (directSuccess === true) {
+            cloudSuccess = true;
+          }
+        } catch (directErr: any) {
+          failureReason = directErr?.message || failureReason;
+        }
+      }
+
+      // 3. ONLY update state and local storage after CONFIRMED cloud success
+      if (cloudSuccess) {
+        toggleSubscriberActive(subId);
+        setSubscribers((prev) =>
+          prev.map((s) => (s.id === subId ? { ...s, active: nextState } : s))
+        );
+        onShowToast(
+          nextState
+            ? 'تم تفعيل استقبال المشترك للإصدارات سحابياً ✓'
+            : 'تم تعطيل استقبال الإشعارات للمشترك سحابياً ✓'
+        );
+      } else {
+        // Both cloud operations failed: PRESERVE previous state, show clear error, allow retry
+        onShowToast(
+          `فشل تحديث حالة المشترك في السحابة: ${
+            failureReason || 'تعذر الاتصال بقاعدة البيانات. يرجى إعادة المحاولة.'
+          }`
+        );
+      }
     } catch (err: any) {
-      console.warn('Could not toggle subscriber in cloud:', err);
-      // Fallback local update
-      toggleSubscriberActive(subId);
-      setSubscribers((prev) =>
-        prev.map((s) => (s.id === subId ? { ...s, active: nextState } : s))
-      );
-      onShowToast('تم تحديث حالة المشترك محلياً.');
+      console.warn('Unexpected error in handleToggleSubscriber:', err);
+      onShowToast(`خطأ في تحديث حالة المشترك: ${err?.message || 'تعذر إتمام العملية.'}`);
     } finally {
       setTogglingSubId(null);
     }
@@ -535,10 +599,10 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => loadSubscribers(false)}
+                    onClick={() => loadSubscribers(true)}
                     disabled={isRefreshingSubscribers}
                     className="flex items-center gap-1.5 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-white/10 px-3 py-1.5 text-xs font-semibold text-[#cbd5e1] hover:text-white transition-all disabled:opacity-50 cursor-pointer"
-                    title="تحديث القائمة من السحابة"
+                    title="تحديث القائمة من السحابة (إعادة الضبط للصفحة الأولى)"
                   >
                     <RotateCw className={`h-3.5 w-3.5 text-[#d4af37] ${isRefreshingSubscribers ? 'animate-spin' : ''}`} />
                     <span className="hidden sm:inline">تحديث</span>
@@ -547,15 +611,23 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
               </div>
 
               {/* In-app Search & Filter */}
-              <div className="relative">
-                <Search className="absolute right-3.5 top-3 h-4 w-4 text-[#94a3b8]" />
-                <input
-                  type="text"
-                  value={subscriberSearch}
-                  onChange={(e) => setSubscriberSearch(e.target.value)}
-                  placeholder="ابحث بالاسم أو البريد الإلكتروني للمشترك..."
-                  className="w-full rounded-2xl bg-[#0a1226] border border-white/10 pr-10 pl-4 py-2.5 text-xs text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none"
-                />
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <Search className="absolute right-3.5 top-3 h-4 w-4 text-[#94a3b8]" />
+                  <input
+                    type="text"
+                    value={subscriberSearch}
+                    onChange={(e) => setSubscriberSearch(e.target.value)}
+                    placeholder={`البحث في المشتركين المحملين حالياً (${subscribers.length})...`}
+                    className="w-full rounded-2xl bg-[#0a1226] border border-white/10 pr-10 pl-4 py-2.5 text-xs text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none"
+                  />
+                </div>
+                {hasMore && (
+                  <p className="text-[11px] text-amber-300/90 px-2 flex items-center gap-1.5">
+                    <span>💡 ملاحظة:</span>
+                    <span>البحث يشمل السجلات المحمّلة ({subscribers.length}). توجد صفحات إضافية في السحابة؛ اضغط «تحميل المزيد» لضمها للبحث.</span>
+                  </p>
+                )}
               </div>
 
               {/* Error State Banner with Retry */}
@@ -657,6 +729,36 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
                       </div>
                     ))}
                   </div>
+
+                  {/* Pagination Footer Controls */}
+                  {hasMore ? (
+                    <div className="p-3 bg-[#070d1e]/90 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                      <span className="text-[11px] text-[#94a3b8]">
+                        تم عرض {subscribers.length} مشتركاً (توجد صفحات إضافية في السحابة)
+                      </span>
+                      <button
+                        type="button"
+                        disabled={isLoadingMore}
+                        onClick={() => loadSubscribers(false)}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] px-4 py-1.5 text-xs font-bold text-[#070d1e] shadow-md shadow-[#c59b27]/20 transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        {isLoadingMore ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>جارٍ جلب السجلات السحابية...</span>
+                          </>
+                        ) : (
+                          <span>تحميل المزيد من المشتركين ⬇️</span>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    subscribers.length > 0 && (
+                      <div className="p-2.5 bg-[#070d1e]/40 border-t border-white/5 text-center text-[11px] text-emerald-400/90 font-medium">
+                        ✓ تم تحميل كافة سجلات المشتركين ({subscribers.length}) من قاعدة البيانات السحابية بالكامل
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>

@@ -31,9 +31,12 @@ export interface SendEmailResponse {
 export interface SubscribersApiResponse {
   success: boolean;
   count?: number;
+  hasMore?: boolean;
+  nextCursor?: string | null;
   subscribers: HukmSubscriber[];
   message?: string;
 }
+
 
 /**
  * Checks if real email provider credentials exist on the server
@@ -86,12 +89,19 @@ export async function dispatchRealEmail(params: {
 }
 
 /**
- * Retrieves real cloud subscribers from protected backend endpoint
+ * Retrieves real cloud subscribers from protected backend endpoint with cursor-based pagination
  */
-export async function fetchSubscribersApi(limit: number = 200): Promise<SubscribersApiResponse> {
+export async function fetchSubscribersApi(
+  limit: number = 20,
+  cursor?: string | null
+): Promise<SubscribersApiResponse> {
   try {
     const headers = await getAuthHeaders();
-    const res = await fetch(`/api/email/subscribers?limit=${limit}`, {
+    let url = `/api/email/subscribers?limit=${limit}`;
+    if (cursor) {
+      url += `&cursor=${encodeURIComponent(cursor)}`;
+    }
+    const res = await fetch(url, {
       method: 'GET',
       headers,
     });
@@ -101,10 +111,13 @@ export async function fetchSubscribersApi(limit: number = 200): Promise<Subscrib
     return {
       success: false,
       subscribers: [],
+      hasMore: false,
+      nextCursor: null,
       message: err.message || 'تعذر الاتصال بالخادم لجلب بيانات المشتركين.',
     };
   }
 }
+
 
 /**
  * Toggles a subscriber active state via protected backend endpoint
