@@ -23,8 +23,10 @@ emailApiRouter.get('/status', authenticateToken, async (_req: Request, res: Resp
 
 /**
  * Send Broadcast or Individual Email
- * Strictly requires verified OWNER or ADMIN identity.
+ * Strictly requires verified OWNER or ADMIN identity with an ACTIVE record in /admins/{uid}.
  * Rejects simulation; fails honestly if email provider credentials are not set.
+ * Chunks broadcast recipients into batches of 50 to ensure no subscribers are dropped.
+ * Accurately logs and returns the exact number of recipients dispatched.
  */
 emailApiRouter.post('/send', authenticateToken, async (req: Request, res: Response) => {
   const user = (req as any).user;
@@ -32,6 +34,32 @@ emailApiRouter.post('/send', authenticateToken, async (req: Request, res: Respon
     return res.status(403).json({
       success: false,
       message: 'غير مصرح: صلاحية إرسال البريد مقتصرة على المشرفين والمالك المعتمدين فقط.',
+    });
+  }
+
+  // 1. Strict verification of active administrative record in Firestore (/admins/{uid})
+  try {
+    const adminDoc = await adminDb.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح: لا يوجد سجل إداري فعال لحسابك في سجل الإدارة (/admins/{uid}). تم حظر الوصول فورياً.',
+      });
+    }
+
+    const adminData = adminDoc.data();
+    const adminRole = adminData?.role;
+    if (adminRole !== 'owner' && adminRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح: تم إلغاء أو تخفيض رتبتك الإدارية في قاعدة البيانات.',
+      });
+    }
+  } catch (authErr: any) {
+    console.error('Error verifying admin doc for email dispatch:', authErr);
+    return res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء التحقق من السجل الإداري للمرسل.',
     });
   }
 
@@ -57,12 +85,12 @@ emailApiRouter.post('/send', authenticateToken, async (req: Request, res: Respon
   }
 
   try {
-    // 1. Determine recipients
+    // 2. Determine recipients list
     let recipients: string[] = [];
     if (recipientEmail && typeof recipientEmail === 'string') {
       recipients = [recipientEmail.trim().toLowerCase()];
     } else {
-      // Broadcast to active subscribers in Firestore
+      // Broadcast to ALL active subscribers in Firestore (no truncation)
       const subscribersSnap = await adminDb.collection('subscribers').where('active', '==', true).get();
       subscribersSnap.forEach((doc) => {
         const data = doc.data();
@@ -74,54 +102,73 @@ emailApiRouter.post('/send', authenticateToken, async (req: Request, res: Respon
       return res.status(400).json({ success: false, message: 'لا يوجد مشتركون نشطون لإرسال الرسالة إليهم.' });
     }
 
-    // 2. Real dispatch through Resend REST API
+    // 3. Dispatch in batches of 50 to support unlimited subscribers without dropping any
     const fromAddress = process.env.EMAIL_FROM || 'HUKM MEDIA <updates@hukm.media>';
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey.trim()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromAddress,
-        to: recipients.slice(0, 50), // Batch up to 50
-        subject: subject.trim(),
-        html: htmlContent,
-      }),
-    });
+    const BATCH_SIZE = 50;
+    let actualDispatchedCount = 0;
+    const providerIds: string[] = [];
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error('Email provider error:', result);
-      return res.status(502).json({
-        success: false,
-        delivered: false,
-        message: `فشل الإرسال من مزود الخدمة: ${result.message || 'خطأ غير معروف في مزود البريد'}`,
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+      const batch = recipients.slice(i, i + BATCH_SIZE);
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: batch,
+          subject: subject.trim(),
+          html: htmlContent,
+        }),
       });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error(`Email provider batch failure at index ${i}:`, result);
+        if (actualDispatchedCount === 0) {
+          return res.status(502).json({
+            success: false,
+            delivered: false,
+            message: `فشل الإرسال من مزود الخدمة: ${result.message || 'خطأ غير معروف في مزود البريد'}`,
+          });
+        }
+        // Partial dispatch: stop further batches, log accurately what was sent
+        break;
+      }
+
+      actualDispatchedCount += batch.length;
+      if (result.id) {
+        providerIds.push(result.id);
+      }
     }
 
-    // 3. Record real verified log in Firestore
+    // 4. Record real verified log in Firestore reflecting actual dispatched count
     const logId = `log-${Date.now()}`;
     await adminDb.collection('emailLogs').doc(logId).set({
       id: logId,
       subject: subject.trim(),
-      recipientCount: recipients.length,
+      recipientCount: actualDispatchedCount,
+      totalRequested: recipients.length,
       recipientEmail: recipientEmail || null,
       timestamp: new Date().toISOString(),
       type: type || 'announcement',
       bookTitle: bookTitle || null,
-      providerId: result.id,
-      delivered: true,
+      providerId: providerIds.join(',') || 'unknown',
+      delivered: actualDispatchedCount > 0,
       senderUid: user.uid,
     });
 
     return res.json({
       success: true,
-      delivered: true,
-      providerId: result.id,
-      recipientCount: recipients.length,
-      message: `تم إرسال البريد بنجاح وموثق برقم العملية: ${result.id}`,
+      delivered: actualDispatchedCount > 0,
+      providerId: providerIds[0] || null,
+      providerIds,
+      recipientCount: actualDispatchedCount,
+      totalSubscribers: recipients.length,
+      message: `تم إرسال البريد بنجاح إلى ${actualDispatchedCount} مستلم وموثق برقم العملية: ${providerIds[0] || 'تم'}`,
     });
   } catch (err: any) {
     console.error('Email sending exception:', err);
@@ -132,3 +179,129 @@ emailApiRouter.post('/send', authenticateToken, async (req: Request, res: Respon
     });
   }
 });
+
+/**
+ * Retrieve Real Cloud Subscribers from Firestore
+ * Strictly requires verified OWNER or ADMIN identity with an ACTIVE record in /admins/{uid}.
+ * Ordinary readers, guests, or unverified accounts are rejected with 403 Forbidden.
+ * Protects subscriber email privacy on the server.
+ */
+emailApiRouter.get('/subscribers', authenticateToken, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!user || (user.role !== 'owner' && user.role !== 'admin') || !user.email_verified) {
+    return res.status(403).json({
+      success: false,
+      subscribers: [],
+      message: 'غير مصرح: صلاحية استرجاع بيانات المشتركين مقتصرة على المشرفين والمالك المعتمدين فقط.',
+    });
+  }
+
+  try {
+    const adminDoc = await adminDb.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists) {
+      return res.status(403).json({
+        success: false,
+        subscribers: [],
+        message: 'غير مصرح: لا يوجد سجل إداري فعال لحسابك في سجل الإدارة (/admins/{uid}). تم حظر الوصول فورياً.',
+      });
+    }
+
+    const adminData = adminDoc.data();
+    const adminRole = adminData?.role;
+    if (adminRole !== 'owner' && adminRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        subscribers: [],
+        message: 'غير مصرح: تم إلغاء أو تخفيض رتبتك الإدارية في قاعدة البيانات.',
+      });
+    }
+
+    const requestedLimit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 1000);
+    const snap = await adminDb.collection('subscribers').limit(requestedLimit).get();
+
+    const subscribers: any[] = [];
+    snap.forEach((doc) => {
+      const data = doc.data();
+      subscribers.push({
+        id: doc.id,
+        email: data.email || '',
+        name: data.name || 'مشترك في المنصة',
+        source: data.source || 'signup',
+        subscribedAt: data.subscribedAt || '',
+        active: data.active !== false,
+        receiveAllReleases: data.receiveAllReleases !== false,
+      });
+    });
+
+    // Sort descending by subscribedAt
+    subscribers.sort((a, b) => new Date(b.subscribedAt || 0).getTime() - new Date(a.subscribedAt || 0).getTime());
+
+    return res.json({
+      success: true,
+      count: subscribers.length,
+      subscribers,
+    });
+  } catch (err: any) {
+    console.error('Error fetching subscribers from Firestore:', err);
+    return res.status(500).json({
+      success: false,
+      subscribers: [],
+      message: 'حدث خطأ في الخادم أثناء جلب سجلات المشتركين من قاعدة البيانات.',
+    });
+  }
+});
+
+/**
+ * Toggle Subscriber Active Status in Firestore
+ * Strictly requires verified OWNER or ADMIN identity with active admin document.
+ */
+emailApiRouter.post('/subscribers/:id/toggle', authenticateToken, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!user || (user.role !== 'owner' && user.role !== 'admin') || !user.email_verified) {
+    return res.status(403).json({
+      success: false,
+      message: 'غير مصرح: صلاحية تعديل حالة المشتركين مقتصرة على المشرفين فقط.',
+    });
+  }
+
+  try {
+    const adminDoc = await adminDb.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists || (adminDoc.data()?.role !== 'owner' && adminDoc.data()?.role !== 'admin')) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح: السجل الإداري غير فعال.',
+      });
+    }
+
+    const subId = req.params.id;
+    const { active } = req.body;
+
+    const subRef = adminDb.collection('subscribers').doc(subId);
+    const subDoc = await subRef.get();
+    if (!subDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'المشترك المطلوب غير موجود في قاعدة البيانات.',
+      });
+    }
+
+    const newActiveState = typeof active === 'boolean' ? active : !subDoc.data()?.active;
+    await subRef.update({
+      active: newActiveState,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return res.json({
+      success: true,
+      active: newActiveState,
+      message: `تم ${newActiveState ? 'تفعيل' : 'تعطيل'} اشتراك المستخدم بنجاح.`,
+    });
+  } catch (err: any) {
+    console.error('Error toggling subscriber active status:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء تحديث حالة المشترك في قاعدة البيانات.',
+    });
+  }
+});
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Mail,
@@ -13,6 +13,10 @@ import {
   History,
   FileCode,
   CheckCircle,
+  RotateCw,
+  Search,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { BookProject } from '../types/hukm';
 import { HukmSubscriber, EmailLogEntry } from '../types/auth';
@@ -31,8 +35,14 @@ import { HUKM_LOGO } from '../data/hukmData';
 import {
   getEmailServiceStatus,
   dispatchRealEmail,
+  fetchSubscribersApi,
+  toggleSubscriberApi,
   type EmailServiceStatus,
 } from '../services/emailClient';
+import {
+  fetchSubscribersFromFirestore,
+  toggleSubscriberInFirestore,
+} from '../firebase/firestoreService';
 
 interface HukmEmailModalProps {
   isOpen: boolean;
@@ -56,12 +66,63 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailServiceStatus | null>(null);
 
+  // Cloud Subscribers State
   const [subscribers, setSubscribers] = useState<HukmSubscriber[]>(() => getStoredSubscribers());
+  const [isLoadingSubscribers, setIsLoadingSubscribers] = useState(false);
+  const [subscriberError, setSubscriberError] = useState<string | null>(null);
+  const [subscriberSearch, setSubscriberSearch] = useState('');
+  const [isRefreshingSubscribers, setIsRefreshingSubscribers] = useState(false);
+  const [togglingSubId, setTogglingSubId] = useState<string | null>(null);
+
   const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>(() => getStoredEmailLogs());
 
-  React.useEffect(() => {
+  // Real Cloud Subscriber Fetch with multi-tier fallback
+  const loadSubscribers = async (showFullLoading = true) => {
+    if (showFullLoading) setIsLoadingSubscribers(true);
+    setIsRefreshingSubscribers(true);
+    setSubscriberError(null);
+
+    try {
+      // 1. Preferred Tier: Protected Server API endpoint (strictly checks server-side admin claims & firestore doc)
+      const res = await fetchSubscribersApi();
+      if (res && res.success && Array.isArray(res.subscribers)) {
+        setSubscribers(res.subscribers);
+        setIsLoadingSubscribers(false);
+        setIsRefreshingSubscribers(false);
+        return;
+      }
+
+      // 2. Fallback Tier: Direct Firestore client query (enforces firestore.rules isAdmin())
+      const direct = await fetchSubscribersFromFirestore();
+      if (direct && Array.isArray(direct)) {
+        setSubscribers(direct);
+        setIsLoadingSubscribers(false);
+        setIsRefreshingSubscribers(false);
+        return;
+      }
+
+      // If both cloud mechanisms returned error or empty response with failure message
+      const errMsg = res?.message || 'تعذر تحميل سجلات المشتركين من قاعدة البيانات السحابية.';
+      setSubscriberError(errMsg);
+      // Fallback gracefully to locally stored data so admin never sees a broken screen
+      const local = getStoredSubscribers();
+      if (local && local.length > 0) {
+        setSubscribers(local);
+      }
+    } catch (err: any) {
+      console.warn('Could not load subscribers from cloud:', err);
+      setSubscriberError(err?.message || 'خطأ في الاتصال بالخادم أثناء استرجاع بيانات المشتركين.');
+      setSubscribers(getStoredSubscribers());
+    } finally {
+      setIsLoadingSubscribers(false);
+      setIsRefreshingSubscribers(false);
+    }
+  };
+
+  useEffect(() => {
     if (isOpen) {
       getEmailServiceStatus().then(setEmailStatus);
+      loadSubscribers(true);
     }
   }, [isOpen]);
 
@@ -69,6 +130,16 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
 
   const currentBook = books.find((b) => b.id === selectedBookId) || books[0];
   const activeSubscribersCount = subscribers.filter((s) => s.active).length;
+
+  // Filtered subscribers for fast in-app search & large lists
+  const filteredSubscribers = subscribers.filter((sub) => {
+    if (!subscriberSearch.trim()) return true;
+    const q = subscriberSearch.trim().toLowerCase();
+    return (
+      sub.name.toLowerCase().includes(q) ||
+      sub.email.toLowerCase().includes(q)
+    );
+  });
 
   // Compute current HTML preview
   let currentHtml = '';
@@ -134,6 +205,8 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
       setCustomBody('');
       onShowToast(res.message);
       setActiveTab('logs');
+      // Refresh subscribers list count
+      loadSubscribers(false);
     } else {
       // Honest reporting: show exact server/provider reason
       onShowToast(res.message);
@@ -171,9 +244,38 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
     }
   };
 
-  const handleToggleSubscriber = (subId: string) => {
-    const updated = toggleSubscriberActive(subId);
-    setSubscribers(updated);
+  const handleToggleSubscriber = async (subId: string) => {
+    const sub = subscribers.find((s) => s.id === subId);
+    if (!sub) return;
+
+    const nextState = !sub.active;
+    setTogglingSubId(subId);
+
+    try {
+      // 1. Try server-side protected endpoint first
+      const apiRes = await toggleSubscriberApi(subId, nextState);
+      if (!apiRes.success) {
+        // 2. Direct client fallback
+        await toggleSubscriberInFirestore(subId, nextState);
+      }
+
+      // Update local storage and component state
+      toggleSubscriberActive(subId);
+      setSubscribers((prev) =>
+        prev.map((s) => (s.id === subId ? { ...s, active: nextState } : s))
+      );
+      onShowToast(nextState ? 'تم تفعيل استقبال المشترك للإصدارات.' : 'تم تعطيل استقبال الإشعارات للمشترك.');
+    } catch (err: any) {
+      console.warn('Could not toggle subscriber in cloud:', err);
+      // Fallback local update
+      toggleSubscriberActive(subId);
+      setSubscribers((prev) =>
+        prev.map((s) => (s.id === subId ? { ...s, active: nextState } : s))
+      );
+      onShowToast('تم تحديث حالة المشترك محلياً.');
+    } finally {
+      setTogglingSubId(null);
+    }
   };
 
   return (
@@ -407,78 +509,159 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
             </form>
           )}
 
-          {/* TAB 3: Subscribers list */}
+          {/* TAB 3: Subscribers list backed by Firestore Cloud Database */}
           {activeTab === 'subscribers' && (
             <div className="space-y-4">
+              {/* Top Banner & Live Sync Controls */}
               <div className="rounded-2xl bg-[#0a1226] border border-[#c59b27]/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white font-cairo">
-                    قائمة المشتركين التلقائيين في تحديثات حُكم
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-white font-cairo">
+                      سجلات المشتركين السحابية المعتمدة
+                    </h4>
+                    <span className="rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                      قاعدة بيانات Firestore ☁️
+                    </span>
+                  </div>
                   <p className="text-xs text-[#94a3b8] mt-0.5">
-                    كل مستخدم يسجل حسابه (عبر Google أو البريد) يُضاف تلقائياً لهذه القائمة ويتلقى كل الإصدارات.
+                    بيانات المشتركين الحقيقية في المنصة؛ يتلقون النشرات والإصدارات التحريرية الرسمية تلقائياً.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-xl bg-[#c59b27]/20 border border-[#c59b27]/40 px-3 py-1 text-xs font-bold text-[#f0cb69]">
-                    {activeSubscribersCount} مشترك نشط
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="rounded-xl bg-[#c59b27]/20 border border-[#c59b27]/40 px-3 py-1.5 text-xs font-bold text-[#f0cb69]">
+                    {activeSubscribersCount} نشط / {subscribers.length} إجمالي
                   </span>
+
+                  <button
+                    type="button"
+                    onClick={() => loadSubscribers(false)}
+                    disabled={isRefreshingSubscribers}
+                    className="flex items-center gap-1.5 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-white/10 px-3 py-1.5 text-xs font-semibold text-[#cbd5e1] hover:text-white transition-all disabled:opacity-50 cursor-pointer"
+                    title="تحديث القائمة من السحابة"
+                  >
+                    <RotateCw className={`h-3.5 w-3.5 text-[#d4af37] ${isRefreshingSubscribers ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">تحديث</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-[#0a1226] overflow-hidden">
-                <div className="divide-y divide-white/5">
-                  {subscribers.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="flex items-center justify-between p-3.5 sm:px-5 hover:bg-[#0e1935]/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-[#070d1e] border border-[#c59b27]/30 flex items-center justify-center text-xs font-bold text-[#f0cb69]">
-                          {sub.name.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h5 className="text-xs font-bold text-white">{sub.name}</h5>
-                            <span className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-[#94a3b8]">
-                              {sub.source === 'google' ? 'حساب Google 🌐' : sub.source === 'apple' ? 'حساب Apple 🍎' : 'تسجيل بريد ✉️'}
-                            </span>
-                            {sub.email === 'ifawz40@gmail.com' && (
-                              <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold">
-                                الناشر الرسمي 👑
-                              </span>
-                            )}
+              {/* In-app Search & Filter */}
+              <div className="relative">
+                <Search className="absolute right-3.5 top-3 h-4 w-4 text-[#94a3b8]" />
+                <input
+                  type="text"
+                  value={subscriberSearch}
+                  onChange={(e) => setSubscriberSearch(e.target.value)}
+                  placeholder="ابحث بالاسم أو البريد الإلكتروني للمشترك..."
+                  className="w-full rounded-2xl bg-[#0a1226] border border-white/10 pr-10 pl-4 py-2.5 text-xs text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none"
+                />
+              </div>
+
+              {/* Error State Banner with Retry */}
+              {subscriberError && (
+                <div className="flex items-center justify-between rounded-2xl bg-rose-500/10 border border-rose-500/30 p-3.5 text-xs text-rose-300">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+                    <span>{subscriberError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadSubscribers(true)}
+                    className="rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 px-3 py-1 text-xs font-bold text-white transition-colors cursor-pointer"
+                  >
+                    إعادة المحاولة
+                  </button>
+                </div>
+              )}
+
+              {/* Loading State Skeleton */}
+              {isLoadingSubscribers ? (
+                <div className="rounded-2xl border border-white/10 bg-[#0a1226] p-8 text-center space-y-3">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#d4af37]" />
+                  <p className="text-xs text-[#94a3b8]">
+                    جارٍ جلب وتأكيد سجلات المشتركين من قاعدة البيانات السحابية الموثقة...
+                  </p>
+                </div>
+              ) : filteredSubscribers.length === 0 ? (
+                /* Empty State */
+                <div className="rounded-2xl border border-white/10 bg-[#0a1226] p-8 text-center space-y-2">
+                  <div className="h-12 w-12 rounded-full bg-[#c59b27]/10 border border-[#c59b27]/30 flex items-center justify-center mx-auto text-[#f0cb69]">
+                    <Users className="h-6 w-6" />
+                  </div>
+                  <h5 className="text-sm font-bold text-white font-cairo">
+                    {subscriberSearch.trim() ? 'لا توجد نتائج تطابق كلمة البحث' : 'لا يوجد مشتركون مسجلون حالياً في القائمة السحابية'}
+                  </h5>
+                  <p className="text-xs text-[#94a3b8] max-w-md mx-auto">
+                    {subscriberSearch.trim()
+                      ? 'تأكد من كتابة البريد أو الاسم بشكل صحيح أو امسح البحث لعرض كافة المشتركين.'
+                      : 'كل حساب جديد ينضم عبر البريد أو Google يُضاف تلقائياً لهذه القائمة ويتلقى كل الإصدارات.'}
+                  </p>
+                </div>
+              ) : (
+                /* Real Cloud Subscribers List */
+                <div className="rounded-2xl border border-white/10 bg-[#0a1226] overflow-hidden">
+                  <div className="divide-y divide-white/5 max-h-[460px] overflow-y-auto no-scrollbar">
+                    {filteredSubscribers.map((sub) => (
+                      <div
+                        key={sub.id}
+                        className="flex items-center justify-between p-3.5 sm:px-5 hover:bg-[#0e1935]/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-[#070d1e] border border-[#c59b27]/30 flex items-center justify-center text-xs font-bold text-[#f0cb69]">
+                            {sub.name.charAt(0) || 'م'}
                           </div>
-                          <span className="text-[11px] text-[#64748b] block mt-0.5">
-                            {sub.email} · مشترك منذ {sub.subscribedAt}
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h5 className="text-xs font-bold text-white">{sub.name}</h5>
+                              <span className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-[#94a3b8]">
+                                {sub.source === 'google'
+                                  ? 'حساب Google 🌐'
+                                  : sub.source === 'apple'
+                                  ? 'حساب Apple 🍎'
+                                  : 'تسجيل بريد ✉️'}
+                              </span>
+                              {sub.email === 'ifawz40@gmail.com' && (
+                                <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold">
+                                  الناشر الرسمي 👑
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-[#64748b] block mt-0.5 font-mono">
+                              {sub.email} {sub.subscribedAt ? `· منذ ${sub.subscribedAt.split('T')[0]}` : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              sub.active
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            }`}
+                          >
+                            {sub.active ? 'يستقبل الإصدارات' : 'معطل'}
                           </span>
+
+                          <button
+                            type="button"
+                            disabled={togglingSubId === sub.id}
+                            onClick={() => handleToggleSubscriber(sub.id)}
+                            className="rounded-lg bg-[#070d1e] hover:bg-[#162752] border border-white/10 px-2.5 py-1 text-[11px] text-[#cbd5e1] hover:text-white transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                          >
+                            {togglingSubId === sub.id && <Loader2 className="h-3 w-3 animate-spin text-[#d4af37]" />}
+                            <span>{sub.active ? 'تعطيل' : 'تفعيل'}</span>
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            sub.active
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                          }`}
-                        >
-                          {sub.active ? 'يستقبل الإشعارات' : 'معطل'}
-                        </span>
-
-                        <button
-                          onClick={() => handleToggleSubscriber(sub.id)}
-                          className="rounded-lg bg-[#070d1e] hover:bg-[#162752] border border-white/10 px-2.5 py-1 text-[11px] text-[#cbd5e1] hover:text-white transition-colors"
-                        >
-                          {sub.active ? 'تعطيل' : 'تفعيل'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
+
 
           {/* TAB 4: Email Logs */}
           {activeTab === 'logs' && (

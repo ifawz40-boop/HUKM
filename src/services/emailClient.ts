@@ -1,4 +1,5 @@
 import { auth } from '../firebase/config';
+import type { HukmSubscriber } from '../types/auth';
 
 async function getAuthHeaders(): Promise<HeadersInit> {
   const currentUser = auth.currentUser;
@@ -25,6 +26,13 @@ export interface SendEmailResponse {
   message: string;
   providerId?: string;
   recipientCount?: number;
+}
+
+export interface SubscribersApiResponse {
+  success: boolean;
+  count?: number;
+  subscribers: HukmSubscriber[];
+  message?: string;
 }
 
 /**
@@ -76,3 +84,49 @@ export async function dispatchRealEmail(params: {
     };
   }
 }
+
+/**
+ * Retrieves real cloud subscribers from protected backend endpoint
+ */
+export async function fetchSubscribersApi(limit: number = 200): Promise<SubscribersApiResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`/api/email/subscribers?limit=${limit}`, {
+      method: 'GET',
+      headers,
+    });
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    return {
+      success: false,
+      subscribers: [],
+      message: err.message || 'تعذر الاتصال بالخادم لجلب بيانات المشتركين.',
+    };
+  }
+}
+
+/**
+ * Toggles a subscriber active state via protected backend endpoint
+ */
+export async function toggleSubscriberApi(
+  subscriberId: string,
+  active?: boolean
+): Promise<{ success: boolean; active?: boolean; message?: string }> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`/api/email/subscribers/${encodeURIComponent(subscriberId)}/toggle`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ active }),
+    });
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message || 'تعذر تحديث حالة المشترك.',
+    };
+  }
+}
+

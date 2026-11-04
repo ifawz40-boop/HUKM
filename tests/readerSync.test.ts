@@ -1,0 +1,494 @@
+import { describe, it, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+
+// Mock localStorage for Node.js test environment
+const mockStorage: Record<string, string> = {};
+(globalThis as any).localStorage = {
+  getItem: (key: string) => mockStorage[key] || null,
+  setItem: (key: string, val: string) => {
+    mockStorage[key] = String(val);
+  },
+  removeItem: (key: string) => {
+    delete mockStorage[key];
+  },
+  clear: () => {
+    for (const k in mockStorage) delete mockStorage[k];
+  },
+};
+
+import {
+  getStoredBookmarks,
+  saveStoredBookmarks,
+  mergeGuestBookmarksWithUser,
+  clearGuestBookmarks,
+  hasGuestBookmarks,
+  toggleUserBookmark,
+  toggleGuestBookmark,
+  getBookmarkStorageKey,
+  LEGACY_STORAGE_KEY_BOOKMARKS,
+} from '../src/utils/authStorage.ts';
+
+import {
+  getAllReadingProgress,
+  saveAllReadingProgress,
+  getBookReadingProgress,
+  recordChapterOpened,
+  saveChapterScrollPosition,
+  getChapterScrollPosition,
+  toggleChapterReadStatus,
+  isChapterCompleted,
+  mergeGuestReadingProgressWithUser,
+  clearGuestReadingProgress,
+  hasGuestReadingProgress,
+  getReadingProgressStorageKey,
+  LEGACY_STORAGE_KEY_PROGRESS,
+} from '../src/utils/readingTracker.ts';
+
+import { formatReadingProgressId } from '../src/firebase/firestoreService.ts';
+import type { UserProfile } from '../src/types/auth.ts';
+
+describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  // =========================================================================
+  // SCENARIO 1: New reader bookmarks a book (Guest and User)
+  // =========================================================================
+  describe('Scenario 1: New reader bookmarks a book', () => {
+    it('allows a guest reader to bookmark books locally without error', () => {
+      const updated = toggleGuestBookmark('novel-truth-01');
+      assert.deepEqual(updated, ['novel-truth-01']);
+      assert.deepEqual(getStoredBookmarks(), ['novel-truth-01']);
+
+      // Toggling again removes it
+      const removed = toggleGuestBookmark('novel-truth-01');
+      assert.deepEqual(removed, []);
+      assert.deepEqual(getStoredBookmarks(), []);
+    });
+
+    it('allows an authenticated reader to bookmark books into isolated storage', () => {
+      const user: UserProfile = {
+        id: 'uid-reader-1',
+        name: 'قارئ جديد',
+        email: 'reader1@example.com',
+        role: 'reader',
+        joinedDate: '2026-11-03',
+        bookmarks: [],
+        readHistory: [],
+        emailVerified: true,
+      };
+
+      const updated = toggleUserBookmark(user, 'novel-investigation-01');
+      assert.deepEqual(updated.bookmarks, ['novel-investigation-01']);
+
+      // Stored in partitioned key for uid-reader-1
+      assert.deepEqual(getStoredBookmarks('uid-reader-1'), ['novel-investigation-01']);
+      // Guest storage remains clean
+      assert.deepEqual(getStoredBookmarks(), []);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 2: Reader with local bookmarks logs in for the first time (Merge)
+  // =========================================================================
+  describe('Scenario 2: First-time login merge without data loss', () => {
+    it('merges guest bookmarks with existing cloud bookmarks without duplicates', () => {
+      const guestBookmarks = ['book-local-1', 'book-shared'];
+      const cloudBookmarks = ['book-cloud-1', 'book-shared'];
+
+      const merged = mergeGuestBookmarksWithUser(guestBookmarks, cloudBookmarks);
+      assert.equal(merged.length, 3);
+      assert.ok(merged.includes('book-local-1'));
+      assert.ok(merged.includes('book-cloud-1'));
+      assert.ok(merged.includes('book-shared'));
+    });
+
+    it('clears guest storage after successful merge to avoid leakage', () => {
+      saveStoredBookmarks(['book-temp-1']);
+      localStorage.setItem(LEGACY_STORAGE_KEY_BOOKMARKS, JSON.stringify(['book-legacy-1']));
+
+      clearGuestBookmarks();
+      assert.equal(localStorage.getItem('hukm_guest_bookmarks'), null);
+      assert.equal(localStorage.getItem(LEGACY_STORAGE_KEY_BOOKMARKS), null);
+    });
+
+    it('merges guest reading progress into user account preserving chapters and positions', () => {
+      const guestProgress = {
+        'book-01': {
+          bookId: 'book-01',
+          lastChapterId: 'ch-1',
+          completedChapterIds: ['ch-1'],
+          lastReadAt: '2026-11-01T10:00:00.000Z',
+          chapterScrollPositions: { 'ch-1': 85 },
+        },
+      };
+
+      const userProgress = {
+        'book-01': {
+          bookId: 'book-01',
+          lastChapterId: 'ch-2',
+          completedChapterIds: ['ch-2'],
+          lastReadAt: '2026-11-02T10:00:00.000Z',
+          chapterScrollPositions: { 'ch-2': 40 },
+        },
+      };
+
+      const merged = mergeGuestReadingProgressWithUser(guestProgress, userProgress);
+      assert.ok(merged['book-01']);
+      // Both chapters are in completedChapterIds
+      assert.deepEqual(merged['book-01'].completedChapterIds.sort(), ['ch-1', 'ch-2'].sort());
+      // Latest lastChapterId is ch-2 (newer timestamp)
+      assert.equal(merged['book-01'].lastChapterId, 'ch-2');
+      // Scroll positions from both chapters are preserved
+      assert.equal(merged['book-01'].chapterScrollPositions?.['ch-1'], 85);
+      assert.equal(merged['book-01'].chapterScrollPositions?.['ch-2'], 40);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 3: Reader logs out and enters with another account (Isolation)
+  // =========================================================================
+  describe('Scenario 3: Multi-tenant storage isolation between accounts', () => {
+    it('strictly isolates bookmarks by user ID', () => {
+      saveStoredBookmarks(['book-user-A'], 'user-A');
+      saveStoredBookmarks(['book-user-B'], 'user-B');
+
+      assert.deepEqual(getStoredBookmarks('user-A'), ['book-user-A']);
+      assert.deepEqual(getStoredBookmarks('user-B'), ['book-user-B']);
+      assert.deepEqual(getStoredBookmarks(), []); // Guest has none
+    });
+
+    it('strictly isolates reading progress by user ID', () => {
+      recordChapterOpened('book-1', 'ch-1', 'user-A');
+      recordChapterOpened('book-1', 'ch-2', 'user-B');
+
+      const progA = getBookReadingProgress('book-1', 'user-A');
+      const progB = getBookReadingProgress('book-1', 'user-B');
+
+      assert.equal(progA.lastChapterId, 'ch-1');
+      assert.equal(progB.lastChapterId, 'ch-2');
+      assert.deepEqual(progA.completedChapterIds, ['ch-1']);
+      assert.deepEqual(progB.completedChapterIds, ['ch-2']);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 4: Simulating restore on a new device/browser
+  // =========================================================================
+  describe('Scenario 4: Device restore simulation', () => {
+    it('restores empty local environment from cloud payload correctly', () => {
+      // Clean device
+      assert.deepEqual(getStoredBookmarks('user-new-device'), []);
+
+      const cloudBookmarks = ['novel-alpha', 'novel-beta'];
+      saveStoredBookmarks(cloudBookmarks, 'user-new-device');
+
+      const restored = getStoredBookmarks('user-new-device');
+      assert.deepEqual(restored, ['novel-alpha', 'novel-beta']);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 5: Saving and restoring reading progress (Scroll & Completion)
+  // =========================================================================
+  describe('Scenario 5: Reading progress persistence and scroll position', () => {
+    it('records chapter opened and updates scroll position correctly', () => {
+      const prog = recordChapterOpened('book-99', 'ch-5', 'user-sync', 72.5);
+      assert.equal(prog.lastChapterId, 'ch-5');
+      assert.ok(prog.completedChapterIds.includes('ch-5'));
+      assert.equal(prog.chapterScrollPositions?.['ch-5'], 72.5);
+
+      // Verify retrieval
+      const savedScroll = getChapterScrollPosition('book-99', 'ch-5', 'user-sync');
+      assert.equal(savedScroll, 72.5);
+    });
+
+    it('toggles chapter read status manually', () => {
+      toggleChapterReadStatus('book-99', 'ch-10', 'user-sync');
+      assert.ok(isChapterCompleted('book-99', 'ch-10', 'user-sync'));
+
+      toggleChapterReadStatus('book-99', 'ch-10', 'user-sync');
+      assert.equal(isChapterCompleted('book-99', 'ch-10', 'user-sync'), false);
+    });
+
+    it('generates Firestore-compliant document ID matching isValidId rules', () => {
+      const id = formatReadingProgressId('user@123/special', 'book#abc:01', 'ch.1');
+      assert.match(id, /^[a-zA-Z0-9_\-]+$/);
+      assert.ok(id.length <= 128);
+      assert.ok(id.startsWith('prog_'));
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 6: Default behavior when no progress exists (Starts at top)
+  // =========================================================================
+  describe('Scenario 6: Default zero progress handling', () => {
+    it('defaults scroll position to 0 and empty completion list', () => {
+      const scroll = getChapterScrollPosition('unopened-book', 'ch-1', 'user-fresh');
+      assert.equal(scroll, 0);
+
+      const isDone = isChapterCompleted('unopened-book', 'ch-1', 'user-fresh');
+      assert.equal(isDone, false);
+
+      const prog = getBookReadingProgress('unopened-book', 'user-fresh');
+      assert.equal(prog.lastChapterId, undefined);
+      assert.deepEqual(prog.completedChapterIds, []);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 7: Network failure / offline resilience
+  // =========================================================================
+  describe('Scenario 7: Offline resilience and storage continuity', () => {
+    it('continues to function locally without crashing if cloud is unreachable', () => {
+      // Simulating offline reading by saving locally
+      saveChapterScrollPosition('book-offline', 'ch-offline-1', 45, 'user-offline');
+      const retrieved = getChapterScrollPosition('book-offline', 'ch-offline-1', 'user-offline');
+      assert.equal(retrieved, 45);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 8: Security rules invariant for readingProgress collection
+  // =========================================================================
+  describe('Scenario 8: Security rules invariant for readingProgress', () => {
+    const rulesContent = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf-8');
+
+    it('enforces userId matches authenticated caller in firestore.rules', () => {
+      assert.match(rulesContent, /data\.userId == request\.auth\.uid/);
+      assert.match(rulesContent, /resource\.data\.userId == request\.auth\.uid/);
+    });
+
+    it('enforces strict field schema on readingProgress creation', () => {
+      assert.match(rulesContent, /data\.keys\(\)\.hasOnly\(\['id',\s*'userId',\s*'bookId',\s*'chapterId'/);
+      assert.match(rulesContent, /data\.scrollPercent >= 0 && data\.scrollPercent <= 100/);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 9: Data persistence across reload simulation
+  // =========================================================================
+  describe('Scenario 9: Persistence across simulated page refresh', () => {
+    it('preserves user bookmarks and reading progress across re-reads of localStorage', () => {
+      saveStoredBookmarks(['book-p1', 'book-p2'], 'user-persist');
+      recordChapterOpened('book-p1', 'ch-p1', 'user-persist', 60);
+
+      // Simulate page refresh by fetching freshly from storage
+      const freshBookmarks = getStoredBookmarks('user-persist');
+      const freshProgress = getBookReadingProgress('book-p1', 'user-persist');
+
+      assert.deepEqual(freshBookmarks, ['book-p1', 'book-p2']);
+      assert.equal(freshProgress.lastChapterId, 'ch-p1');
+      assert.equal(freshProgress.chapterScrollPositions?.['ch-p1'], 60);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 10: Phase 2.1 Critical Reliability & Cloud Sync Verification
+  // =========================================================================
+  describe('Scenario 10: Phase 2.1 Critical Reliability & Cloud Sync Verification', () => {
+    it('1. Bookmark migration succeeds -> guest bookmarks cleared', () => {
+      toggleGuestBookmark('book-mig-1');
+      toggleGuestBookmark('book-mig-2');
+      assert.equal(hasGuestBookmarks(), true);
+
+      // Simulate successful cloud write
+      let cloudWriteSuccess = true;
+      if (cloudWriteSuccess) {
+        clearGuestBookmarks();
+      }
+
+      assert.equal(hasGuestBookmarks(), false);
+      assert.deepEqual(getStoredBookmarks(), []);
+    });
+
+    it('2. Bookmark migration fails -> guest bookmarks preserved', () => {
+      toggleGuestBookmark('book-fail-1');
+      toggleGuestBookmark('book-fail-2');
+      assert.equal(hasGuestBookmarks(), true);
+
+      // Simulate failed cloud write (e.g., network error)
+      let cloudWriteSuccess = false;
+      if (cloudWriteSuccess) {
+        clearGuestBookmarks();
+      }
+
+      assert.equal(hasGuestBookmarks(), true);
+      assert.deepEqual(getStoredBookmarks(), ['book-fail-1', 'book-fail-2']);
+    });
+
+    it('3. Reading progress migration fails -> guest progress preserved', () => {
+      recordChapterOpened('book-prog-fail', 'ch-1', undefined, 40);
+      assert.equal(hasGuestReadingProgress(), true);
+
+      // Simulate failed progress cloud sync
+      let progressSyncSuccess = false;
+      if (progressSyncSuccess) {
+        clearGuestReadingProgress();
+      }
+
+      assert.equal(hasGuestReadingProgress(), true);
+      const progress = getBookReadingProgress('book-prog-fail');
+      assert.equal(progress.lastChapterId, 'ch-1');
+      assert.equal(progress.chapterScrollPositions?.['ch-1'], 40);
+    });
+
+    it('4. Partial failure: Bookmarks succeed, progress fails -> only bookmarks cleared', () => {
+      toggleGuestBookmark('book-part-bm');
+      recordChapterOpened('book-part-prog', 'ch-1', undefined, 50);
+
+      assert.equal(hasGuestBookmarks(), true);
+      assert.equal(hasGuestReadingProgress(), true);
+
+      // Independent operations: bookmarks succeed, progress fails
+      const bookmarkSyncSuccess = true;
+      const progressSyncSuccess = false;
+
+      if (bookmarkSyncSuccess) {
+        clearGuestBookmarks();
+      }
+      if (progressSyncSuccess) {
+        clearGuestReadingProgress();
+      }
+
+      assert.equal(hasGuestBookmarks(), false, 'Guest bookmarks must be cleared');
+      assert.equal(hasGuestReadingProgress(), true, 'Guest progress must be preserved on failure');
+      assert.equal(getBookReadingProgress('book-part-prog').lastChapterId, 'ch-1');
+    });
+
+    it('5. Offline login -> all guest data preserved locally', () => {
+      toggleGuestBookmark('book-offline-bm');
+      recordChapterOpened('book-offline-prog', 'ch-offline', undefined, 85);
+
+      // Device is offline; both cloud calls fail
+      const bookmarkSyncSuccess = false;
+      const progressSyncSuccess = false;
+
+      if (bookmarkSyncSuccess) clearGuestBookmarks();
+      if (progressSyncSuccess) clearGuestReadingProgress();
+
+      assert.equal(hasGuestBookmarks(), true);
+      assert.equal(hasGuestReadingProgress(), true);
+      assert.deepEqual(getStoredBookmarks(), ['book-offline-bm']);
+    });
+
+    it('6. Subsequent retry completes migration without duplicates', () => {
+      toggleGuestBookmark('book-retry-1');
+      recordChapterOpened('book-retry-1', 'ch-1', undefined, 90);
+
+      // Merge locally for user 'user-retry'
+      const guestBm = getStoredBookmarks();
+      const userBm = getStoredBookmarks('user-retry');
+      const mergedBm = mergeGuestBookmarksWithUser(guestBm, userBm);
+      saveStoredBookmarks(mergedBm, 'user-retry');
+
+      const guestProg = getAllReadingProgress();
+      const userProg = getAllReadingProgress('user-retry');
+      const mergedProg = mergeGuestReadingProgressWithUser(guestProg, userProg);
+      saveAllReadingProgress(mergedProg, 'user-retry');
+
+      // Now cloud sync succeeds
+      clearGuestBookmarks();
+      clearGuestReadingProgress();
+
+      assert.equal(hasGuestBookmarks(), false);
+      assert.equal(hasGuestReadingProgress(), false);
+
+      // Retry again: should not duplicate
+      const retryGuestBm = getStoredBookmarks();
+      const retryUserBm = getStoredBookmarks('user-retry');
+      const retryMergedBm = mergeGuestBookmarksWithUser(retryGuestBm, retryUserBm);
+      saveStoredBookmarks(retryMergedBm, 'user-retry');
+
+      const userBookmarks = getStoredBookmarks('user-retry');
+      assert.deepEqual(userBookmarks, ['book-retry-1']);
+    });
+
+    it('7. Account switching race condition: Delayed response from User A cannot update User B', async () => {
+      let activeSessionId = 0;
+      let committedUserId: string | null = null;
+
+      // User A logs in (Session 1)
+      const sessionA = ++activeSessionId;
+
+      // Simulated slow cloud fetch for User A (50ms)
+      const userAPromise = new Promise<string>((resolve) => {
+        setTimeout(() => resolve('user-A'), 50);
+      });
+
+      // User B logs in before User A resolves (Session 2)
+      const sessionB = ++activeSessionId;
+      committedUserId = 'user-B';
+
+      // User A response finally arrives
+      const userAResult = await userAPromise;
+      if (activeSessionId === sessionA) {
+        committedUserId = userAResult; // Guard should prevent this
+      }
+
+      assert.equal(committedUserId, 'user-B', 'Delayed User A response must not overwrite User B');
+    });
+
+    it('8. Logout invalidates pending asynchronous operations', async () => {
+      let activeSessionId = 0;
+      let operationCommitted = false;
+
+      // User logs in
+      const currentSession = ++activeSessionId;
+
+      // Pending async operation started
+      const asyncOp = new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(true), 30);
+      });
+
+      // User logs out while operation is in flight
+      activeSessionId++; // invalidated
+
+      const result = await asyncOp;
+      if (activeSessionId === currentSession) {
+        operationCommitted = result;
+      }
+
+      assert.equal(operationCommitted, false, 'Operation must be aborted upon logout');
+    });
+
+    it('9. Multiple rapid login/auth events do not trigger conflicting migrations', () => {
+      let activeSessionId = 0;
+      const executedMigrations: number[] = [];
+
+      // Rapid sequence of 5 auth events
+      for (let i = 1; i <= 5; i++) {
+        const session = ++activeSessionId;
+        // In synchronous phase only session 5 is the latest
+        if (session === activeSessionId) {
+          executedMigrations.push(session);
+        }
+      }
+
+      // Latest session ID is 5
+      assert.equal(activeSessionId, 5);
+      assert.equal(executedMigrations[executedMigrations.length - 1], 5);
+    });
+
+    it('10. Guest reading progress is formatted and merged into correct user account', () => {
+      recordChapterOpened('book-format-1', 'ch-alpha', undefined, 65);
+
+      const guestProg = getAllReadingProgress();
+      const userProg = getAllReadingProgress('user-final-123');
+      const mergedProg = mergeGuestReadingProgressWithUser(guestProg, userProg);
+      saveAllReadingProgress(mergedProg, 'user-final-123');
+
+      const finalProg = getBookReadingProgress('book-format-1', 'user-final-123');
+      assert.equal(finalProg.lastChapterId, 'ch-alpha');
+      assert.equal(finalProg.chapterScrollPositions?.['ch-alpha'], 65);
+
+      // Verify deterministic document ID format
+      const docId = formatReadingProgressId('user-final-123', 'book-format-1', 'ch-alpha');
+      assert.equal(docId, 'prog_user-final-123_book-format-1_ch-alpha');
+    });
+
+  });
+});

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight,
   ChevronLeft,
@@ -17,23 +17,32 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { BookProject, BookChapter } from '../types/hukm';
+import { UserProfile } from '../types/auth';
 import { calculateReadingTimeMinutes, calculateWordsCount } from '../utils/hukmEngine';
 import {
   recordChapterOpened,
   toggleChapterReadStatus,
   isChapterCompleted,
+  saveChapterScrollPosition,
+  getChapterScrollPosition,
 } from '../utils/readingTracker';
+import {
+  saveReadingProgressToFirestore,
+  formatReadingProgressId,
+} from '../firebase/firestoreService';
 
 interface BookReaderViewProps {
   book: BookProject;
   initialChapterId?: string;
   isOwner?: boolean;
   isBookmarked?: boolean;
+  currentUser?: UserProfile | null;
   onBack: () => void;
   onOpenOverview?: () => void;
   onOpenWriter?: (bookId: string) => void;
   onChapterViewed?: (chapterId: string) => void;
   onToggleBookmark?: () => void;
+  onShowToast?: (message: string) => void;
 }
 
 export const BookReaderView: React.FC<BookReaderViewProps> = ({
@@ -41,11 +50,13 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   initialChapterId,
   isOwner = false,
   isBookmarked = false,
+  currentUser = null,
   onBack,
   onOpenOverview,
   onOpenWriter,
   onChapterViewed,
   onToggleBookmark,
+  onShowToast,
 }) => {
   const [selectedChapterId, setSelectedChapterId] = useState<string>(
     initialChapterId || book.chapters[0]?.id || ''
@@ -80,6 +91,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [showRestoredNotice, setShowRestoredNotice] = useState(false);
 
   // Sync index
   const currentChapterIndex = book.chapters.findIndex((c) => c.id === selectedChapterId);
@@ -91,18 +103,60 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       ? book.chapters[currentChapterIndex + 1]
       : null;
 
-  // Reading progress scroll listener
+  // Refs for debouncing and preventing repeated scroll restoration jumps
+  const scrollDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasRestoredChapterRef = useRef<Record<string, boolean>>({});
+  const lastRecordedProgressRef = useRef<number>(0);
+
+  // Helper to persist current scroll progress
+  const persistProgress = (progressPercent: number) => {
+    if (!currentChapter?.id) return;
+    const clamped = Math.min(100, Math.max(0, progressPercent));
+    lastRecordedProgressRef.current = clamped;
+
+    // Save locally in user-partitioned tracker
+    saveChapterScrollPosition(book.id, currentChapter.id, clamped, currentUser?.id);
+
+    // Save to Firestore if authenticated user
+    if (currentUser?.id) {
+      saveReadingProgressToFirestore({
+        id: formatReadingProgressId(currentUser.id, book.id, currentChapter.id),
+        userId: currentUser.id,
+        bookId: book.id,
+        chapterId: currentChapter.id,
+        chapterIndex: currentChapterIndex >= 0 ? currentChapterIndex : 0,
+        scrollPercent: clamped,
+        lastReadAt: new Date().toISOString(),
+        completed: clamped >= 90,
+      }).catch(() => {});
+    }
+  };
+
+  // Reading progress scroll listener with 500ms debounce
   useEffect(() => {
     const handleScroll = () => {
       const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
       if (totalScroll > 0) {
         const progress = (window.scrollY / totalScroll) * 100;
-        setScrollProgress(Math.min(100, Math.max(0, progress)));
+        const clamped = Math.min(100, Math.max(0, progress));
+        setScrollProgress(clamped);
+
+        if (scrollDebounceTimerRef.current) {
+          clearTimeout(scrollDebounceTimerRef.current);
+        }
+        scrollDebounceTimerRef.current = setTimeout(() => {
+          persistProgress(clamped);
+        }, 500);
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollDebounceTimerRef.current) {
+        clearTimeout(scrollDebounceTimerRef.current);
+      }
+    };
+  }, [currentChapter?.id, currentUser?.id, book.id, currentChapterIndex]);
 
   // Save preferences
   useEffect(() => {
@@ -113,13 +167,47 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     } catch {}
   }, [fontSize, fontFamily, theme]);
 
-  // Track chapter view and scroll to top on chapter change
+  // Track chapter view and restore position smoothly
   useEffect(() => {
-    if (currentChapter?.id) {
-      onChapterViewed?.(currentChapter.id);
-      recordChapterOpened(book.id, currentChapter.id);
-      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    if (!currentChapter?.id) return;
+
+    onChapterViewed?.(currentChapter.id);
+    recordChapterOpened(book.id, currentChapter.id, currentUser?.id);
+
+    const chapterId = currentChapter.id;
+    // Check if position was already restored for this chapter session
+    if (!hasRestoredChapterRef.current[chapterId]) {
+      hasRestoredChapterRef.current[chapterId] = true;
+      const savedPosition = getChapterScrollPosition(book.id, chapterId, currentUser?.id);
+
+      if (savedPosition > 2) {
+        // Give the DOM 150ms to render paragraphs and images before measuring scroll height
+        const timer = setTimeout(() => {
+          const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+          if (totalScroll > 50) {
+            const targetY = (totalScroll * savedPosition) / 100;
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+            setShowRestoredNotice(true);
+            setTimeout(() => setShowRestoredNotice(false), 3000);
+          }
+        }, 150);
+        return () => clearTimeout(timer);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      }
     }
+  }, [currentChapter?.id, book.id, currentUser?.id]);
+
+  // Flush scroll progress immediately on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollDebounceTimerRef.current) {
+        clearTimeout(scrollDebounceTimerRef.current);
+      }
+      if (currentChapter?.id && lastRecordedProgressRef.current > 0) {
+        persistProgress(lastRecordedProgressRef.current);
+      }
+    };
   }, [currentChapter?.id]);
 
   // Keyboard navigation: Left = Prev, Right = Next
@@ -139,12 +227,17 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   // Handle chapter change
   const navigateToChapter = (chapterId: string) => {
+    // Flush current chapter progress before switching
+    if (currentChapter?.id && scrollProgress > 0) {
+      persistProgress(scrollProgress);
+    }
     setSelectedChapterId(chapterId);
   };
 
   const handleToggleRead = () => {
     if (!currentChapter) return;
-    toggleChapterReadStatus(book.id, currentChapter.id);
+    toggleChapterReadStatus(book.id, currentChapter.id, currentUser?.id);
+    onShowToast?.('تم تحديث حالة قراءة الفصل ✓');
   };
 
   const handleShare = () => {
@@ -215,6 +308,14 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           style={{ width: `${scrollProgress}%` }}
         />
       </div>
+
+      {/* Restored Position Floating Notice */}
+      {showRestoredNotice && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 rounded-full bg-emerald-600/95 text-white px-4 py-1.5 text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all border border-emerald-400/40">
+          <Check className="h-3.5 w-3.5 text-white" />
+          <span>تمت استعادة موضع القراءة السابق بنجاح ✓</span>
+        </div>
+      )}
 
       {/* Reader Sticky Header */}
       <header

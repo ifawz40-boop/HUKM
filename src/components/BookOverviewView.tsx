@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowRight,
   BookOpen,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { BookProject, BookChapter, CategoryItem } from '../types/hukm';
 import { calculateBookStats, getCategoryName } from '../utils/hukmEngine';
+import { UserProfile } from '../types/auth';
 import {
   getBookReadingProgress,
   recordChapterOpened,
@@ -30,6 +31,7 @@ import {
 interface BookOverviewViewProps {
   book: BookProject;
   categories: CategoryItem[];
+  currentUser?: UserProfile | null;
   isOwner?: boolean;
   isBookmarked?: boolean;
   onBack: () => void;
@@ -42,6 +44,7 @@ interface BookOverviewViewProps {
 export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
   book,
   categories,
+  currentUser = null,
   isOwner = false,
   isBookmarked = false,
   onBack,
@@ -50,10 +53,15 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
   onToggleBookmark,
   onShowToast,
 }) => {
-  const [progress, setProgress] = useState(() => getBookReadingProgress(book.id));
+  const [progress, setProgress] = useState(() => getBookReadingProgress(book.id, currentUser?.id));
   const [copiedShare, setCopiedShare] = useState(false);
   const [chapterSearch, setChapterSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Keep progress in sync if user changes
+  useEffect(() => {
+    setProgress(getBookReadingProgress(book.id, currentUser?.id));
+  }, [book.id, currentUser?.id]);
 
   const stats = calculateBookStats(book.chapters, book.viewsCount);
   const categoryLabel = getCategoryName(categories, book.category);
@@ -71,7 +79,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
 
   const handleStartReading = () => {
     if (book.chapters.length > 0) {
-      recordChapterOpened(book.id, book.chapters[0].id);
+      recordChapterOpened(book.id, book.chapters[0].id, currentUser?.id);
       onSelectChapter(book.chapters[0].id);
     } else {
       onShowToast('لم تتم إضافة فصول بعد لهذه الرواية.');
@@ -80,7 +88,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
 
   const handleResumeReading = () => {
     if (resumeChapter) {
-      recordChapterOpened(book.id, resumeChapter.id);
+      recordChapterOpened(book.id, resumeChapter.id, currentUser?.id);
       onSelectChapter(resumeChapter.id);
     } else {
       handleStartReading();
@@ -88,14 +96,14 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
   };
 
   const handleChapterClick = (chapterId: string) => {
-    recordChapterOpened(book.id, chapterId);
-    setProgress(getBookReadingProgress(book.id));
+    recordChapterOpened(book.id, chapterId, currentUser?.id);
+    setProgress(getBookReadingProgress(book.id, currentUser?.id));
     onSelectChapter(chapterId);
   };
 
   const handleToggleChapterStatus = (e: React.MouseEvent, chapterId: string) => {
     e.stopPropagation();
-    const updated = toggleChapterReadStatus(book.id, chapterId);
+    const updated = toggleChapterReadStatus(book.id, chapterId, currentUser?.id);
     setProgress(updated);
     const isNowRead = updated.completedChapterIds.includes(chapterId);
     onShowToast(isNowRead ? 'تم تعليم الفصل كـ «مقروء» ✓' : 'تمت إزالة علامة القراءة عن الفصل.');

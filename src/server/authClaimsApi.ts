@@ -28,8 +28,8 @@ export async function authenticateToken(req: Request, res: Response, next: () =>
   }
 }
 
-// Middleware to enforce OWNER-only access strictly from Custom Claims
-export function requireOwnerRole(req: Request, res: Response, next: () => void) {
+// Middleware to enforce OWNER-only access strictly from Custom Claims and verified /admins/{uid} document
+export async function requireOwnerRole(req: Request, res: Response, next: () => void) {
   const user = (req as any).user;
   if (!user || user.role !== 'owner' || !user.email_verified) {
     return res.status(403).json({
@@ -37,7 +37,23 @@ export function requireOwnerRole(req: Request, res: Response, next: () => void) 
       message: 'غير مصرح: هذه العملية مقتصرة حصرياً على صاحب المنصة (Owner) ولا يملكها المشرفون الآخرون.',
     });
   }
-  next();
+
+  try {
+    const adminDoc = await adminDb.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists || adminDoc.data()?.role !== 'owner') {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح: حساب المالك غير مسجل أو ملغى في سجل الإدارة الرسمي (/admins/{uid}).',
+      });
+    }
+    next();
+  } catch (err: any) {
+    console.error('requireOwnerRole verification error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء التحقق من السجل الإداري للمالك في قاعدة البيانات.',
+    });
+  }
 }
 
 /**
@@ -96,6 +112,7 @@ authClaimsRouter.post('/lookup-user', authenticateToken, requireOwnerRole, async
  * 3. Assign Role (Strictly for OWNER)
  * Grants Custom Claim `role: 'admin' | 'reader'`. ADMINS CANNOT CALL THIS.
  * Prevents unverified email accounts from obtaining administrative roles.
+ * Preserves existing custom claims and ensures atomic synchronization ordering.
  */
 authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (req: Request, res: Response) => {
   const caller = (req as any).user;
@@ -111,6 +128,7 @@ authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (r
 
   try {
     const targetUser = await adminAuth.getUser(targetUid);
+    const existingClaims = (targetUser.customClaims || {}) as Record<string, any>;
 
     // Prevent granting admin to unverified accounts (strictly check targetUser.emailVerified)
     const isVerified = Boolean(targetUser.emailVerified);
@@ -122,15 +140,10 @@ authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (r
       });
     }
 
-    // Set Custom User Claims via Firebase Admin
-    await adminAuth.setCustomUserClaims(targetUid, { role });
-
-    // Invalidate stale client tokens immediately
-    await adminAuth.revokeRefreshTokens(targetUid);
-
     const adminDocRef = adminDb.collection('admins').doc(targetUid);
 
     if (role === 'admin') {
+      // 1. Establish the Firestore admin record first so that when claims are granted, /admins/{uid} exists
       await adminDocRef.set({
         id: targetUid,
         uid: targetUid,
@@ -144,9 +157,28 @@ authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (r
         addedBy: caller.uid,
         addedAt: new Date().toISOString(),
       });
+
+      // 2. Grant Custom Claims while preserving other existing custom claims
+      await adminAuth.setCustomUserClaims(targetUid, {
+        ...existingClaims,
+        role: 'admin',
+      });
+
+      // 3. Invalidate stale client tokens immediately
+      await adminAuth.revokeRefreshTokens(targetUid);
     } else {
-      // Downgrade to reader: delete admin document immediately (cuts off Firestore access)
+      // Downgrade to reader:
+      // 1. Delete admin document FIRST (immediately cuts off Firestore access via rules check exists(/admins/{uid}))
       await adminDocRef.delete();
+
+      // 2. Demote Custom Claims while preserving other existing custom claims
+      await adminAuth.setCustomUserClaims(targetUid, {
+        ...existingClaims,
+        role: 'reader',
+      });
+
+      // 3. Invalidate stale client tokens immediately
+      await adminAuth.revokeRefreshTokens(targetUid);
     }
 
     return res.json({
@@ -162,7 +194,7 @@ authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (r
 /**
  * 4. Revoke Admin Role (Strictly for OWNER)
  * Completely strips administrative Custom Claims and deletes admins/{uid}.
- * Immediately revokes active session refresh tokens and Firestore access.
+ * Preserves other custom claims. Immediately deletes Firestore doc first for instant revocation.
  */
 authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async (req: Request, res: Response) => {
   const { targetUid } = req.body;
@@ -179,14 +211,20 @@ authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async
       return res.status(403).json({ success: false, message: 'لا يمكن سحب صلاحيات المؤسس الرئيسي للمنصة.' });
     }
 
-    // 1. Revoke claim
-    await adminAuth.setCustomUserClaims(targetUid, { role: 'reader' });
-    
-    // 2. Revoke refresh tokens
-    await adminAuth.revokeRefreshTokens(targetUid);
+    const targetUser = await adminAuth.getUser(targetUid);
+    const existingClaims = (targetUser.customClaims || {}) as Record<string, any>;
 
-    // 3. Remove from admins registry (instantly revokes Firestore access via rule: exists(/admins/$(uid)))
+    // 1. Remove from admins registry FIRST (instantly revokes Firestore access via rule: exists(/admins/$(uid)))
     await adminDocRef.delete();
+
+    // 2. Revoke administrative claim while preserving other custom claims
+    await adminAuth.setCustomUserClaims(targetUid, {
+      ...existingClaims,
+      role: 'reader',
+    });
+    
+    // 3. Revoke refresh tokens
+    await adminAuth.revokeRefreshTokens(targetUid);
 
     return res.json({
       success: true,

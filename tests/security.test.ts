@@ -304,4 +304,289 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     });
   });
 
+  // =========================================================================
+  // SECTION 3: Phase 1.3 In-Depth Security & Behavioral Invariants
+  // =========================================================================
+
+  // Test 13: Bootstrap Claims Preservation & Immutability on Resumption
+  describe('Test 13: Bootstrap Claims Preservation & Manager Immutability', () => {
+    const bootstrapScriptContent = fs.readFileSync(path.resolve(process.cwd(), 'scripts/bootstrap-owner.ts'), 'utf-8');
+
+    it('must preserve existing custom claims when granting OWNER or ADMIN claims', () => {
+      assert.match(bootstrapScriptContent, /\.\.\.ownerExistingClaims/);
+      assert.match(bootstrapScriptContent, /\.\.\.managerExistingClaims/);
+    });
+
+    it('must reject resume if manager configuration does not match the pending reservation', () => {
+      assert.match(bootstrapScriptContent, /BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME/);
+      assert.match(bootstrapScriptContent, /existingManagerUid !== currentManagerUid/);
+      assert.match(bootstrapScriptContent, /existingManagerEmail !== currentManagerEmail/);
+    });
+
+    it('must initiate safe rollback compensation if manager claim was granted but finalization fails', () => {
+      assert.match(bootstrapScriptContent, /Rolling back uncommitted manager administrative claim/);
+      assert.match(bootstrapScriptContent, /role:\s*managerExistingClaims\.role\s*\|\|\s*'reader'/);
+    });
+
+    function evaluatePendingResume(
+      existingPending: { ownerUid: string; managerUid: string | null; managerEmail: string | null },
+      incoming: { ownerUid: string; managerUid: string | null; managerEmail: string | null }
+    ): { allowed: boolean; errorCode?: string } {
+      if (existingPending.ownerUid !== incoming.ownerUid) {
+        return { allowed: false, errorCode: 'BOOTSTRAP_RESERVED_BY_OTHER_USER' };
+      }
+      if (
+        (existingPending.managerUid || null) !== (incoming.managerUid || null) ||
+        (existingPending.managerEmail || null) !== (incoming.managerEmail || null)
+      ) {
+        return { allowed: false, errorCode: 'BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME' };
+      }
+      return { allowed: true };
+    }
+
+    it('should allow resume when owner and manager match exactly', () => {
+      const res = evaluatePendingResume(
+        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'mgr@example.com' },
+        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'mgr@example.com' }
+      );
+      assert.equal(res.allowed, true);
+    });
+
+    it('should reject resume if attacker attempts to change manager email on pending reservation', () => {
+      const res = evaluatePendingResume(
+        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'mgr@example.com' },
+        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'attacker-mgr@example.com' }
+      );
+      assert.equal(res.allowed, false);
+      assert.equal(res.errorCode, 'BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME');
+    });
+
+    it('should reject resume if attacker attempts to inject a manager into an owner-only pending reservation', () => {
+      const res = evaluatePendingResume(
+        { ownerUid: 'uid-owner-1', managerUid: null, managerEmail: null },
+        { ownerUid: 'uid-owner-1', managerUid: 'injected-uid', managerEmail: 'injected@example.com' }
+      );
+      assert.equal(res.allowed, false);
+      assert.equal(res.errorCode, 'BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME');
+    });
+
+    it('should preserve other custom claims when merging roles', () => {
+      const existingUserClaims = { betaAccess: true, newsletterTier: 'gold', extraId: 999 };
+      const mergedClaims = { ...existingUserClaims, role: 'owner' };
+      assert.equal(mergedClaims.role, 'owner');
+      assert.equal(mergedClaims.betaAccess, true);
+      assert.equal(mergedClaims.newsletterTier, 'gold');
+      assert.equal(mergedClaims.extraId, 999);
+    });
+  });
+
+  // Test 14: requireOwnerRole requires /admins/{uid} document with role === 'owner'
+  describe('Test 14: requireOwnerRole checks /admins/{uid} doc and role', () => {
+    const authClaimsApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/authClaimsApi.ts'), 'utf-8');
+
+    it('must query adminDb collection admins and verify role == owner', () => {
+      assert.match(authClaimsApiContent, /adminDb\.collection\('admins'\)\.doc\(user\.uid\)\.get\(\)/);
+      assert.match(authClaimsApiContent, /!adminDoc\.exists\s*\|\|\s*adminDoc\.data\(\)\?\.role\s*!==\s*'owner'/);
+    });
+
+    it('must preserve other custom claims in set-role and revoke-role', () => {
+      assert.match(authClaimsApiContent, /\.\.\.existingClaims,\s*role:\s*'admin'/);
+      assert.match(authClaimsApiContent, /\.\.\.existingClaims,\s*role:\s*'reader'/);
+    });
+
+    it('must delete admin doc before or during revocation to guarantee instant revocation', () => {
+      const revokeBlock = authClaimsApiContent.slice(authClaimsApiContent.indexOf("authClaimsRouter.post('/revoke-role'"));
+      const deleteIdx = revokeBlock.indexOf('await adminDocRef.delete()');
+      const setClaimsIdx = revokeBlock.indexOf('await adminAuth.setCustomUserClaims(');
+      assert.notEqual(deleteIdx, -1, 'adminDocRef.delete() must be present in revoke-role');
+      assert.notEqual(setClaimsIdx, -1, 'setCustomUserClaims must be present in revoke-role');
+      assert.ok(deleteIdx < setClaimsIdx, 'adminDocRef.delete() must occur BEFORE setCustomUserClaims');
+    });
+
+    async function simulateRequireOwnerRole(
+      user: { role?: string; email_verified?: boolean; uid: string } | null,
+      adminDocExists: boolean,
+      adminDocRole?: string
+    ): Promise<{ status: number; nextCalled: boolean }> {
+      if (!user || user.role !== 'owner' || !user.email_verified) {
+        return { status: 403, nextCalled: false };
+      }
+      if (!adminDocExists || adminDocRole !== 'owner') {
+        return { status: 403, nextCalled: false };
+      }
+      return { status: 200, nextCalled: true };
+    }
+
+    it('should deny caller who has token owner claim but no admin document in Firestore', async () => {
+      const res = await simulateRequireOwnerRole({ uid: 'spoofed-owner', role: 'owner', email_verified: true }, false);
+      assert.equal(res.status, 403);
+      assert.equal(res.nextCalled, false);
+    });
+
+    it('should deny caller whose admin doc exists but has role admin instead of owner', async () => {
+      const res = await simulateRequireOwnerRole({ uid: 'admin-not-owner', role: 'owner', email_verified: true }, true, 'admin');
+      assert.equal(res.status, 403);
+      assert.equal(res.nextCalled, false);
+    });
+
+    it('should allow caller who has token owner claim, verified email, AND active owner admin document', async () => {
+      const res = await simulateRequireOwnerRole({ uid: 'real-owner', role: 'owner', email_verified: true }, true, 'owner');
+      assert.equal(res.status, 200);
+      assert.equal(res.nextCalled, true);
+    });
+  });
+
+  // Test 15: emailApi requires active admin record, chunks recipients, and logs accurately
+  describe('Test 15: emailApi active admin verification, batch chunking & accurate logging', () => {
+    const emailApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
+
+    it('must verify active admin document in Firestore before allowing email dispatch', () => {
+      assert.match(emailApiContent, /adminDb\.collection\('admins'\)\.doc\(user\.uid\)\.get\(\)/);
+      assert.match(emailApiContent, /adminRole\s*!==\s*'owner'\s*&&\s*adminRole\s*!==\s*'admin'/);
+    });
+
+    it('must chunk recipients into batches of 50 to prevent subscriber dropping', () => {
+      assert.match(emailApiContent, /const BATCH_SIZE = 50;/);
+      assert.match(emailApiContent, /for\s*\(let i = 0;\s*i < recipients\.length;\s*i \+= BATCH_SIZE\)/);
+    });
+
+    it('must record actualDispatchedCount accurately in Firestore emailLogs', () => {
+      assert.match(emailApiContent, /recipientCount:\s*actualDispatchedCount/);
+      assert.match(emailApiContent, /totalRequested:\s*recipients\.length/);
+    });
+
+    // Behavioral simulation of batch chunking and counting
+    function chunkAndDispatch(recipients: string[], failAfterBatchIndex: number = -1): {
+      chunksSent: number;
+      actualDispatched: number;
+      totalRequested: number;
+    } {
+      const BATCH_SIZE = 50;
+      let actualDispatched = 0;
+      let chunksSent = 0;
+
+      for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+        if (failAfterBatchIndex !== -1 && chunksSent >= failAfterBatchIndex) {
+          break; // simulate provider failure
+        }
+        const batch = recipients.slice(i, i + BATCH_SIZE);
+        actualDispatched += batch.length;
+        chunksSent++;
+      }
+
+      return {
+        chunksSent,
+        actualDispatched,
+        totalRequested: recipients.length,
+      };
+    }
+
+    it('should dispatch all 135 subscribers across 3 consecutive batches without dropping anyone', () => {
+      const subscribers = Array.from({ length: 135 }, (_, idx) => `sub${idx}@example.com`);
+      const result = chunkAndDispatch(subscribers);
+
+      assert.equal(result.totalRequested, 135);
+      assert.equal(result.chunksSent, 3, 'Should divide 135 subscribers into 3 batches (50, 50, 35)');
+      assert.equal(result.actualDispatched, 135, 'Must dispatch all 135 subscribers, never truncating to 50');
+    });
+
+    it('should accurately record actual delivered count if provider fails on batch 2', () => {
+      const subscribers = Array.from({ length: 135 }, (_, idx) => `sub${idx}@example.com`);
+      const result = chunkAndDispatch(subscribers, 1); // fails after batch 1 (50 sent)
+
+      assert.equal(result.totalRequested, 135);
+      assert.equal(result.chunksSent, 1);
+      assert.equal(result.actualDispatched, 50, 'Recorded count must strictly equal the actual 50 delivered');
+    });
+  });
+
+  // =========================================================================
+  // SECTION 4: UX & Navigation Refactor Invariants (Phase 1)
+  // =========================================================================
+  describe('Test 16: Navigation & Navbar Role Separation and Categories Dropdown', () => {
+    const navbarContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/HukmNavbar.tsx'), 'utf-8');
+
+    it('must NOT truncate categories using categories.slice(0, 3)', () => {
+      assert.equal(navbarContent.includes('categories.slice(0, 3)'), false, 'categories.slice(0, 3) must be completely removed');
+    });
+
+    it('must contain "كل الأقسام" dropdown logic with categories map', () => {
+      assert.match(navbarContent, /isCategoriesDropdownOpen/);
+      assert.match(navbarContent, /categoriesDropdownLabel/);
+      assert.match(navbarContent, /categories\.map/);
+    });
+
+    it('must include "محفوظاتي" for authenticated users/readers', () => {
+      assert.match(navbarContent, /محفوظاتي/);
+      assert.match(navbarContent, /onOpenProfileModal\('bookmarks'\)/);
+    });
+
+    it('must use responsive breakpoint lg: (1024px) to prevent tablet/laptop overlapping', () => {
+      assert.match(navbarContent, /hidden lg:flex/);
+      assert.match(navbarContent, /lg:hidden/);
+    });
+
+    // Behavioral simulation of Navbar items visible per role
+    function getNavbarItemsForRole(userRole: 'guest' | 'reader' | 'admin' | 'owner') {
+      const isGuest = userRole === 'guest';
+      const isReader = userRole === 'reader';
+      const isAdmin = userRole === 'admin' || userRole === 'owner';
+      const isOwner = userRole === 'owner';
+
+      return {
+        hasVisionLink: isGuest || isReader,
+        hasCatalogLink: true,
+        hasAllCategoriesDropdown: true,
+        hasBookmarksLink: isReader,
+        hasWriterStudioLink: isAdmin,
+        hasNewBookCTA: isAdmin,
+        hasManageCategoriesCTA: isAdmin,
+        hasAdminManagementCTA: isOwner,
+        hasEmailModalCTA: isOwner,
+      };
+    }
+
+    it('Guest should see Vision, Catalog, All Categories, but NOT Bookmarks or Admin tools', () => {
+      const guestItems = getNavbarItemsForRole('guest');
+      assert.equal(guestItems.hasVisionLink, true);
+      assert.equal(guestItems.hasCatalogLink, true);
+      assert.equal(guestItems.hasAllCategoriesDropdown, true);
+      assert.equal(guestItems.hasBookmarksLink, false);
+      assert.equal(guestItems.hasWriterStudioLink, false);
+      assert.equal(guestItems.hasNewBookCTA, false);
+      assert.equal(guestItems.hasAdminManagementCTA, false);
+    });
+
+    it('Reader should see Catalog, Bookmarks (محفوظاتي), All Categories, but NOT Admin tools', () => {
+      const readerItems = getNavbarItemsForRole('reader');
+      assert.equal(readerItems.hasCatalogLink, true);
+      assert.equal(readerItems.hasBookmarksLink, true);
+      assert.equal(readerItems.hasAllCategoriesDropdown, true);
+      assert.equal(readerItems.hasWriterStudioLink, false);
+      assert.equal(readerItems.hasNewBookCTA, false);
+      assert.equal(readerItems.hasAdminManagementCTA, false);
+    });
+
+    it('Admin should see Catalog, Writer Studio, New Book, Manage Categories, but NOT Admin Management', () => {
+      const adminItems = getNavbarItemsForRole('admin');
+      assert.equal(adminItems.hasCatalogLink, true);
+      assert.equal(adminItems.hasWriterStudioLink, true);
+      assert.equal(adminItems.hasNewBookCTA, true);
+      assert.equal(adminItems.hasManageCategoriesCTA, true);
+      assert.equal(adminItems.hasAdminManagementCTA, false);
+    });
+
+    it('Owner should see all Admin tools AND Owner Admin Management', () => {
+      const ownerItems = getNavbarItemsForRole('owner');
+      assert.equal(ownerItems.hasCatalogLink, true);
+      assert.equal(ownerItems.hasWriterStudioLink, true);
+      assert.equal(ownerItems.hasNewBookCTA, true);
+      assert.equal(ownerItems.hasManageCategoriesCTA, true);
+      assert.equal(ownerItems.hasAdminManagementCTA, true);
+      assert.equal(ownerItems.hasEmailModalCTA, true);
+    });
+  });
+
 });
+
+

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Compass,
   PenTool,
@@ -32,6 +32,7 @@ import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SendAnnouncementModal } from './components/SendAnnouncementModal';
 import { AdminManagementModal } from './components/AdminManagementModal';
+import { HukmEmailModal } from './components/HukmEmailModal';
 import { BannedNoticeModal } from './components/BannedNoticeModal';
 import { HukmFooter } from './components/HukmFooter';
 import { getActiveBanDetails } from './utils/moderationTracker';
@@ -43,6 +44,9 @@ import {
   fetchCategoriesFromFirestore,
   saveCategoryToFirestore,
   deleteCategoryFromFirestore,
+  updateUserBookmarksInFirestore,
+  fetchUserReadingProgress,
+  uploadGuestReadingProgressToFirestore,
 } from './firebase/firestoreService';
 import {
   INITIAL_BOOKS,
@@ -63,10 +67,23 @@ import {
 import {
   getStoredNotifications,
   saveStoredNotifications,
+  getStoredBookmarks,
+  saveStoredBookmarks,
+  mergeGuestBookmarksWithUser,
+  clearGuestBookmarks,
+  hasGuestBookmarks,
   toggleUserBookmark,
+  toggleGuestBookmark,
   getStoredSubscribers,
   addEmailLog,
 } from './utils/authStorage';
+import {
+  getAllReadingProgress,
+  saveAllReadingProgress,
+  mergeGuestReadingProgressWithUser,
+  clearGuestReadingProgress,
+  hasGuestReadingProgress,
+} from './utils/readingTracker';
 import { subscribeToAuthState, logoutUser } from './firebase/authService';
 import { isOwner as checkIsOwner, isAdmin as checkIsAdmin } from './services/permissionService';
 import { generateNewReleaseEmailHtml } from './utils/emailTemplateGenerator';
@@ -80,6 +97,7 @@ export default function App() {
 
   // Real User Auth & Role State (null when unauthenticated visitor / guest)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [guestBookmarks, setGuestBookmarks] = useState<string[]>(() => getStoredBookmarks());
   const [isReaderPreviewMode, setIsReaderPreviewMode] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
@@ -88,12 +106,119 @@ export default function App() {
   const isActualAdminOrOwner = checkIsAdmin(currentUser);
   const isOwner = isActualAdminOrOwner && !isReaderPreviewMode;
 
-  // Real Firebase Auth Lifecycle listener
+  // Session tracking to completely eliminate async race conditions during account switching
+  const authSessionIdRef = useRef<number>(0);
+
+  // Real Firebase Auth Lifecycle listener with Cloud Reader Synchronization & Safe Migration
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(
-      (profile) => {
-        setCurrentUser(profile);
-        setAuthLoading(false);
+      async (profile) => {
+        // Invalidate prior asynchronous callbacks by incrementing the active session token
+        const currentSessionId = ++authSessionIdRef.current;
+
+        if (profile) {
+          // ---------------------------------------------------------------
+          // STEP 1: BOOKMARKS MIGRATION & LOCAL CACHE MERGE
+          // ---------------------------------------------------------------
+          const localGuestBookmarks = getStoredBookmarks();
+          const cloudBookmarks = profile.bookmarks || [];
+          const mergedBookmarks = mergeGuestBookmarksWithUser(localGuestBookmarks, cloudBookmarks);
+
+          // Update local partitioned cache for user immediately so UI feels responsive
+          saveStoredBookmarks(mergedBookmarks, profile.id);
+
+          // If there are guest bookmarks that need cloud persistence, upload them
+          if (localGuestBookmarks.length > 0 && mergedBookmarks.length > cloudBookmarks.length) {
+            try {
+              const syncSuccess = await updateUserBookmarksInFirestore(profile.id, mergedBookmarks);
+              // CRITICAL: Only clear guest bookmarks if write succeeded AND this session is still active
+              if (syncSuccess && authSessionIdRef.current === currentSessionId) {
+                clearGuestBookmarks();
+                setGuestBookmarks([]);
+              }
+            } catch (err) {
+              console.warn('Could not sync guest bookmarks to Firestore, retaining locally:', err);
+            }
+          }
+
+          // Abort if session changed while awaiting bookmark sync
+          if (authSessionIdRef.current !== currentSessionId) return;
+
+          // ---------------------------------------------------------------
+          // STEP 2: READING PROGRESS LOCAL MERGE & SEPARATE CLOUD UPLOAD
+          // ---------------------------------------------------------------
+          const guestProgress = getAllReadingProgress(); // Reads guest or legacy
+          const hasGuestProgress = hasGuestReadingProgress() || Object.keys(guestProgress).length > 0;
+          const userProgress = getAllReadingProgress(profile.id);
+          const mergedProgress = mergeGuestReadingProgressWithUser(guestProgress, userProgress);
+          saveAllReadingProgress(mergedProgress, profile.id);
+
+          if (hasGuestProgress) {
+            try {
+              const uploadSuccess = await uploadGuestReadingProgressToFirestore(profile.id, guestProgress);
+              // CRITICAL: Only clear guest reading progress if cloud upload confirmed AND session is active
+              if (uploadSuccess && authSessionIdRef.current === currentSessionId) {
+                clearGuestReadingProgress();
+              }
+            } catch (err) {
+              console.warn('Could not upload guest reading progress to Firestore, retaining locally:', err);
+            }
+          }
+
+          // Abort if session changed
+          if (authSessionIdRef.current !== currentSessionId) return;
+
+          // ---------------------------------------------------------------
+          // STEP 3: SYNC CLOUD READING PROGRESS RECORDS INTO LOCAL TRACKER
+          // ---------------------------------------------------------------
+          try {
+            const remoteRecords = await fetchUserReadingProgress(profile.id);
+            if (authSessionIdRef.current === currentSessionId && remoteRecords && remoteRecords.length > 0) {
+              const currentTracker = getAllReadingProgress(profile.id);
+              remoteRecords.forEach((rec) => {
+                const bookProg = currentTracker[rec.bookId] || {
+                  bookId: rec.bookId,
+                  completedChapterIds: [],
+                  lastReadAt: rec.lastReadAt,
+                  chapterScrollPositions: {},
+                };
+                if (rec.completed && !bookProg.completedChapterIds.includes(rec.chapterId)) {
+                  bookProg.completedChapterIds.push(rec.chapterId);
+                }
+                if (typeof rec.scrollPercent === 'number') {
+                  bookProg.chapterScrollPositions = bookProg.chapterScrollPositions || {};
+                  bookProg.chapterScrollPositions[rec.chapterId] = rec.scrollPercent;
+                }
+                const recDate = new Date(rec.lastReadAt || 0).getTime();
+                const curDate = new Date(bookProg.lastReadAt || 0).getTime();
+                if (recDate >= curDate) {
+                  bookProg.lastChapterId = rec.chapterId;
+                  bookProg.lastReadAt = rec.lastReadAt;
+                }
+                currentTracker[rec.bookId] = bookProg;
+              });
+              saveAllReadingProgress(currentTracker, profile.id);
+            }
+          } catch (err) {
+            console.warn('Could not sync remote reading progress:', err);
+          }
+
+          // ---------------------------------------------------------------
+          // STEP 4: COMMIT FINAL ACTIVE STATE IF SESSION REMAINS MATCHED
+          // ---------------------------------------------------------------
+          if (authSessionIdRef.current === currentSessionId) {
+            profile.bookmarks = mergedBookmarks;
+            setCurrentUser(profile);
+            setAuthLoading(false);
+          }
+        } else {
+          // Logged out / unauthenticated: verify session before resetting to guest
+          if (authSessionIdRef.current === currentSessionId) {
+            setCurrentUser(null);
+            setGuestBookmarks(getStoredBookmarks());
+            setAuthLoading(false);
+          }
+        }
       },
       (loading) => {
         setAuthLoading(loading);
@@ -134,6 +259,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileModalInitialTab, setProfileModalInitialTab] = useState<'profile' | 'bookmarks'>('profile');
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isAdminManagementOpen, setIsAdminManagementOpen] = useState(false);
@@ -159,8 +285,10 @@ export default function App() {
   };
 
   const handleBannedLogout = async () => {
+    authSessionIdRef.current++;
     await logoutUser();
     setCurrentUser(null);
+    setGuestBookmarks(getStoredBookmarks());
     showToast('تم تسجيل الخروج.');
   };
 
@@ -403,21 +531,38 @@ export default function App() {
     showToast(`تم حذف قسم «${catName || ''}» بنجاح.`);
   };
 
-  // Bookmark Toggle
-  const handleToggleBookmark = (bookId: string) => {
-    if (!currentUser) {
-      setAuthModalMode('login');
-      setIsAuthModalOpen(true);
-      showToast('يرجى تسجيل الدخول لحفظ الكتب في مفضلتك.');
-      return;
+  // Helper to determine if a book is bookmarked (respects current user or guest)
+  const checkIsBookmarked = (bookId: string) => {
+    if (currentUser) {
+      return (currentUser.bookmarks || []).includes(bookId);
     }
-    const updated = toggleUserBookmark(currentUser, bookId);
-    setCurrentUser(updated);
+    return guestBookmarks.includes(bookId);
+  };
+
+  // Bookmark Toggle with Cloud Sync & Guest Support
+  const handleToggleBookmark = (bookId: string) => {
     const bookTitle = books.find((b) => b.id === bookId)?.title || 'الكتاب';
-    if (updated.bookmarks.includes(bookId)) {
-      showToast(`تمت إضافة «${bookTitle}» إلى محفوظاتك! ⭐`);
+
+    if (currentUser) {
+      const updated = toggleUserBookmark(currentUser, bookId);
+      setCurrentUser(updated);
+      const isAdded = updated.bookmarks.includes(bookId);
+      showToast(isAdded ? `تمت إضافة «${bookTitle}» إلى محفوظاتك ومزامنتها سحابياً! ⭐` : `تمت إزالة «${bookTitle}» من المفضلة.`);
+
+      // Sync with Firestore
+      updateUserBookmarksInFirestore(currentUser.id, updated.bookmarks).catch((err) => {
+        console.warn('Could not sync bookmarks with Firestore:', err);
+      });
     } else {
-      showToast(`تمت إزالة «${bookTitle}» من المفضلة.`);
+      // Guest reader bookmarking
+      const updatedGuest = toggleGuestBookmark(bookId);
+      setGuestBookmarks(updatedGuest);
+      const isAdded = updatedGuest.includes(bookId);
+      if (isAdded) {
+        showToast(`تم حفظ «${bookTitle}» محلياً. سجّل دخولك لمزامنة مكتبتك سحابياً عبر كافة أجهزتك! ⭐`);
+      } else {
+        showToast(`تمت إزالة «${bookTitle}» من المفضلة.`);
+      }
     }
   };
 
@@ -459,9 +604,11 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    authSessionIdRef.current++;
     await logoutUser();
     setCurrentUser(null);
     setIsReaderPreviewMode(false);
+    setGuestBookmarks(getStoredBookmarks());
     if (currentView === 'writer') {
       setCurrentView('home');
     }
@@ -535,7 +682,10 @@ export default function App() {
             setAuthModalMode(mode || 'login');
             setIsAuthModalOpen(true);
           }}
-          onOpenProfileModal={() => setIsProfileModalOpen(true)}
+          onOpenProfileModal={(tab) => {
+            setProfileModalInitialTab(tab || 'profile');
+            setIsProfileModalOpen(true);
+          }}
           onSelectNotification={handleSelectNotification}
           onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
           onOpenSendAnnouncement={() => setIsAnnouncementModalOpen(true)}
@@ -710,8 +860,9 @@ export default function App() {
                       key={book.id}
                       book={book}
                       categories={categories}
+                      currentUserId={currentUser?.id}
                       isOwner={isOwner}
-                      isBookmarked={Boolean(currentUser?.bookmarks?.includes(book.id))}
+                      isBookmarked={checkIsBookmarked(book.id)}
                       onRead={() => handleOpenBookOverview(book.id)}
                       onQuickResume={(chapterId) => handleQuickResumeChapter(book.id, chapterId)}
                       onEdit={isOwner ? () => handleOpenWriter(book.id) : undefined}
@@ -810,8 +961,9 @@ export default function App() {
             <BookOverviewView
               book={currentBook}
               categories={categories}
+              currentUser={currentUser}
               isOwner={isOwner}
-              isBookmarked={Boolean(currentUser?.bookmarks?.includes(currentBook.id))}
+              isBookmarked={checkIsBookmarked(currentBook.id)}
               onBack={() => setCurrentView('home')}
               onSelectChapter={(chapterId) => handleOpenReader(currentBook.id, chapterId)}
               onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
@@ -838,12 +990,14 @@ export default function App() {
               book={currentBook}
               initialChapterId={selectedChapterId}
               isOwner={isOwner}
-              isBookmarked={Boolean(currentUser?.bookmarks?.includes(currentBook.id))}
+              isBookmarked={checkIsBookmarked(currentBook.id)}
+              currentUser={currentUser}
               onBack={() => setCurrentView('home')}
               onOpenOverview={() => handleOpenBookOverview(currentBook.id)}
               onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
               onChapterViewed={handleChapterViewed}
               onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
+              onShowToast={showToast}
             />
           ) : (
             <div className="p-12 text-center text-white max-w-md mx-auto my-12" dir="rtl">
@@ -906,11 +1060,13 @@ export default function App() {
         isOpen={isProfileModalOpen}
         user={currentUser}
         books={books}
+        initialTab={profileModalInitialTab}
         isReaderPreviewMode={isReaderPreviewMode}
         onToggleReaderPreview={handleToggleReaderPreview}
         onClose={() => setIsProfileModalOpen(false)}
         onLogout={handleLogout}
         onOpenBook={(bookId) => handleOpenBookOverview(bookId)}
+        onOpenReader={(bookId, chapterId) => handleOpenReader(bookId, chapterId)}
         onUserRefreshed={(refreshed) => setCurrentUser(refreshed)}
         onShowToast={showToast}
       />
@@ -925,6 +1081,13 @@ export default function App() {
         />
       )}
 
+      {/* Royal Email Identity & Cloud Subscribers Modal (Admins / Founder) */}
+      <HukmEmailModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        books={books}
+        onShowToast={showToast}
+      />
 
       {/* Admin & Moderation Management Modal (Admins / Founder) */}
       <AdminManagementModal

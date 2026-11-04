@@ -1,57 +1,79 @@
-# HUKM MEDIA — Phase 0.5 & Phase 1 Execution & Verification
+# خطة تنفيذ المرحلة 2.1: معالجات الاعتمادية الحرجة (Phase 2.1: Critical Reliability Fixes)
 
-## 1. Executive Summary
-- **Platform**: HUKM MEDIA (`https://ais-dev-ehrblkpqgzyfyqmyzoq2sv-30914264141.europe-west2.run.app`)
-- **Phases Completed**: 
-  - **Phase 0.5: Emergency Security Lockdown** (Privilege escalation removed, rules hardened, mock logins abolished)
-  - **Phase 1: Real Firebase Authentication** (Google sign-in, email/password registration + verification, password reset, guest browsing mode)
-- **Status**: Tested, verified, and compiled with 0 errors.
+تحدد هذه الخطة الخطوات الدقيقة لإصلاح المشكلات الثلاث المكتشفة في التدقيق (Audit)، لضمان حماية بيانات الزائر من الفقدان، وتأمين تبديل الحسابات ضد ظروف التسابق (Race Conditions)، ومزامنة تقدم قراءة الزائر سحابياً بدقة، دون أي تعديل في قواعد الأمان أو نظام الصلاحيات أو تصميم الواجهة.
 
 ---
 
-## 2. Phase 0.5: Security Lockdown Details
-1. **Elimination of Mock Users and Spoofing**:
-   - Removed `FOUNDER_USER`, `MANAGING_ADMIN_USER`, `DEMO_READER_USER`, `OWNER_USER`.
-   - Removed one-click "Quick Login" backdoor buttons from both `HukmLandingView` and `AuthModal`.
-   - Removed `?role=owner` and `?role=reader` URL query parameter parsing in `App.tsx`.
-   - Hardened `getStoredCurrentUser()` in `src/utils/authStorage.ts` to strictly return `null` instead of generating an unauthenticated mock owner.
-2. **Hardened `firestore.rules` (Deployed)**:
-   - Implemented Default Deny on all paths.
-   - Enforced `isOwner()` checking against authenticated emails `dr.islam.mohamed@hukm.media` and `ifawz40@gmail.com`.
-   - Enforced `isAdmin()` verifying authenticated UID in `admins/{uid}` or owner emails.
-   - Restricted write operations on `books` and `categories` to verified admins only.
-   - Prevented users from self-elevating `role` or `accountStatus` in `users/{userId}`.
-   - Restricted drafts from public read while keeping published works accessible to everyone.
+## 1. المشكلات المستهدفة والحلول الهندسية
+
+### المشكلة 1: مسح بيانات الزائر قبل تأكيد نجاح المزامنة السحابية (Guest Data Loss Fix)
+- **الوضع الحالي:** يتم استدعاء `clearGuestBookmarks()` و `clearGuestReadingProgress()` بشكل فوري دون انتظار رد Firestore ودون التحقق من نجاح العملية.
+- **الحل:**
+  - فصل مسار مزامنة المفضلة عن مسار تقدم القراءة تماماً (Two Independent Pipelines).
+  - لا يتم استدعاء `clearGuestBookmarks()` إلا بعد أن تُرجع دالة `updateUserBookmarksInFirestore` قيمة `true` مؤكدة.
+  - لا يتم استدعاء `clearGuestReadingProgress()` إلا بعد أن تؤكد السحابة رفع سجلات التقدم بنجاح.
+  - في حالة الفشل أو انقطاع الاتصال (Offline)، تبقى بيانات الزائر سليمة محلياً ليعاد محاولة مزامنتها تلقائياً في تسجيل الدخول القادم (Idempotent Retry).
+
+### المشكلة 2: ظروف التسابق عند تبديل الحسابات (Account Switching & Race Conditions Fix)
+- **الوضع الحالي:** دالة `subscribeToAuthState` غير المتزامنة تفتقر لآلية إبطال العمليات المعلقة في حال تسجيل خروج سريع أو دخول حساب آخر.
+- **الحل:**
+  - استخدام معرف جلسة تزايدي موثوق (`authSessionIdRef = useRef(0)`).
+  - مع كل حدث مصادقة أو تسجيل خروج، يتم تحديث `authSessionIdRef.current++`.
+  - كل عملية غير متزامنة تفحص قبل تحديث الحالة أو التخزين ما إذا كان معرّف جلستها لا يزال يطابق الجلسة النشطة الحالية (`currentSessionId === authSessionIdRef.current`) وأن `auth.currentUser?.uid === profile.id`.
+  - أي استجابة متأخرة لحساب سابق (User A) يتم إهمالها فوراً دون أن تؤثر على جلسة (User B).
+  - تسجيل الخروج يُبطل فوراً كافة العمليات السابقة المعلقة ويُعيد تهيئة مساحة الزائر المعزولة.
+
+### المشكلة 3: مزامنة تقدم قراءة الزائر سحابياً في Firestore (Guest Reading Progress Cloud Upload)
+- **الوضع الحالي:** تقدم قراءة الزائر يُدمج محلياً فقط في ذاكرة المتصفح للمستخدم، ولا يتم رفعه إلى مجموعة `/readingProgress` في Firestore عند أول تسجيل دخول.
+- **الحل:**
+  - إضافة دالة سحابية متخصصة في `src/firebase/firestoreService.ts`:
+    `uploadGuestReadingProgressToFirestore(userId: string, guestProgress: Record<string, ReadingProgress>): Promise<boolean>`
+  - تقوم بتحويل كل كتاب وفصل قرأه الزائر إلى وثيقة `ReadingProgressRecord` مطابقة 100% لقواعد الأمان `isValidReadingProgressCreate`، وترفعها لحساب المستخدم السحابي.
+  - تضمن عدم رفع البيانات إلى حساب خاطئ إذا تغير معرّف المستخدم أثناء المعالجة.
+  - عند نجاح الرفع بالكامل فقط، يتم تفريغ مساحة قراءة الزائر (`clearGuestReadingProgress`).
 
 ---
 
-## 3. Phase 1: Real Firebase Authentication Details
-1. **Unified Authentication Service (`src/firebase/authService.ts`)**:
-   - `signInWithGoogle()`: Seamless `signInWithPopup` with automatic fallback to `signInWithRedirect`.
-   - `registerWithEmail()`: `createUserWithEmailAndPassword`, `updateProfile` for display name, automatic `sendEmailVerification`, and Firestore `users/{uid}` sync.
-   - `loginWithEmail()`: `signInWithEmailAndPassword` with verified role determination.
-   - `resetPassword()`: Real `sendPasswordResetEmail`.
-   - `logoutUser()`: Real Firebase `signOut`.
-   - `subscribeToAuthState()`: Global listener synchronizing real user profile and role.
-   - `formatAuthError()`: Arabic error message mapping for all Firebase Auth error codes.
-2. **Seamless Guest Mode**:
-   - Unauthenticated visitors can browse the library, view categories, and read published books without forced login.
-   - Header displays "دخول / تسجيل" instead of admin controls.
-   - Attempting to bookmark books gently prompts the reader to sign in.
-3. **Role Determination (`determineUserRole`)**:
-   - Verified email `dr.islam.mohamed@hukm.media` -> `owner`.
-   - Verified email `ifawz40@gmail.com` -> `admin`.
-   - Firestore `admins/{uid}` presence -> `admin`.
-   - All other users -> `reader`.
+## 2. تفاصيل التعديلات على الملفات
+
+1. **`src/firebase/firestoreService.ts`:**
+   - إضافة دالة `uploadGuestReadingProgressToFirestore(userId, guestProgress)`.
+   - التأكد من صرامة الإرجاع المنطقي (`boolean`) ومعالجة حالات الخطأ والشبكة.
+
+2. **`src/utils/authStorage.ts`:**
+   - إضافة `hasGuestBookmarks(): boolean`.
+   - تعديل `clearGuestBookmarks()` لتكون آمنة ومشروطة.
+
+3. **`src/utils/readingTracker.ts`:**
+   - إضافة `hasGuestReadingProgress(): boolean`.
+   - ضمان استقرار دمج تقدم القراءة وسلامة التواريخ.
+
+4. **`src/App.tsx`:**
+   - تطبيق `authSessionIdRef` لإدارة الجلسات ومنع ظروف التسابق.
+   - إعادة كتابة منطق الهجرة في `subscribeToAuthState` لدعم:
+     - عزل هجرة المفضلة وهجرة تقدم القراءة.
+     - اشتراط نجاح الرفع السحابي قبل مسح مساحة الزائر.
+     - الحفاظ على بيانات الزائر عند العمل دون اتصال أو فشل الشبكة.
+     - التحقق الصارم من تطابق الجلسة النشطة قبل كل تحديث حالة.
+
+5. **`tests/readerSync.test.ts`:**
+   - إضافة قسم كامل يغطي السيناريوهات العشرة المطلوبة بالاسم والدقة:
+     1. نجاح هجرة المفضلة ومسح بيانات الزائر بعدها فقط.
+     2. فشل هجرة المفضلة وبقاء بيانات الزائر كاملة دون حذف.
+     3. فشل هجرة تقدم القراءة وبقاء سجلات الزائر سليمة.
+     4. نجاح المفضلة وفشل التقدم (مسح المفضلة فقط وبقاء التقدم للزائر).
+     5. الدخول دون اتصال والحفاظ على كامل بيانات الزائر.
+     6. إتمام الهجرة بنجاح في المحاولة اللاحقة (Retry).
+     7. منع استجابة User A المتأخرة من تلويث جلسة User B.
+     8. إبطال العمليات المعلقة فور تسجيل الخروج.
+     9. منع تكرار أو إفساد البيانات عند توالي أحداث المصادقة المتزامنة.
+     10. دمج تقدم الزائر ورفعه حصرياً للحساب الموثق الصحيح.
 
 ---
 
-## 4. Verification & Testing
-- **Unit Tests (`src/utils/authStorage.test.ts`)**: 4/4 passing via `tsx --test`.
-- **Browser Automation Verification (`playwright-cli`)**:
-  - Tested unauthenticated visitor landing on home page: zero admin controls shown, clean hero and catalog displayed.
-  - Tested clicking "تصفح كتب ومشاريع حُكم كقارئ زائر": direct navigation to library without barriers.
-  - Tested opening "دخول / تسجيل": clean AuthModal with Google login, Email form, and Guest link.
-- **Build & Compilation**:
-  - `lint_applet`: 0 errors.
-  - `compile_applet`: Build succeeded with Vite.
+## 3. خطة التحقق والقيود
+
+- تشغيل حزمة الاختبارات الجديدة واجتياز كافة الاختبارات الـ 10 بالإضافة للاختبارات السابقة (66+ اختباراً).
+- فحص الأنواع الصارم: `npm run lint` (`tsc --noEmit`) بصفر أخطاء.
+- فحص البناء: `compile_applet`.
+- الالتزام التام بعدم تعديل `firestore.rules` أو الصلاحيات أو التصميم المرئي أو الاتصال بقاعدة بيانات الإنتاج.

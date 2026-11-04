@@ -141,13 +141,23 @@ async function bootstrap() {
           throw new Error('BOOTSTRAP_ALREADY_COMPLETED');
         }
 
-        // Check if pending under another user
+        // Check if pending under another user or mismatched manager
         if (data?.status === 'pending') {
           if (data.ownerUid !== ownerUser.uid) {
             throw new Error('BOOTSTRAP_RESERVED_BY_OTHER_USER');
           }
-          // Authorized retry / recovery for the SAME owner
-          console.log(`🔄 Authorized resumption: Prior pending reservation found for the SAME OWNER UID (${ownerUser.uid}). Continuing...`);
+
+          const existingManagerUid = data.managerUid || null;
+          const existingManagerEmail = data.managerEmail || null;
+          const currentManagerUid = managerUser?.uid || null;
+          const currentManagerEmail = managerUser?.email || null;
+
+          if (existingManagerUid !== currentManagerUid || existingManagerEmail !== currentManagerEmail) {
+            throw new Error('BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME');
+          }
+
+          // Authorized retry / recovery for the SAME owner and SAME manager
+          console.log(`🔄 Authorized resumption: Prior pending reservation verified for identical OWNER (${ownerUser.uid}) and MANAGER configuration. Continuing...`);
           transaction.update(bootstrapRef, {
             lastAttemptAt: new Date().toISOString(),
             attempts: (data.attempts || 1) + 1,
@@ -178,6 +188,10 @@ async function bootstrap() {
       console.error('❌ FATAL: Bootstrap is currently in PENDING state under a different owner UID. Takeover or replacement is prohibited.');
       process.exit(1);
     }
+    if (err.message === 'BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME') {
+      console.error('❌ FATAL: Bootstrap is currently PENDING with a different MANAGER configuration. Modifying owner or manager associated with an existing pending reservation is prohibited.');
+      process.exit(1);
+    }
     console.error('❌ FATAL: Failed to acquire Firestore reservation transaction:', err);
     process.exit(1);
   }
@@ -185,12 +199,16 @@ async function bootstrap() {
   console.log(`✅ Atomic reservation secured for OWNER UID: ${ownerUser.uid} (status: pending)`);
 
   // Step C: ASSIGN CUSTOM CLAIMS AFTER RESERVATION
-  // If claims assignment fails, the lock remains in pending state for this exact UID to retry.
+  // Preserve existing custom claims, updating only the role claim.
   console.log('🔑 Granting OWNER Custom Claim in Firebase Authentication...');
+  const ownerExistingClaims = (ownerUser.customClaims || {}) as Record<string, any>;
   try {
-    await auth.setCustomUserClaims(ownerUser.uid, { role: 'owner' });
+    await auth.setCustomUserClaims(ownerUser.uid, {
+      ...ownerExistingClaims,
+      role: 'owner',
+    });
     await auth.revokeRefreshTokens(ownerUser.uid);
-    console.log(`✅ OWNER claim ({ role: 'owner' }) granted successfully to UID=${ownerUser.uid}`);
+    console.log(`✅ OWNER claim ({ role: 'owner' }) merged and granted successfully to UID=${ownerUser.uid}`);
   } catch (claimErr: any) {
     console.error('❌ FATAL: Failed to assign OWNER claim in Firebase Authentication:', claimErr.message);
     console.error('⚠️ The bootstrap reservation remains in PENDING status for this exact OWNER UID.');
@@ -198,15 +216,22 @@ async function bootstrap() {
     process.exit(1);
   }
 
+  let managerClaimGranted = false;
+  const managerExistingClaims = managerUser ? ((managerUser.customClaims || {}) as Record<string, any>) : {};
+
   if (managerUser) {
     console.log('🔑 Granting ADMIN Custom Claim in Firebase Authentication...');
     try {
-      await auth.setCustomUserClaims(managerUser.uid, { role: 'admin' });
+      await auth.setCustomUserClaims(managerUser.uid, {
+        ...managerExistingClaims,
+        role: 'admin',
+      });
       await auth.revokeRefreshTokens(managerUser.uid);
-      console.log(`✅ ADMIN claim ({ role: 'admin' }) granted successfully to UID=${managerUser.uid}`);
+      managerClaimGranted = true;
+      console.log(`✅ ADMIN claim ({ role: 'admin' }) merged and granted successfully to UID=${managerUser.uid}`);
     } catch (claimErr: any) {
       console.error('❌ Failed to assign ADMIN claim in Firebase Authentication:', claimErr.message);
-      console.error('⚠️ Bootstrap NOT marked completed. Resolve issue and re-run.');
+      console.error('⚠️ Bootstrap NOT marked completed. Reservation remains safely pending for this exact configuration.');
       process.exit(1);
     }
   }
@@ -219,9 +244,12 @@ async function bootstrap() {
       const snap = await transaction.get(bootstrapRef);
       const data = snap.data();
 
-      // Guard check
+      // Guard checks
       if (data?.ownerUid !== ownerUser.uid) {
         throw new Error('OWNER_UID_MISMATCH_ON_COMPLETION');
+      }
+      if (managerUser && data?.managerUid !== managerUser.uid) {
+        throw new Error('MANAGER_UID_MISMATCH_ON_COMPLETION');
       }
 
       // 1. Mark completed and permanently locked
@@ -266,7 +294,23 @@ async function bootstrap() {
     });
   } catch (finalErr: any) {
     console.error('❌ FATAL: Failed to finalize bootstrap in Firestore:', finalErr);
-    console.error('⚠️ Custom Claims were set, but Firestore finalization failed. Re-run to finalize.');
+
+    // Rollback / Compensate manager claims if manager claims were granted but Firestore registration failed
+    if (managerUser && managerClaimGranted) {
+      console.log('🛡️ Initiating safe compensation: Rolling back uncommitted manager administrative claim...');
+      try {
+        await auth.setCustomUserClaims(managerUser.uid, {
+          ...managerExistingClaims,
+          role: managerExistingClaims.role || 'reader',
+        });
+        await auth.revokeRefreshTokens(managerUser.uid);
+        console.log('🛡️ Manager claim successfully rolled back to prevent uncommitted privilege retention.');
+      } catch (rollbackErr: any) {
+        console.error('⚠️ Warning: Failed to rollback manager claims automatically:', rollbackErr.message);
+      }
+    }
+
+    console.error('⚠️ Firestore finalization failed. The reservation remains pending. Re-run with the same parameters to complete.');
     process.exit(1);
   }
 

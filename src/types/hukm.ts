@@ -68,6 +68,19 @@ export interface ReadingProgress {
   lastChapterId?: string;
   completedChapterIds: string[];
   lastReadAt: string;
+  chapterScrollPositions?: Record<string, number>; // chapterId -> scrollPercent (0 to 100)
+}
+
+export interface ReadingProgressRecord {
+  id: string; // Matches isValidId in firestore.rules
+  userId: string;
+  bookId: string;
+  chapterId: string;
+  chapterIndex?: number;
+  scrollPercent?: number; // 0 to 100
+  lastReadAt: string;
+  completed?: boolean;
+  updatedAt?: any;
 }
 
 export interface CreatorAccount {

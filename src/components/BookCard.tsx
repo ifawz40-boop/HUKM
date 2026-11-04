@@ -7,6 +7,7 @@ import { getBookReadingProgress } from '../utils/readingTracker';
 interface BookCardProps {
   book: BookProject;
   categories: CategoryItem[];
+  currentUserId?: string;
   isOwner?: boolean;
   isBookmarked?: boolean;
   onRead: () => void;
@@ -18,6 +19,7 @@ interface BookCardProps {
 export const BookCard: React.FC<BookCardProps> = ({
   book,
   categories,
+  currentUserId,
   isOwner = false,
   isBookmarked = false,
   onRead,
@@ -27,10 +29,12 @@ export const BookCard: React.FC<BookCardProps> = ({
 }) => {
   const stats = calculateBookStats(book.chapters, book.viewsCount);
   const categoryLabel = getCategoryName(categories, book.category);
-  const readingProgress = getBookReadingProgress(book.id);
+  const readingProgress = getBookReadingProgress(book.id, currentUserId);
   const lastChapter = readingProgress.lastChapterId
     ? book.chapters.find((c) => c.id === readingProgress.lastChapterId)
     : null;
+  const completedCount = readingProgress.completedChapterIds?.length || 0;
+  const percentCompleted = book.chapters.length > 0 ? Math.round((completedCount / book.chapters.length) * 100) : 0;
 
   return (
     <div
@@ -114,6 +118,22 @@ export const BookCard: React.FC<BookCardProps> = ({
             {book.summary}
           </p>
         </div>
+
+        {/* Reading progress indicator if reader made progress */}
+        {completedCount > 0 && (
+          <div className="pt-2.5">
+            <div className="flex items-center justify-between text-[10px] text-[#94a3b8] mb-1">
+              <span className="text-emerald-400 font-bold">قرأت {percentCompleted}%</span>
+              <span>{completedCount} من {book.chapters.length} فصول</span>
+            </div>
+            <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                style={{ width: `${percentCompleted}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Card Actions Footer */}
