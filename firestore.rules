@@ -75,6 +75,54 @@ service cloud.firestore {
              data.status == 'draft';
     }
 
+    // Reader annotations are private user-owned excerpts and notes.
+    function isValidReaderAnnotationCreate(userId, bookId, chapterId, annotationId) {
+      let data = incoming();
+      return isSignedIn() &&
+             request.auth.uid == userId &&
+             isValidId(bookId) &&
+             isValidId(chapterId) &&
+             isValidId(annotationId) &&
+             data.keys().hasOnly(['id', 'userId', 'bookId', 'chapterId', 'paragraphIndex', 'startOffset', 'endOffset', 'selectedText', 'note', 'color', 'createdAt', 'updatedAt']) &&
+             data.keys().hasAll(['id', 'userId', 'bookId', 'chapterId', 'paragraphIndex', 'startOffset', 'endOffset', 'selectedText', 'note', 'color', 'createdAt', 'updatedAt']) &&
+             data.id == annotationId &&
+             data.userId == userId &&
+             data.bookId == bookId &&
+             data.chapterId == chapterId &&
+             data.paragraphIndex is int && data.paragraphIndex >= 0 &&
+             data.startOffset is int && data.startOffset >= 0 &&
+             data.endOffset is int && data.endOffset > data.startOffset &&
+             data.selectedText is string && data.selectedText.size() > 0 && data.selectedText.size() <= 2000 &&
+             data.note is string && data.note.size() <= 2000 &&
+             data.color in ['gold', 'green', 'blue', 'rose'] &&
+             data.createdAt is string && data.createdAt.size() <= 40 &&
+             data.updatedAt is string && data.updatedAt.size() <= 40;
+    }
+
+    function isValidReaderAnnotationUpdate(userId, bookId, chapterId, annotationId) {
+      let data = incoming();
+      let previous = existing();
+      let affected = data.diff(previous).affectedKeys();
+      return isSignedIn() &&
+             request.auth.uid == userId &&
+             previous.userId == userId &&
+             previous.bookId == bookId &&
+             previous.chapterId == chapterId &&
+             data.id == annotationId &&
+             data.userId == userId &&
+             data.bookId == bookId &&
+             data.chapterId == chapterId &&
+             data.paragraphIndex == previous.paragraphIndex &&
+             data.startOffset == previous.startOffset &&
+             data.endOffset == previous.endOffset &&
+             data.createdAt == previous.createdAt &&
+             affected.hasOnly(['selectedText', 'note', 'color', 'updatedAt']) &&
+             data.selectedText is string && data.selectedText.size() > 0 && data.selectedText.size() <= 2000 &&
+             data.note is string && data.note.size() <= 2000 &&
+             data.color in ['gold', 'green', 'blue', 'rose'] &&
+             data.updatedAt is string && data.updatedAt.size() <= 40;
+    }
+
     // 1. Users Collection
     // Strict field-level validation: Users may update only approved profile fields.
     // Users must NEVER set or change role, accountStatus, permissions, or administrative metadata.
@@ -110,6 +158,18 @@ service cloud.firestore {
         isOwner()
       );
       allow delete: if isOwner();
+
+      // Private reader notes are isolated by user, book, and chapter path.
+      match /readerAnnotations/{bookId}/chapters/{chapterId}/items/{annotationId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isValidReaderAnnotationCreate(userId, bookId, chapterId, annotationId);
+        allow update: if isValidReaderAnnotationUpdate(userId, bookId, chapterId, annotationId);
+        allow delete: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         resource.data.userId == userId &&
+                         resource.data.bookId == bookId &&
+                         resource.data.chapterId == chapterId;
+      }
     }
 
     // 2. Books Collection
