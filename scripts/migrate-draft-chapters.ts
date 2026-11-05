@@ -37,6 +37,34 @@ function formatDraftChapterId(bookId: string, chapterId: string): string {
   return raw;
 }
 
+const SAFE_DOCUMENT_LIMIT_BYTES = 800 * 1024;
+
+function createDraftPayload(bookId: string, draft: any, draftId: string) {
+  return {
+    id: draftId,
+    bookId,
+    chapterId: draft.id,
+    chapterNumber: draft.chapterNumber || 1,
+    title: draft.title || '',
+    subtitle: draft.subtitle || '',
+    content: Array.isArray(draft.content) ? draft.content : [],
+    notes: draft.notes || '',
+    references: Array.isArray(draft.references) ? draft.references : [],
+    status: 'draft',
+    wordCount: draft.wordCount || 0,
+    readingTimeMinutes: draft.readingTimeMinutes || 1,
+    viewsCount: draft.viewsCount || 0,
+    updatedAt: draft.updatedAt || new Date().toISOString(),
+  };
+}
+
+function assertSafeDocumentSize(payload: Record<string, unknown>, label: string) {
+  const bytes = Buffer.byteLength(JSON.stringify(payload), 'utf8');
+  if (bytes > SAFE_DOCUMENT_LIMIT_BYTES) {
+    throw new Error(`${label} is ${bytes} bytes, above the conservative Firestore document budget of ${SAFE_DOCUMENT_LIMIT_BYTES} bytes. No migration writes were performed.`);
+  }
+}
+
 async function runMigration() {
   const args = process.argv.slice(2);
   const isApply = args.includes('--apply');
@@ -105,6 +133,7 @@ async function runMigration() {
     for (const plan of migrationPlan) {
       for (const draft of plan.draftChapters) {
         const draftId = formatDraftChapterId(plan.bookId, draft.id);
+        assertSafeDocumentSize(createDraftPayload(plan.bookId, draft, draftId), `Draft "${draft.title || draft.id}"`);
         const ownerKey = JSON.stringify([plan.bookId, draft.id]);
         const previousOwner = plannedDraftOwners.get(draftId);
         if (previousOwner && previousOwner !== ownerKey) {
@@ -112,6 +141,11 @@ async function runMigration() {
         }
         plannedDraftOwners.set(draftId, ownerKey);
       }
+    }
+
+    // Validate the public parent payload size before any migration write as well.
+    for (const plan of migrationPlan) {
+      assertSafeDocumentSize({ chapters: plan.readyChapters }, `Ready chapters for book "${plan.bookTitle}"`);
     }
 
     // In apply mode, verify any pre-existing destination belongs to the exact same
@@ -184,22 +218,7 @@ async function runMigration() {
         for (const draft of chunk) {
           const draftId = formatDraftChapterId(plan.bookId, draft.id);
           const draftRef = db.collection('bookDraftChapters').doc(draftId);
-          const draftPayload = {
-            id: draftId,
-            bookId: plan.bookId,
-            chapterId: draft.id,
-            chapterNumber: draft.chapterNumber || 1,
-            title: draft.title || '',
-            subtitle: draft.subtitle || '',
-            content: Array.isArray(draft.content) ? draft.content : [],
-            notes: draft.notes || '',
-            references: Array.isArray(draft.references) ? draft.references : [],
-            status: 'draft',
-            wordCount: draft.wordCount || 0,
-            readingTimeMinutes: draft.readingTimeMinutes || 1,
-            viewsCount: draft.viewsCount || 0,
-            updatedAt: draft.updatedAt || new Date().toISOString(),
-          };
+          const draftPayload = createDraftPayload(plan.bookId, draft, draftId);
           batch.set(draftRef, draftPayload, { merge: true });
         }
         await batch.commit();
