@@ -14,3 +14,18 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+## Bibliogon — workflow reference only (no source code copied)
+
+- Repository: https://github.com/astrapi69/bibliogon
+- License: MIT
+- Reviewed for: book-authoring workflow, research organization, and source/quotation management.
+- HUKM implementation: `src/components/BookResearchPanel.tsx` is an independent implementation using HUKM's existing `BookProject` and Firestore persistence model. No Bibliogon source files or assets were copied.
+
+## prose-reader — evaluated, not bundled
+
+- Repository: https://github.com/mbret/prose-reader
+- License: MIT
+- Reviewed for: EPUB/PDF reading engine and React reader architecture.
+- Not bundled in this phase: HUKM currently stores authored chapters as Firestore text content and has no secure ebook-file storage/streaming path. Integrating a binary ebook reader before that storage design would create an incomplete feature.
