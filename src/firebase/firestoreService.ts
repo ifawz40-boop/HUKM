@@ -836,7 +836,7 @@ export async function deleteReaderAnnotationFromFirestore(
 
 
 /**
- * Fetch a bounded, user-scoped notebook for the profile's cross-book notes view.
+ * Fetch the signed-in user's complete notebook for the profile's cross-book notes view.
  * The collection-group query is constrained by userId and avoids a composite index.
  */
 export async function fetchAllReaderAnnotationsFromFirestore(
