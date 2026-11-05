@@ -100,20 +100,6 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     ? undefined
     : currentBook?.chapters.find((c) => c.id === selectedChapterId) || currentBook?.chapters[0];
 
-  // Reset editor state when the selected book changes; never carry another book's chapter text over.
-  const previousBookIdRef = useRef(currentBook?.id);
-  useEffect(() => {
-    if (previousBookIdRef.current === currentBook?.id) return;
-    previousBookIdRef.current = currentBook?.id;
-    setIsCreatingChapter(false);
-    const firstChapter = currentBook?.chapters[0];
-    setSelectedChapterId(firstChapter?.id || '');
-    setChapterNumber(firstChapter?.chapterNumber || 1);
-    setChapterTitle(firstChapter?.title || '');
-    setChapterContent(firstChapter ? firstChapter.content.join('\\n\\n') : '');
-    setChapterStatus(firstChapter?.status || 'draft');
-  }, [currentBook?.id]);
-
   const [chapterNumber, setChapterNumber] = useState<number>(currentChapter?.chapterNumber || 1);
   const [chapterTitle, setChapterTitle] = useState(currentChapter?.title || '');
   const [chapterContent, setChapterContent] = useState(
@@ -130,6 +116,20 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Reset editor state when the selected book changes; never carry another book's chapter text over.
+  const previousBookIdRef = useRef(currentBook?.id);
+  useEffect(() => {
+    if (previousBookIdRef.current === currentBook?.id) return;
+    previousBookIdRef.current = currentBook?.id;
+    setIsCreatingChapter(false);
+    const firstChapter = currentBook?.chapters[0];
+    setSelectedChapterId(firstChapter?.id || '');
+    setChapterNumber(firstChapter?.chapterNumber || 1);
+    setChapterTitle(firstChapter?.title || '');
+    setChapterContent(firstChapter ? firstChapter.content.join('\\n\\n') : '');
+    setChapterStatus(firstChapter?.status || 'draft');
+  }, [currentBook?.id]);
 
   const showNotification = (msg: string, isError: boolean = false) => {
     if (isError) {
@@ -191,6 +191,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     const readingTime = calculateReadingTimeMinutes(words);
 
     let updatedChapters: BookChapter[];
+    let createdChapterId: string | null = null;
 
     if (currentChapter) {
       // Update existing chapter (no fake placeholder text)
@@ -211,7 +212,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     } else {
       // Create new chapter
       const newCh: BookChapter = {
-        id: `ch-${Date.now()}`,
+        id: `ch-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}`,
         bookId: currentBook.id,
         chapterNumber: chNum,
         title: chapterTitle.trim(),
@@ -223,8 +224,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         updatedAt: new Date().toISOString(),
       };
       updatedChapters = [...currentBook.chapters, newCh];
-      setIsCreatingChapter(false);
-      setSelectedChapterId(newCh.id);
+      createdChapterId = newCh.id;
     }
 
     // Sort chapters by chapterNumber ascending
@@ -242,6 +242,10 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         showNotification('فشل حفظ الفصل في السحابة. تم الاحتفاظ بتعديلاتك في المحرر.', true);
         return;
       }
+      if (createdChapterId) {
+        setIsCreatingChapter(false);
+        setSelectedChapterId(createdChapterId);
+      }
       showNotification('تم حفظ وتحديث الفصل بنجاح ومزامنته سحابياً ✓');
     } catch (err: any) {
       showNotification('حدث خطأ أثناء حفظ الفصل. تم الاحتفاظ بالبيانات محلياً.', true);
@@ -251,7 +255,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   // Add new chapter trigger: defaults strictly to 'draft' and clean empty content
   const handleCreateNewChapter = () => {
     if (!currentBook) return;
-    const nextNumber = currentBook.chapters.length + 1;
+    const nextNumber = Math.max(0, ...currentBook.chapters.map((chapter) => chapter.chapterNumber || 0)) + 1;
     setIsCreatingChapter(true);
     setSelectedChapterId('');
     setChapterNumber(nextNumber);
