@@ -378,9 +378,11 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(bootstrapScriptContent, /existingManagerEmail !== currentManagerEmail/);
     });
 
-    it('must initiate safe rollback compensation if manager claim was granted but finalization fails', () => {
-      assert.match(bootstrapScriptContent, /Rolling back uncommitted manager administrative claim/);
-      assert.match(bootstrapScriptContent, /role:\s*managerExistingClaims\.role\s*\|\|\s*'reader'/);
+    it('must restore pre-bootstrap owner and manager claims if assignment or finalization fails', () => {
+      assert.match(bootstrapScriptContent, /restoreCustomClaims\(managerUser\.uid, managerExistingClaims, 'MANAGER'\)/);
+      assert.match(bootstrapScriptContent, /restoreCustomClaims\(ownerUser\.uid, ownerExistingClaims, 'OWNER'\)/);
+      assert.match(bootstrapScriptContent, /managerClaimGranted = true;[\s\S]*?await auth\.revokeRefreshTokens\(managerUser\.uid\)/);
+      assert.match(bootstrapScriptContent, /ownerClaimGranted = true;[\s\S]*?await auth\.revokeRefreshTokens\(ownerUser\.uid\)/);
     });
 
     function evaluatePendingResume(
