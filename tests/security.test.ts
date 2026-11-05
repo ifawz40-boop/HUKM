@@ -309,7 +309,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(rulesContent, /data\.paragraphIndex == previous\.paragraphIndex/);
       assert.match(rulesContent, /data\.startOffset == previous\.startOffset/);
       assert.match(rulesContent, /data\.endOffset == previous\.endOffset/);
-      assert.match(rulesContent, /affected\.hasOnly\(\['selectedText', 'note', 'color', 'updatedAt'\]\)/);
+      assert.match(rulesContent, /affected\.hasOnly\(\['note', 'color', 'updatedAt'\]\)/);
     });
   });
 
