@@ -51,7 +51,6 @@ import {
 import {
   INITIAL_BOOKS,
   INITIAL_CATEGORIES,
-  DEFAULT_CREATOR,
   HUKM_LOGO,
   HUKM_MOTTO,
   HUKM_DESCRIPTION,
@@ -465,64 +464,6 @@ export default function App() {
     }
   };
 
-  const handleCreateSampleNovel = () => {
-    const now = Date.now();
-    const sampleId = `novel-${now}`;
-    const sample: BookProject = {
-      id: sampleId,
-      title: 'لورد الحقيقة: سقوط الأقنعة',
-      subtitle: 'تحقيق استقصائي في خفايا الأرشيف التاريخي والقرارات المصيرية',
-      author: 'Dr/ Islam Mohamed',
-      category: categories[0]?.id || 'investigations',
-      coverImage: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=800&q=80',
-      status: 'ongoing',
-      summary: 'في قلب القرن الثامن عشر، قادت وثيقة مفقودة في أرشيفات الشرق إلى تفكيك أعظم الأساطير السياسية والعلمية. تحقيق استقصائي روائي يبحث، يفكك، ويفهم الحقيقة من جذورها الأولى.',
-      rating: 5.0,
-      viewsCount: 320,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      chapters: [
-        {
-          id: `ch-${now}-1`,
-          bookId: sampleId,
-          chapterNumber: 1,
-          title: 'الفصل الأول: العثور على الأرشيف المفقود',
-          subtitle: 'حيث تبدأ كل قصة لا يريدونك أن تعرفها',
-          content: [
-            'لم تكن القضية تتعلق بمجرد خلاف على أوراق تاريخية صفراء، بل كانت معركة على الوعي برمته. حين دخل الباحث قبو المكتبة الوطنية في مساء يوم شتوي ممطر، لم يكن يدرك أن ما بين يديه سيعيد كتابة نصف قرن من المسلمات.',
-            '«وعشان الموضوع مش زي ما إنت فاكر… تعالى نعرف التفاصيل التي أخفتها السجلات الرسمية.»',
-            'كانت المخطوطة مؤرخة بعام 1792، وتحمل توقيعاً غامضاً كاد يمحوه الزمن. لكن ما جاء بين السطور لم يكن يقبل الشك: القرارات الكبرى التي غيّرت مصير المنطقة لم تُتخذ في الغرف المضيئة كما تروي كتب المناهج، بل في أروقة مغلقة وراء كواليس الصفقات التجارية السرية.',
-            'أخذ الباحث نفساً عميقاً، وبدأ بتدوين الملاحظات كلمة بكلمة، استعداداً لمواجهة العالم بالحقيقة التي طال انتظارها.',
-          ],
-          status: 'ready',
-          wordCount: 135,
-          readingTimeMinutes: 1,
-          viewsCount: 210,
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: `ch-${now}-2`,
-          bookId: sampleId,
-          chapterNumber: 2,
-          title: 'الفصل الثاني: فك الشفرة والمواجهة الأولى',
-          subtitle: 'عندما تصطدم الوثيقة بالرواية الشائعة',
-          content: [
-            'في الصباح التالي، كانت الشفرات الأولى للوثيقة قد بدأت تتضح. لم تكن مجرد نصوص تاريخية متباعدة، بل كانت خطة عمل متكاملة تسلسلت على مدى ثلاثين عاماً.',
-            '«نبحث، نفكك، ونفهم» - كانت هذه هي القاعدة الذهبية التي سار عليها التحقيق. فكل سطر كُتب، كان يحيل إلى وثيقة مقابلة في أرشيفات أخرى مبعثرة بين العواصم.',
-            'وحين طُرحت أولى النتائج على طاولة النقاش، كان الصمت هو سيد الموقف. لم يستطع أحد أن ينكر دقة المراجع وقوة الأدلة المستخرجة.',
-          ],
-          status: 'ready',
-          wordCount: 105,
-          readingTimeMinutes: 1,
-          viewsCount: 110,
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-    };
-
-    handleCreateBook(sample);
-  };
-
   // Views increment: when a real reader views a chapter, increment from the custom baseline!
   const handleChapterViewed = (chapterId: string) => {
     if (!currentBook) return;
@@ -858,14 +799,6 @@ export default function App() {
                           <span>+ فتح استوديو التأليف والنشر</span>
                         </button>
 
-                        <button
-                          onClick={handleCreateSampleNovel}
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#0e1935] border border-[#c59b27]/50 px-5 py-3 text-xs sm:text-sm font-bold text-[#f0cb69] hover:bg-[#15254d] transition-all cursor-pointer"
-                          title="إضافة رواية استقصائية تجريبية بفصلين للمعاينة والتجربة الفورية"
-                        >
-                          <Sparkles className="h-4 w-4 text-[#d4af37]" />
-                          <span>⚡ إضافة رواية تجريبية للمعاينة</span>
-                        </button>
                       </>
                     ) : (
                       <button
