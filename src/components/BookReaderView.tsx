@@ -887,6 +887,31 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             </button>
 
             <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleCaptureSelection}
+              className="p-2 rounded-xl transition-colors hover:bg-black/10"
+              title="احفظ النص المحدد كمقتطف أو ملاحظة"
+              aria-label="حفظ النص المحدد"
+            >
+              <Highlighter className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAnnotationsOpen((open) => !open)}
+              className={`relative p-2 rounded-xl transition-colors hover:bg-black/10 ${isAnnotationsOpen ? 'bg-[#c59b27]/20 text-[#d4af37]' : ''}`}
+              title="مقتطفاتي وملاحظاتي"
+              aria-label="عرض المقتطفات والملاحظات"
+            >
+              <StickyNote className="h-4 w-4" />
+              {readerAnnotations.length > 0 && (
+                <span className="absolute -top-1 -left-1 min-w-4 h-4 rounded-full bg-[#c59b27] px-1 text-[9px] font-black text-[#070d1e] flex items-center justify-center">
+                  {readerAnnotations.length}
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={handleShare}
               className="p-2 rounded-xl transition-colors hover:bg-black/10"
               title="مشاركة رابط الفصل"
@@ -1169,10 +1194,11 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             currentChapter.content.map((paragraph, idx) => (
               <p
                 id={`reader-paragraph-${idx}`}
+                data-paragraph-index={idx}
                 key={idx}
                 className={`text-justify tracking-wide rounded-lg transition-colors ${activeSpeechParagraph === idx ? 'bg-[#c59b27]/10 ring-1 ring-[#c59b27]/30 px-3 py-2' : ''}`}
               >
-                {renderSearchHighlights(paragraph, chapterSearchQuery)}
+                {renderAnnotatedParagraph(paragraph, idx, readerAnnotations, chapterSearchQuery)}
               </p>
             ))
           ) : (
@@ -1181,6 +1207,120 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             </div>
           )}
         </article>
+
+        {isAnnotationsOpen && (
+          <section className={`rounded-2xl border p-4 sm:p-5 space-y-4 ${themeClasses.cardBg}`} aria-label="المقتطفات والملاحظات">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-black">مقتطفاتي وملاحظاتي</h3>
+                <p className="mt-1 text-[11px] opacity-65">تُحفظ مواضع النصوص داخل الفقرة نفسها، وتُزامن ملاحظات الحساب مع السحابة.</p>
+              </div>
+              <button type="button" onClick={() => setIsAnnotationsOpen(false)} className="rounded-lg border border-current/15 p-2" aria-label="إغلاق المقتطفات">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {isLoadingAnnotations ? (
+              <p className="py-4 text-center text-xs opacity-60">جاري تحميل المقتطفات...</p>
+            ) : readerAnnotations.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-current/20 p-6 text-center">
+                <Highlighter className="mx-auto h-6 w-6 opacity-40" />
+                <p className="mt-2 text-xs font-bold">لا توجد مقتطفات محفوظة في هذا الفصل بعد.</p>
+                <p className="mt-1 text-[11px] opacity-60">حدد جملة من النص ثم اضغط أيقونة التمييز أعلى القارئ.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {readerAnnotations.map((annotation) => (
+                  <article key={annotation.id} className="rounded-xl border border-current/10 bg-black/5 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <blockquote className={`border-r-2 pr-3 text-sm font-bold leading-relaxed ${annotationMarkClasses[annotation.color] || annotationMarkClasses.gold}`}>
+                        «{annotation.selectedText}»
+                      </blockquote>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAnnotation(annotation)}
+                        className="shrink-0 rounded-lg border border-rose-500/25 p-2 text-rose-500 hover:bg-rose-500/10"
+                        aria-label="حذف المقتطف"
+                        title="حذف المقتطف"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {annotation.note && <p className="text-xs leading-relaxed whitespace-pre-wrap opacity-85">{annotation.note}</p>}
+                    <div className="flex items-center justify-between gap-2 text-[10px] opacity-55">
+                      <span>الفقرة {annotation.paragraphIndex + 1}</span>
+                      <span>
+                        {annotation.syncStatus === 'pending'
+                          ? 'بانتظار المزامنة'
+                          : annotation.syncStatus === 'synced'
+                            ? 'متزامن مع الحساب'
+                            : 'محفوظ على هذا الجهاز'}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {isAnnotationEditorOpen && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="presentation">
+            <div role="dialog" aria-modal="true" aria-labelledby="reader-annotation-title" className="w-full max-w-xl rounded-2xl border border-[#c59b27]/35 bg-[#0a1226] p-5 sm:p-6 text-white shadow-2xl space-y-4" dir="rtl">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 id="reader-annotation-title" className="text-base font-black text-[#f0cb69]">حفظ مقتطف من الكتاب</h3>
+                  <p className="mt-1 text-[11px] text-[#94a3b8]">سيُحفظ النص مع موضعه الدقيق داخل الفقرة.</p>
+                </div>
+                <button type="button" onClick={() => setIsAnnotationEditorOpen(false)} className="rounded-lg p-2 text-[#94a3b8] hover:bg-white/5" aria-label="إغلاق">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <blockquote className={`rounded-xl border-r-4 p-3 text-sm leading-relaxed ${annotationMarkClasses[annotationColor]}`}>
+                {selectedTextDraft}
+              </blockquote>
+
+              <label className="block space-y-2">
+                <span className="text-xs font-bold text-[#cbd5e1]">ملاحظتك (اختياري)</span>
+                <textarea
+                  value={annotationNoteDraft}
+                  onChange={(e) => setAnnotationNoteDraft(e.target.value.slice(0, 2000))}
+                  maxLength={2000}
+                  rows={4}
+                  placeholder="اكتب تفسيراً أو فكرة أو سؤالاً تريد الرجوع إليه..."
+                  className="w-full resize-y rounded-xl border border-white/15 bg-[#050a16] px-3 py-2.5 text-xs leading-relaxed text-white outline-none focus:border-[#c59b27]"
+                />
+                <span className="block text-left text-[10px] text-[#64748b]">{annotationNoteDraft.length}/2000</span>
+              </label>
+
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-[#cbd5e1]">لون التمييز</span>
+                <div className="flex flex-wrap gap-2">
+                  {(['gold', 'green', 'blue', 'rose'] as const).map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setAnnotationColor(color)}
+                      className={`rounded-lg border px-3 py-1.5 text-[11px] font-bold ${annotationMarkClasses[color]} ${annotationColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0a1226]' : 'opacity-70'}`}
+                    >
+                      {color === 'gold' ? 'ذهبي' : color === 'green' ? 'أخضر' : color === 'blue' ? 'أزرق' : 'وردي'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setIsAnnotationEditorOpen(false)} className="rounded-xl border border-white/15 px-4 py-2 text-xs font-bold text-[#cbd5e1]">
+                  إلغاء
+                </button>
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={handleSaveAnnotation} disabled={isSavingAnnotation || !selectedTextDraft} className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-4 py-2 text-xs font-black text-[#070d1e] disabled:opacity-50">
+                  {isSavingAnnotation ? 'جاري الحفظ...' : currentUser?.id ? 'حفظ ومزامنة' : 'حفظ على الجهاز'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bottom Chapter Completion & Status */}
         <div className={`rounded-2xl p-5 border ${themeClasses.cardBg} flex flex-col sm:flex-row items-center justify-between gap-4 mt-12`}>
