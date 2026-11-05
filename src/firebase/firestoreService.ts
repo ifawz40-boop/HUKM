@@ -10,7 +10,6 @@ import {
   onSnapshot,
   query,
   where,
-  limit,
   serverTimestamp,
   writeBatch,
 } from 'firebase/firestore';
@@ -739,7 +738,7 @@ export async function fetchReaderAnnotationsFromFirestore(
     !isSafeAnnotationSegment(chapterId)
   ) return null;
 
-  const path = `users/${userId}/readerAnnotations/${bookId}/chapters/${chapterId}/items`;
+  const path = `users/${userId}/readerAnnotations/${bookId}/chapters/${chapterId}/readerAnnotationEntries`;
   try {
     const snapshot = await getDocs(getReaderAnnotationCollection(userId, bookId, chapterId));
     return snapshot.docs.map((item) => ({
@@ -776,7 +775,7 @@ export async function saveReaderAnnotationToFirestore(
     !['gold', 'green', 'blue', 'rose'].includes(annotation.color)
   ) return false;
 
-  const path = `users/${userId}/readerAnnotations/${annotation.bookId}/chapters/${annotation.chapterId}/items/${annotation.id}`;
+  const path = `users/${userId}/readerAnnotations/${annotation.bookId}/chapters/${annotation.chapterId}/readerAnnotationEntries/${annotation.id}`;
   try {
     const annotationRef = doc(
       db,
@@ -848,8 +847,7 @@ export async function fetchAllReaderAnnotationsFromFirestore(
   try {
     const annotationsQuery = query(
       collectionGroup(db, 'readerAnnotationEntries'),
-      where('userId', '==', userId),
-      limit(300)
+      where('userId', '==', userId)
     );
     const snapshot = await getDocs(annotationsQuery);
     return snapshot.docs
