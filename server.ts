@@ -36,6 +36,12 @@ function getHost(): string {
 async function startServer() {
   const app = express();
   app.disable('x-powered-by');
+
+// Vercel overwrites X-Forwarded-For at its edge with the public client IP.
+// Trust only the single Vercel proxy hop so rate limits are isolated per visitor.
+if (process.env.VERCEL === '1') {
+  app.set('trust proxy', 1);
+}
   const PORT = getPort();
   const HOST = getHost();
   const isProd = process.env.NODE_ENV === 'production';
