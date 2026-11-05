@@ -196,9 +196,10 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     return snapshot;
   };
 
-  const handleSelectBookSafely = (bookId: string) => {
-    if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
+  const handleSelectBookSafely = (bookId: string): boolean => {
+    if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return false;
     onSelectBook(bookId);
+    return true;
   };
 
   const handlePreviewBookSafely = (bookId: string, chapterId?: string) => {
@@ -909,8 +910,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => {
-                              handleSelectBookSafely(book.id);
-                              setActiveTab('editor');
+                              if (handleSelectBookSafely(book.id)) setActiveTab('editor');
                             }}
                             className="flex items-center gap-1 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-3 py-1.5 text-xs font-bold text-[#070d1e] shadow hover:scale-102 transition-all cursor-pointer"
                             title="إدارة وكتابة فصول هذا العمل"
