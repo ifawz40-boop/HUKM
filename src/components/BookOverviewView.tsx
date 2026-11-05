@@ -87,6 +87,12 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
 
   const stats = calculateBookStats(book.chapters, book.viewsCount);
   const categoryLabel = getCategoryName(categories, book.category);
+  const publicSources = Array.isArray(book.sources)
+    ? book.sources.filter((item) => isResearchRecord(item) && item.managedBy === 'hukm-research-panel' && item.visibility === 'public')
+    : [];
+  const publicQuotes = Array.isArray(book.quotes)
+    ? book.quotes.filter((item) => isResearchRecord(item) && item.managedBy === 'hukm-research-panel' && item.visibility === 'public')
+    : [];
   const authorName = book.author || 'حُكم | HUKM MEDIA';
 
   const completedCount = progress.completedChapterIds.length;
@@ -348,18 +354,18 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
         </section>
 
         {/* Published bibliography and quotations */}
-        {((Array.isArray(book.sources) && book.sources.length > 0) || (Array.isArray(book.quotes) && book.quotes.length > 0)) && (
+        {(publicSources.length > 0 || publicQuotes.length > 0) && (
           <section className="rounded-2xl border border-[#c59b27]/20 bg-[#0a1329] p-6 sm:p-8 space-y-6">
             <h2 className="flex items-center gap-2 text-lg font-black text-white font-cairo">
               <FileText className="h-5 w-5 text-[#d4af37]" />
               المراجع والاقتباسات الموثقة
             </h2>
 
-            {Array.isArray(book.sources) && book.sources.length > 0 && (
+            {publicSources.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-bold text-[#f0cb69]">المصادر</h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {book.sources.map((item, index) => {
+                  {publicSources.map((item, index) => {
                     const record = isResearchRecord(item) ? item : {};
                     const title = researchText(record.title) || researchText(record.name) || (typeof item === 'string' ? item : `مرجع ${index + 1}`);
                     const author = researchText(record.author);
@@ -381,15 +387,15 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
               </div>
             )}
 
-            {Array.isArray(book.quotes) && book.quotes.length > 0 && (
+            {publicQuotes.length > 0 && (
               <div className="space-y-3">
                 <h3 className="flex items-center gap-2 text-sm font-bold text-[#f0cb69]"><Quote className="h-4 w-4" />اقتباسات مختارة</h3>
                 <div className="space-y-3">
-                  {book.quotes.map((item, index) => {
+                  {publicQuotes.map((item, index) => {
                     const record = isResearchRecord(item) ? item : {};
                     const quote = researchText(record.text) || researchText(record.quote) || (typeof item === 'string' ? item : 'اقتباس موثق');
                     const sourceId = researchText(record.sourceId);
-                    const source = Array.isArray(book.sources) ? book.sources.find((sourceItem) => isResearchRecord(sourceItem) && sourceItem.id === sourceId) : undefined;
+                    const source = publicSources.find((sourceItem) => isResearchRecord(sourceItem) && sourceItem.id === sourceId);
                     const sourceName = source && isResearchRecord(source) ? researchText(source.title) || researchText(source.name) : '';
                     const page = researchText(record.page);
                     const note = researchText(record.note);
