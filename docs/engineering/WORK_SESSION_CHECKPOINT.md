@@ -69,3 +69,33 @@
 - Do not expose secrets or copy environment values into reports.
 - Do not perform production data migrations or manual deployments without explicit authorization.
 - Keep checkpoint claims evidence-based and distinguish completed, pending, and blocked work.
+
+## Owner provisioning hardening — 2026-11-05
+
+### Completed on main
+- Added `src/server/ownerBootstrapGuards.ts` and `tests/ownerBootstrapGuards.test.ts` with fail-closed checks for unknown/completed locks, UID takeover, pre-existing founder/admin records, and safe same-UID pending recovery.
+- Reworked `scripts/bootstrap-owner.ts` as a local-only, project/database-pinned first-owner bootstrap. It requires an explicit confirmation value, checks verified Firebase Auth identity, refuses unknown/existing admin state, reserves the bootstrap lock transactionally, preserves unrelated claims, and rolls back ambiguous claim/finalization failures.
+- Added `owner:bootstrap` and included the new guard tests in the full test script in `package.json`.
+- Added `docs/security/OWNER_BOOTSTRAP_RUNBOOK.md` with Windows PowerShell setup, credential handling, expected verification, and recovery guidance.
+- Added owner-only `POST /api/auth/grant-owner` with verified target email, no self-promotion, no overwriting an existing admin record, non-founder owner records, claim assignment, token revocation, and rollback handling.
+- Added `grantOwnerRole` client action and an owner-only management-panel form. Additional owners can be revoked by an owner; the founder record remains protected.
+- The initial public HTTP bootstrap endpoint remains disabled. No email-based or client-side role assignment was introduced.
+
+### Latest owner-provisioning code commits
+- Guard helper: `5c28e925941b96cf5efe194ece09c1ba2b7b1948`
+- Initial-owner script hardening: `83264091bd538f1f4b49cc3e253a4da28f0f16a7`
+- Owner grant API: `6c937ceaf71d6e9253eb6fbf6ca5e85d5eaf6426`
+- Owner management UI: `90c313e9bd1dd206634633f0a8559ba35daafdff`
+- Runbook: `7d07230faba7aee103629f4267c350d450b99f05`
+- Full test inclusion and CLI script: `84080a14ce8d277bc9600650e85dd5ff80420d0b`
+- Integration guard tests: `f5f9ea51d9df4817131f1d3745ea9fa47c8c80bc`
+- Latest rollback hardening: `cae7633f4493b755e5c580b1279c0800fbd6a906` and `36335b01ace8ea5980f415b602fef92691a78989`
+
+### Verification state and next resume marker
+- Source files and the new test/runbook files were committed directly to `main`; latest code commit at checkpoint preparation: `36335b01ace8ea5980f415b602fef92691a78989`.
+- A combined GitHub commit-status query returned a Vercel status of `failure` pointing to the Vercel build-rate-limit/upgrade page. This is not evidence of a successful Vercel deployment.
+- GitHub Actions test/typecheck/build result for the owner-provisioning batch has not yet been independently confirmed. Do not claim the tests or production build passed until the Actions run is inspected.
+- Firebase production bootstrap has NOT been executed. No Firebase Auth custom claim or Firestore admin/bootstrap document has been changed by this work.
+- Google AI Studio synchronization has not been independently confirmed.
+
+**RESUME HERE:** First inspect latest `main` and the CI run for the latest owner-provisioning commit. Fix any failing tests/type errors and save the fix plus an updated checkpoint to `main`. Then provide the operator with the local runbook steps; wait for the non-secret command result and verify that Firebase Auth `role: owner`, `admins/{uid}` (`isFounder: true`), and `_system/bootstrap.status=completed` agree. Never ask for or accept the service-account key in chat.
