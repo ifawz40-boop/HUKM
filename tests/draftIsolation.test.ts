@@ -98,6 +98,10 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
     it('rejects unsafe characters instead of normalizing distinct inputs to one ID', () => {
       assert.throws(() => formatDraftChapterId('book with spaces', 'ch-1'), /Refusing lossy ID normalization/);
     });
+    it('rejects empty book or chapter identifiers', () => {
+      assert.throws(() => formatDraftChapterId('', 'ch-1'), /must both be non-empty/);
+      assert.throws(() => formatDraftChapterId('book-1', ''), /must both be non-empty/);
+    });
 
     it('rejects overlong IDs instead of truncating distinguishing suffixes', () => {
       assert.throws(() => formatDraftChapterId('a'.repeat(100), 'b'.repeat(100)), /Refusing lossy truncation/);
