@@ -599,6 +599,11 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
   describe('Test 15: emailApi active admin verification, batch chunking & accurate logging', () => {
     const emailApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
 
+    it('must not claim the email provider is ready based only on a non-empty API key', () => {
+      assert.ok(emailApiContent.includes('لم يتم التحقق من صلاحيته أو اعتماد نطاق المرسل'));
+      assert.equal(emailApiContent.includes('مهيأ وجاهز للإرسال الفعلي'), false);
+    });
+
     it('must verify active admin document in Firestore before allowing email dispatch', () => {
       assert.match(emailApiContent, /adminDb\.collection\('admins'\)\.doc\(user\.uid\)\.get\(\)/);
       assert.match(emailApiContent, /adminRole\s*!==\s*'owner'\s*&&\s*adminRole\s*!==\s*'admin'/);

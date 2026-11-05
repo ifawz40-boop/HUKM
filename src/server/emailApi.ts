@@ -24,7 +24,7 @@ emailApiRouter.get('/status', authenticateToken, async (_req: Request, res: Resp
     configured: isConfigured,
     provider: isConfigured ? 'Resend API' : null,
     message: isConfigured
-      ? 'مزود البريد الإلكتروني مهيأ وجاهز للإرسال الفعلي.'
+      ? 'تم ضبط مفتاح Resend على الخادم. لم يتم التحقق من صلاحيته أو اعتماد نطاق المرسل حتى تنفيذ إرسال فعلي.'
       : 'مزود البريد غير مهيأ. يجب ضبط متغير البيئة RESEND_API_KEY على الخادم لتفعيل الإرسال الحقيقي.',
   });
 });
