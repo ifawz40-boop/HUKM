@@ -84,7 +84,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const [isNovelModalOpen, setIsNovelModalOpen] = useState(false);
   const [editingNovelId, setEditingNovelId] = useState<string | null>(null);
   const [novelTitle, setNovelTitle] = useState('');
-  const [novelAuthor, setNovelAuthor] = useState('Dr/ Islam Mohamed');
+  const [novelAuthor, setNovelAuthor] = useState('');
   const [novelCategory, setNovelCategory] = useState(categories[0]?.id || 'investigations');
   const [novelStatus, setNovelStatus] = useState<'ongoing' | 'completed'>('ongoing');
   const [novelCover, setNovelCover] = useState(PRESET_COVERS[0].url);
@@ -279,7 +279,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const handleOpenCreateNovel = () => {
     setEditingNovelId(null);
     setNovelTitle('');
-    setNovelAuthor('Dr/ Islam Mohamed');
+    setNovelAuthor('');
     setNovelCategory(categories[0]?.id || 'investigations');
     setNovelStatus('ongoing');
     setNovelCover(PRESET_COVERS[0].url);
@@ -291,7 +291,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const handleOpenEditNovel = (book: BookProject) => {
     setEditingNovelId(book.id);
     setNovelTitle(book.title);
-    setNovelAuthor(book.author || 'Dr/ Islam Mohamed');
+    setNovelAuthor(book.author || '');
     setNovelCategory(book.category);
     setNovelStatus((book.status as 'ongoing' | 'completed') || 'ongoing');
     setNovelCover(book.coverImage || PRESET_COVERS[0].url);
@@ -337,9 +337,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         category: novelCategory,
         status: novelStatus,
         coverImage: novelCover.trim() || PRESET_COVERS[0].url,
-        summary: novelSummary.trim() || 'نبذة عن العمل قيد التحديث...',
+        summary: novelSummary.trim(),
         viewsCount: 0,
-        rating: 5.0,
         chapters: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -524,7 +523,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                   لا توجد أعمال منشورة حتى الآن
                 </h3>
                 <p className="text-xs text-[#94a3b8] max-w-md mx-auto">
-                  المنصة جاهزة لاستقبال ونشر أول رواية أو كتاب استقصائي من قِبل Dr/ Islam Mohamed وهيئة التحرير.
+                  المنصة جاهزة لاستقبال أول كتاب أو مشروع معرفي من حُكم.
                 </p>
                 <button
                   onClick={handleOpenCreateNovel}
@@ -577,7 +576,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                             {book.title}
                           </h3>
                           <p className="text-[11px] text-[#d4af37] font-medium">
-                            المؤلف: {book.author || 'Dr/ Islam Mohamed'}
+                            المؤلف: {book.author || 'حُكم | HUKM MEDIA'}
                           </p>
                           <div className="flex items-center gap-3 text-[11px] text-[#94a3b8] pt-1">
                             <span className="flex items-center gap-1">
@@ -988,7 +987,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                     required
                     value={novelAuthor}
                     onChange={(e) => setNovelAuthor(e.target.value)}
-                    placeholder="Dr/ Islam Mohamed"
+                    placeholder="اسم المؤلف (اختياري)"
                     className="w-full rounded-xl bg-[#050a16] border border-white/15 px-3 py-2 text-xs text-white focus:border-[#c59b27] focus:outline-none"
                   />
                 </div>
