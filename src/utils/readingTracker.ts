@@ -11,27 +11,40 @@ export function getReadingProgressStorageKey(userId?: string): string {
  * Retrieve all reading progress records for a user or guest.
  * Transparently checks legacy storage if partitioned storage is empty.
  */
+/**
+ * Retrieve only the progress partition owned by the requested user or guest.
+ * The old unpartitioned key is intentionally excluded: it has no owner identity
+ * and must never be silently merged into whichever account signs in next.
+ */
 export function getAllReadingProgress(userId?: string): Record<string, ReadingProgress> {
   try {
     if (typeof localStorage === 'undefined') return {};
+    const raw = localStorage.getItem(getReadingProgressStorageKey(userId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed as Record<string, ReadingProgress>;
+  } catch {
+    return {};
+  }
+}
 
-    const key = getReadingProgressStorageKey(userId);
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') return parsed;
-    }
-
-    // Check legacy storage fallback to prevent data loss
-    const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY_PROGRESS);
-    if (legacyRaw) {
-      const legacyParsed = JSON.parse(legacyRaw);
-      if (legacyParsed && typeof legacyParsed === 'object') {
-        return legacyParsed;
-      }
-    }
-  } catch {}
-  return {};
+/**
+ * Read the pre-partition migration payload for an explicit recovery flow only.
+ * Never merge this unowned data into a guest or authenticated account automatically.
+ * The legacy key is deliberately left untouched until a user chooses how to recover it.
+ */
+export function getLegacyReadingProgressForRecovery(): Record<string, ReadingProgress> {
+  try {
+    if (typeof localStorage === 'undefined') return {};
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY_PROGRESS);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed as Record<string, ReadingProgress>;
+  } catch {
+    return {};
+  }
 }
 
 export function saveAllReadingProgress(
@@ -59,7 +72,8 @@ export function getBookReadingProgress(bookId: string, userId?: string): Reading
 }
 
 /**
- * Record that a reader opened/read a specific chapter (sets as lastReadChapter and marks as completed)
+ * Record the last opened chapter without marking it as completed.
+ * Completion is an explicit reader action, not a side effect of opening a chapter.
  */
 export function recordChapterOpened(
   bookId: string,
@@ -76,9 +90,6 @@ export function recordChapterOpened(
     chapterScrollPositions: {},
   };
 
-  const completedSet = new Set(current.completedChapterIds || []);
-  completedSet.add(chapterId);
-
   const scrollPositions = { ...(current.chapterScrollPositions || {}) };
   if (typeof scrollPercent === 'number') {
     scrollPositions[chapterId] = Math.min(100, Math.max(0, Math.round(scrollPercent * 10) / 10));
@@ -87,7 +98,7 @@ export function recordChapterOpened(
   const updated: ReadingProgress = {
     ...current,
     lastChapterId: chapterId,
-    completedChapterIds: Array.from(completedSet),
+    completedChapterIds: [...(current.completedChapterIds || [])],
     lastReadAt: new Date().toISOString(),
     chapterScrollPositions: scrollPositions,
   };
@@ -226,8 +237,7 @@ export function mergeGuestReadingProgressWithUser(
 export function clearGuestReadingProgress(): void {
   try {
     if (typeof localStorage === 'undefined') return;
-    localStorage.removeItem('hukm_guest_reading_tracker');
-    localStorage.removeItem(LEGACY_STORAGE_KEY_PROGRESS);
+    localStorage.removeItem(getReadingProgressStorageKey());
   } catch {}
 }
 
@@ -237,16 +247,11 @@ export function clearGuestReadingProgress(): void {
 export function hasGuestReadingProgress(): boolean {
   try {
     if (typeof localStorage === 'undefined') return false;
-    const guestRaw = localStorage.getItem('hukm_guest_reading_tracker');
-    if (guestRaw) {
-      const parsed = JSON.parse(guestRaw);
-      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) return true;
-    }
-    const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY_PROGRESS);
-    if (legacyRaw) {
-      const parsed = JSON.parse(legacyRaw);
-      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) return true;
-    }
-  } catch {}
-  return false;
+    const guestRaw = localStorage.getItem(getReadingProgressStorageKey());
+    if (!guestRaw) return false;
+    const parsed = JSON.parse(guestRaw);
+    return Boolean(parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0);
+  } catch {
+    return false;
+  }
 }
