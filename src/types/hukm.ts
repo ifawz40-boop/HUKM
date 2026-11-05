@@ -8,6 +8,12 @@ export interface CategoryItem {
 export type NovelStatus = 'ongoing' | 'completed';
 export type PublishingStatus = 'published' | 'in_progress' | 'draft' | 'ongoing' | 'completed';
 
+export interface BookFootnote {
+  marker: string;
+  text: string;
+  offset: number | null;
+}
+
 export interface BookChapter {
   id: string;
   bookId: string;
@@ -15,6 +21,8 @@ export interface BookChapter {
   title: string;
   subtitle?: string;
   content: string[];
+  footnotes?: BookFootnote[];
+  omittedMedia?: { images: number; svgs: number; tables: number };
   notes?: string;
   references?: string[];
   status: 'draft' | 'ready';
@@ -69,6 +77,20 @@ export interface BookRights {
   sourceLicense: string;
   sourceLicenseUrl: string;
   datasetCitation: string;
+  licenseQuote?: string;
+  publisher?: string;
+  originalTextStatus?: string;
+  translationCovered?: boolean;
+  credits?: Array<{ role: string; name: string; deathYear: number | null }>;
+  translators?: string[];
+  editors?: string[];
+  sourceHash?: string;
+  sourceFile?: string;
+  omissions?: { images: number; svgs: number; tables: number };
+  bookId?: string;
+  hindawiId?: string;
+  bookUrl?: string;
+  corpusSource?: string;
 }
 
 export interface BookProject {
@@ -84,6 +106,8 @@ export interface BookProject {
   rating?: number;
   motto?: string;
   viewsCount: number;
+  wordCount?: number;
+  chapterCount?: number;
   chapters: BookChapter[];
   createdAt: string;
   updatedAt: string;
