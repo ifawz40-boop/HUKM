@@ -61,7 +61,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     it('must enforce reading progress user ownership and immutable owner ID with affectedKeys', () => {
       assert.match(rulesContent, /incomingData\.userId == existingData\.userId/);
       assert.match(rulesContent, /resource\.data\.userId == request\.auth\.uid/);
-      assert.match(rulesContent, /affected\.hasOnly\(\['chapterId',\s*'chapterIndex',\s*'scrollPercent'/);
+      assert.match(rulesContent, /affected\.hasOnly\(\['id',\s*'chapterIndex',\s*'scrollPercent'/);
     });
   });
 

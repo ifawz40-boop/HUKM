@@ -638,9 +638,10 @@ export async function fetchUserSingleProgress(
   chapterId: string
 ): Promise<ReadingProgressRecord | null> {
   if (!userId || !bookId || !chapterId) return null;
+  let path = 'readingProgress';
   try {
     const progressId = formatReadingProgressId(userId, bookId, chapterId);
-    const path = `readingProgress/${progressId}`;
+    path = `readingProgress/${progressId}`;
     const docRef = doc(db, 'readingProgress', progressId);
     const snapshot = await getDoc(docRef);
     if (!snapshot.exists()) return null;
