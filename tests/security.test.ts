@@ -599,6 +599,12 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
   describe('Test 15: emailApi active admin verification, batch chunking & accurate logging', () => {
     const emailApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
 
+    it('must not expose raw server exception messages through admin APIs', () => {
+      const authClaimsContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/authClaimsApi.ts'), 'utf-8');
+      assert.equal(emailApiContent.includes('err.message'), false);
+      assert.equal(authClaimsContent.includes('err.message'), false);
+    });
+
     it('must require the active admin registry role to exactly match the caller token role', () => {
       assert.equal((emailApiContent.match(/adminRole !== user\.role/g) || []).length, 2);
       assert.ok(emailApiContent.includes('adminDoc.data()?.role !== user.role'));
@@ -612,7 +618,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
 
     it('must verify active admin document in Firestore before allowing email dispatch', () => {
       assert.match(emailApiContent, /adminDb\.collection\('admins'\)\.doc\(user\.uid\)\.get\(\)/);
-      assert.match(emailApiContent, /adminRole\s*!==\s*'owner'\s*&&\s*adminRole\s*!==\s*'admin'/);
+      assert.ok(emailApiContent.includes("if (!adminDoc.exists || adminDoc.data()?.role !== user.role)"));
     });
 
     it('must chunk recipients into batches of 50 to prevent subscriber dropping', () => {

@@ -250,7 +250,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
       success: false,
       delivered: false,
       acceptedByProvider: false,
-      message: err.message || 'حدث خطأ غير متوقع أثناء إرسال البريد.',
+      message: 'حدث خطأ داخلي أثناء إرسال البريد. لم يتم تأكيد قبول أي رسالة.',
     });
   }
 });

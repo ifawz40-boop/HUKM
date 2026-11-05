@@ -104,7 +104,7 @@ authClaimsRouter.post('/lookup-user', authenticateToken, requireOwnerRole, async
         message: 'لم يتم العثور على أي حساب مسجل بهذا البريد الإلكتروني في Firebase.',
       });
     }
-    return res.status(500).json({ success: false, message: err.message || 'حدث خطأ أثناء البحث.' });
+    return res.status(500).json({ success: false, message: 'حدث خطأ داخلي أثناء البحث عن الحساب. يرجى المحاولة لاحقاً.' });
   }
 });
 
@@ -395,7 +395,7 @@ authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async
     });
   } catch (err: any) {
     console.error('Revoke role error:', err);
-    return res.status(500).json({ success: false, message: err.message || 'فشلت عملية سحب الصلاحيات.' });
+    return res.status(500).json({ success: false, message: 'حدث خطأ داخلي أثناء سحب الصلاحيات. يرجى المحاولة لاحقاً.' });
   }
 });
 
