@@ -133,13 +133,18 @@ service cloud.firestore {
       allow create, update, delete: if isOwner() && isValidId(adminId);
     }
 
-    // 5. Bans and Moderation:
+    // 5. Admin Requests: private records are accessible only through the authenticated server API.
+    match /adminRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    // 6. Bans and Moderation:
     // Public users CANNOT read private bans. Only Admins can read or write bans.
     match /bans/{banId} {
       allow read, write: if isAdmin() && isValidId(banId);
     }
 
-    // 6. Notifications Collection:
+    // 7. Notifications Collection:
     // Public announcements can be read by anyone. Private notifications only by recipient or Admin.
     match /notifications/{notificationId} {
       allow read: if (resource.data.targetRole == 'all') || 
@@ -147,7 +152,7 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() && isValidId(notificationId);
     }
 
-    // 7. Subscribers Collection:
+    // 8. Subscribers Collection:
     // Public users cannot read subscriber information! Only Admins can read or manage subscribers.
     match /subscribers/{subscriberId} {
       allow read: if isAdmin();
@@ -161,7 +166,7 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // 8. Reading Progress:
+    // 9. Reading Progress:
     // Strict user ownership and field validation. Users cannot alter userId or tamper with other users' records.
     function isValidReadingProgressCreate(progressId) {
       let data = incoming();
@@ -198,7 +203,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // 9. Book Draft Chapters:
+    // 10. Book Draft Chapters:
     // Strictly confidential! Only verified Admins and Owner can read, create, update, or delete draft chapters.
     // Public users have ZERO read or write access.
     match /bookDraftChapters/{draftId} {
