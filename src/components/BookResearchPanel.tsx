@@ -39,8 +39,8 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
   const [hasRemoteResearchChanges, setHasRemoteResearchChanges] = useState(false);
-  const previousBookIdRef = useRef(book?.id);
-  const previousUpdatedAtRef = useRef(book?.updatedAt);
+  const previousBookIdRef = useRef<string | undefined>(undefined);
+  const previousUpdatedAtRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!book) return;
