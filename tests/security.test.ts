@@ -596,6 +596,10 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     it('must record actualDispatchedCount accurately in Firestore emailLogs', () => {
       assert.match(emailApiContent, /recipientCount:\s*actualDispatchedCount/);
       assert.match(emailApiContent, /totalRequested:\s*recipients\.length/);
+      assert.ok(emailApiContent.includes('partialDispatch = true'));
+      assert.ok(emailApiContent.includes('acceptedByProvider: actualDispatchedCount > 0'));
+      assert.ok(emailApiContent.includes('logSaved'));
+      assert.ok(emailApiContent.includes('لا تعاود الإرسال قبل مراجعة سجل مزود البريد'));
     });
 
     // Behavioral simulation of batch chunking and counting

@@ -225,7 +225,7 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
 
     setIsSending(false);
 
-    if (res.delivered) {
+    if (res.acceptedByProvider || res.delivered) {
       addEmailLog({
         subject: customSubject.trim(),
         recipientCount: res.recipientCount || activeSubscribersCount,
@@ -234,6 +234,9 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
         bookTitle: currentBook?.title,
         previewHtml: html,
         delivered: true,
+        acceptedByProvider: res.acceptedByProvider ?? res.delivered,
+        partial: res.partial ?? false,
+        totalRequested: res.totalRequested ?? res.recipientCount ?? activeSubscribersCount,
       });
 
       setEmailLogs(getStoredEmailLogs());
@@ -785,13 +788,15 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
                       className="rounded-xl border border-white/10 bg-[#0a1226] p-3.5 flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                          <CheckCircle className="h-4 w-4" />
+                        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center ${log.partial ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'}`}>
+                          {log.partial ? <AlertCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                         </div>
                         <div>
                           <h5 className="text-xs font-bold text-white">{log.subject}</h5>
                           <span className="text-[11px] text-[#94a3b8] block mt-0.5">
-                            تم التوصيل إلى {log.recipientCount} مشترك ({log.timestamp})
+                            {log.partial
+                              ? `إرسال جزئي: قُبل إلى ${log.recipientCount} من أصل ${log.totalRequested ?? log.recipientCount} مستلم (${log.timestamp})`
+                              : `قُبل الإرسال إلى ${log.recipientCount} مستلم (${log.timestamp})`}
                           </span>
                         </div>
                       </div>

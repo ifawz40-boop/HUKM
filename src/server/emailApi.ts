@@ -103,9 +103,13 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     });
   }
 
+  let recipients: string[] = [];
+  let actualDispatchedCount = 0;
+  const providerIds: string[] = [];
+  let partialDispatch = false;
+
   try {
     // 2. Determine recipients list. Normalize and deduplicate broadcast addresses.
-    let recipients: string[] = [];
     if (recipientTarget.kind === 'individual') {
       recipients = [recipientTarget.email];
     } else {
@@ -122,82 +126,130 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     }
 
     if (recipients.length === 0) {
-      return res.status(400).json({ success: false, message: 'لا يوجد مشتركون نشطون لإرسال الرسالة إليهم.' });
+      return res.status(400).json({ success: false, message: 'لا يوجد مشتركون نشطون صالحون لإرسال الرسالة إليهم.' });
     }
 
-    // 3. Dispatch in batches of 50 to support unlimited subscribers without dropping any
+    // 3. Dispatch in batches of 50. Once a batch is accepted, never report a later
+    // provider/network failure as if nothing was sent; that could cause duplicate retries.
     const fromAddress = process.env.EMAIL_FROM || 'HUKM MEDIA <updates@hukm.media>';
     const BATCH_SIZE = 50;
-    let actualDispatchedCount = 0;
-    const providerIds: string[] = [];
 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const batch = recipients.slice(i, i + BATCH_SIZE);
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey.trim()}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromAddress,
-          to: batch,
-          subject: subject.trim(),
-          html: htmlContent,
-        }),
-      });
+      let response: Awaited<ReturnType<typeof fetch>>;
 
-      const result = await response.json();
+      try {
+        response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey.trim()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: batch,
+            subject: subject.trim(),
+            html: htmlContent,
+          }),
+        });
+      } catch (providerError) {
+        console.error(`Email provider network failure at batch index ${i}:`, providerError);
+        if (actualDispatchedCount === 0) throw providerError;
+        partialDispatch = true;
+        break;
+      }
+
+      let result: { id?: string; message?: string } = {};
+      try {
+        result = await response.json();
+      } catch {
+        // A successful HTTP response still means the provider accepted the batch;
+        // a missing response body only prevents us from recording its provider ID.
+      }
 
       if (!response.ok) {
-        console.error(`Email provider batch failure at index ${i}:`, result);
+        console.error(`Email provider rejected batch at index ${i}.`);
         if (actualDispatchedCount === 0) {
           return res.status(502).json({
             success: false,
             delivered: false,
-            message: `فشل الإرسال من مزود الخدمة: ${result.message || 'خطأ غير معروف في مزود البريد'}`,
+            acceptedByProvider: false,
+            message: 'رفض مزود البريد أول دفعة. لم يتم قبول أي مستلم للإرسال.',
           });
         }
-        // Partial dispatch: stop further batches, log accurately what was sent
+        partialDispatch = true;
         break;
       }
 
       actualDispatchedCount += batch.length;
-      if (result.id) {
-        providerIds.push(result.id);
-      }
+      if (result.id) providerIds.push(result.id);
     }
 
-    // 4. Record real verified log in Firestore reflecting actual dispatched count
+    const isComplete = !partialDispatch && actualDispatchedCount === recipients.length;
     const logId = `log-${Date.now()}`;
-    await adminDb.collection('emailLogs').doc(logId).set({
-      id: logId,
-      subject: subject.trim(),
-      recipientCount: actualDispatchedCount,
-      totalRequested: recipients.length,
-      recipientEmail: recipientTarget.kind === 'individual' ? recipientTarget.email : null,
-      timestamp: new Date().toISOString(),
-      type: type || 'announcement',
-      bookTitle: bookTitle || null,
-      providerId: providerIds.join(',') || 'unknown',
-      delivered: actualDispatchedCount > 0,
-      senderUid: user.uid,
-    });
+    let logSaved = true;
 
-    return res.json({
-      success: true,
+    // 4. Persist the provider-accepted count separately. A log failure must not
+    // erase the fact that the provider already accepted the email request.
+    try {
+      await adminDb.collection('emailLogs').doc(logId).set({
+        id: logId,
+        subject: subject.trim(),
+        recipientCount: actualDispatchedCount,
+        totalRequested: recipients.length,
+        recipientEmail: recipientTarget.kind === 'individual' ? recipientTarget.email : null,
+        timestamp: new Date().toISOString(),
+        type: typeof type === 'string' ? type : 'announcement',
+        bookTitle: typeof bookTitle === 'string' ? bookTitle : null,
+        providerId: providerIds.join(',') || 'unknown',
+        delivered: actualDispatchedCount > 0,
+        acceptedByProvider: actualDispatchedCount > 0,
+        partial: !isComplete,
+        senderUid: user.uid,
+      });
+    } catch (logError) {
+      logSaved = false;
+      console.error('Email provider accepted the request, but the Firestore email log could not be saved:', logError);
+    }
+
+    const message = isComplete
+      ? `قبل مزود البريد الإرسال إلى ${actualDispatchedCount} مستلم.`
+      : `إرسال جزئي: قبل مزود البريد ${actualDispatchedCount} من أصل ${recipients.length} مستلم فقط. أوقفنا الدفعات المتبقية لتجنب إعادة الإرسال المكرر.`;
+    const logWarning = logSaved
+      ? ''
+      : ' تعذر حفظ سجل العملية في قاعدة البيانات، لكن مزود البريد قبل الإرسال بالفعل؛ لا تعاود الإرسال قبل مراجعة سجل المزود.';
+
+    return res.status(isComplete ? 200 : 207).json({
+      success: isComplete && logSaved,
       delivered: actualDispatchedCount > 0,
+      acceptedByProvider: actualDispatchedCount > 0,
+      partial: !isComplete,
+      logSaved,
       providerId: providerIds[0] || null,
       providerIds,
       recipientCount: actualDispatchedCount,
       totalSubscribers: recipients.length,
-      message: `تم إرسال البريد بنجاح إلى ${actualDispatchedCount} مستلم وموثق برقم العملية: ${providerIds[0] || 'تم'}`,
+      totalRequested: recipients.length,
+      message: message + logWarning,
     });
   } catch (err: any) {
     console.error('Email sending exception:', err);
+    if (actualDispatchedCount > 0) {
+      return res.status(200).json({
+        success: false,
+        delivered: true,
+        acceptedByProvider: true,
+        partial: true,
+        logSaved: false,
+        recipientCount: actualDispatchedCount,
+        totalRequested: recipients.length,
+        message: `تم قبول الإرسال إلى ${actualDispatchedCount} من أصل ${recipients.length} مستلم، ثم حدث خطأ قبل اكتمال العملية. لا تعاود الإرسال قبل مراجعة سجل مزود البريد.`,
+      });
+    }
     return res.status(500).json({
       success: false,
       delivered: false,
+      acceptedByProvider: false,
       message: err.message || 'حدث خطأ غير متوقع أثناء إرسال البريد.',
     });
   }

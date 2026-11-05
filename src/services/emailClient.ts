@@ -23,6 +23,10 @@ export interface EmailServiceStatus {
 export interface SendEmailResponse {
   success: boolean;
   delivered: boolean;
+  acceptedByProvider?: boolean;
+  partial?: boolean;
+  logSaved?: boolean;
+  totalRequested?: number;
   message: string;
   providerId?: string;
   recipientCount?: number;

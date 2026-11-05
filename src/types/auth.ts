@@ -89,6 +89,9 @@ export interface EmailLogEntry {
   bookTitle?: string;
   previewHtml: string;
   delivered: boolean;
+  acceptedByProvider?: boolean;
+  partial?: boolean;
+  totalRequested?: number;
 }
 
 export type HukmEmailLog = EmailLogEntry;
