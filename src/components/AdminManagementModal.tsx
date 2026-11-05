@@ -49,6 +49,7 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
 }) => {
   const isUserOwner = isOwner(currentUser);
   const isUserAdmin = isAdmin(currentUser);
+  const isFounder = adminsList.some((admin) => (admin.uid || admin.id) === currentUser?.id && admin.isFounder === true);
 
   // If user is owner, default to admins tab; if regular admin, lock to bans tab
   const [activeTab, setActiveTab] = useState<'admins' | 'bans'>(isUserOwner ? 'admins' : 'bans');
@@ -272,6 +273,7 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
           {activeTab === 'admins' && (
             isUserOwner ? (
               <div className="space-y-6">
+                {isFounder ? (
                 {/* Additional owners can be granted only by the current verified Owner. */}
                 <section className="rounded-2xl border border-amber-500/30 bg-[#151326] p-4 sm:p-5 space-y-3">
                   <div className="flex items-center gap-2 text-amber-200">
@@ -299,6 +301,12 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
                     </button>
                   </form>
                 </section>
+
+                ) : (
+                  <p className="rounded-xl border border-white/10 bg-[#070d1e] p-3 text-xs text-[#94a3b8]">
+                    إضافة مالكين جدد مقتصرة على المالك المؤسس الأساسي. صلاحيات المالكين الآخرين لا تشمل تعيين مالكين إضافيين.
+                  </p>
+                )}
 
                 {/* Admin requests: approval is the only grant path */}
                 <section className="rounded-2xl border border-[#c59b27]/30 bg-[#0a142c] p-4 sm:p-5 space-y-4">
