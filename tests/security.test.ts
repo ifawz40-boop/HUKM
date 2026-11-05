@@ -607,8 +607,8 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
         hasAllCategoriesDropdown: true,
         hasBookmarksLink: isReader,
         hasWriterStudioLink: isOwner,
-        hasNewBookCTA: isAdmin,
-        hasManageCategoriesCTA: isAdmin,
+        hasNewBookCTA: isOwner,
+        hasManageCategoriesCTA: isOwner,
         hasAdminManagementCTA: isOwner,
         hasEmailModalCTA: isOwner,
       };
@@ -639,8 +639,8 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       const adminItems = getNavbarItemsForRole('admin');
       assert.equal(adminItems.hasCatalogLink, true);
       assert.equal(adminItems.hasWriterStudioLink, false);
-      assert.equal(adminItems.hasNewBookCTA, true);
-      assert.equal(adminItems.hasManageCategoriesCTA, true);
+      assert.equal(adminItems.hasNewBookCTA, false);
+      assert.equal(adminItems.hasManageCategoriesCTA, false);
       assert.equal(adminItems.hasAdminManagementCTA, false);
     });
 
@@ -649,6 +649,9 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(ownerItems.hasCatalogLink, true);
       assert.equal(ownerItems.hasWriterStudioLink, true);
       assert.match(navbarContent, /isEffectiveOwner && \([\s\S]*?onNavigate\('writer'\)/);
+      assert.match(navbarContent, /isEffectiveOwner && \([\s\S]*?onOpenNewBook/);
+      assert.match(navbarContent, /isEffectiveOwner && \([\s\S]*?onOpenManageCategories/);
+      assert.match(navbarContent, /isEffectiveOwner && onOpenEmailModal/);
       assert.equal(ownerItems.hasNewBookCTA, true);
       assert.equal(ownerItems.hasManageCategoriesCTA, true);
       assert.equal(ownerItems.hasAdminManagementCTA, true);
