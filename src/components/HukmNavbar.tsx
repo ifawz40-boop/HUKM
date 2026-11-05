@@ -419,15 +419,17 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={onOpenManageCategories}
-                  className="flex items-center gap-1.5 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/30 px-2.5 py-1.5 text-[11px] font-bold text-[#f0cb69] transition-colors cursor-pointer"
-                  title="إضافة أو حذف أقسام الكتب"
-                >
-                  <Layers className="h-3 w-3 text-[#d4af37]" />
-                  <span>إدارة الأقسام</span>
-                </button>
+                {isEffectiveOwner && (
+                  <button
+                    type="button"
+                    onClick={onOpenManageCategories}
+                    className="flex items-center gap-1.5 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/30 px-2.5 py-1.5 text-[11px] font-bold text-[#f0cb69] transition-colors cursor-pointer"
+                    title="إضافة أو حذف أقسام الكتب"
+                  >
+                    <Layers className="h-3 w-3 text-[#d4af37]" />
+                    <span>إدارة الأقسام</span>
+                  </button>
+                )}
               </>
             )}
 
@@ -544,7 +546,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
           </button>
 
           {/* Admin & Owner: Quick Publish Book CTA */}
-          {isEffectiveAdmin && (
+          {isEffectiveOwner && (
             <button
               type="button"
               onClick={onOpenNewBook}
@@ -751,41 +753,47 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                 {/* Admin & Owner Authoring Tools */}
                 {isEffectiveAdmin && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        onNavigate('writer');
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#e2e8f0] hover:bg-white/5 cursor-pointer"
-                    >
-                      <PenTool className="h-4 w-4 text-[#d4af37]" />
-                      <span>استوديو تأليف الكتب</span>
-                    </button>
+                    {isEffectiveOwner && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          onNavigate('writer');
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#e2e8f0] hover:bg-white/5 cursor-pointer"
+                      >
+                        <PenTool className="h-4 w-4 text-[#d4af37]" />
+                        <span>استوديو تأليف الكتب</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        onOpenNewBook();
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#f0cb69] bg-[#c59b27]/10 border border-[#c59b27]/20 cursor-pointer"
-                    >
-                      <PlusCircle className="h-4 w-4 text-[#d4af37]" />
-                      <span>رفع كتاب جديد</span>
-                    </button>
+                    {isEffectiveOwner && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          onOpenNewBook();
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#f0cb69] bg-[#c59b27]/10 border border-[#c59b27]/20 cursor-pointer"
+                      >
+                        <PlusCircle className="h-4 w-4 text-[#d4af37]" />
+                        <span>رفع كتاب جديد</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        onOpenManageCategories();
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#cbd5e1] hover:bg-white/5 cursor-pointer"
-                    >
-                      <Layers className="h-4 w-4 text-[#d4af37]" />
-                      <span>إدارة وتعديل الأقسام</span>
-                    </button>
+                    {isEffectiveOwner && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          onOpenManageCategories();
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#cbd5e1] hover:bg-white/5 cursor-pointer"
+                      >
+                        <Layers className="h-4 w-4 text-[#d4af37]" />
+                        <span>إدارة وتعديل الأقسام</span>
+                      </button>
+                    )}
 
                     {onOpenAdminManagement && (
                       <button
@@ -801,7 +809,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                       </button>
                     )}
 
-                    {onOpenEmailModal && (
+                    {isEffectiveOwner && onOpenEmailModal && (
                       <button
                         type="button"
                         onClick={() => {
