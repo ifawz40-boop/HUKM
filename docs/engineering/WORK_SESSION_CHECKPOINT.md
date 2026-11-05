@@ -247,3 +247,42 @@ Remove every existing book and all default/demo library data from HUKM. Research
 - Then add founder-only purge endpoint and a clear confirmation UI/runbook. Do not invoke production deletion without explicit confirmation string from the founder UI; do not delete unrelated user data.
 - After every substantial phase, update this checkpoint with current commit, changed files, test status, generated-book counts/size, purge status, and next exact action.
 - Never claim that legacy Firestore data has been deleted until a successful production response reports counts.
+
+
+### Research update — preferred corpus changed (2026-11-05)
+A stronger primary source was found after the first Wikisource sync attempt:
+- Bayanat Labs **Open Arabic Books**, v0.1.0: https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books
+- Dataset card: https://www.bayanatlabs.com/open/open-arabic-books
+- 1,545 complete Arabic books from Hindawi Foundation, 27,544 chapter/section rows, 54,204,272 words; books config is one whole book per row and chapters config contains section text/footnotes.
+- Per-book colophons were read. 332 works have Arabic translation and book design explicitly CC BY 4.0 with original text public domain; 1,212 original Arabic texts are public domain with design CC BY 4.0; one is original CC BY 3.0. 200 corpus books were excluded for missing translation-license evidence/reserved rights/contradictory statements.
+- Important jurisdiction warning: publisher's public-domain statement is not legal advice; copyright terms vary. The initial production selection should therefore use only records with `translation_covered === true`, `original_text_status === 'public-domain'`, and a matching CC BY 4.0 colophon. This makes the Arabic translation itself explicitly licensed, while the underlying work is marked public domain.
+- Dataset revision: `39876c0e7f28c2d16887c7c139800e0df9f87263`; source corpus: Andreas Hallberg, The Arabic E-Book Corpus v1, DOI https://doi.org/10.5878/7rbh-gy93.
+- The dataset's 100-book reading sample had correct chapter boundaries; 0 source-hash or license-quote mismatches were found in the full release check. This is not a full proofreading guarantee. Images/SVGs are omitted and must be disclosed.
+- Preferred approach: replace the Wikisource-only candidate list with this better complete-book dataset; select a balanced subset by category and length from the 332 translation-covered works. Retain exact attribution and colophon quote per book.
+
+### Revised static bundle performance design
+- Do NOT eagerly import all full-text books into the initial JavaScript bundle.
+- Generate `src/data/library/catalog.json` with lightweight metadata only.
+- Generate one full text JSON file per book under `src/data/library/books/<book_id>.json`.
+- `src/data/library/index.ts` should use lazy `import.meta.glob('./books/*.json')` loaders and export `loadPublicLibraryBook(id)`; the app should load the full text only when a reader opens that book. These are static chunks from the deployed site, not runtime Firebase/API calls.
+- Extend `BookChapter` to preserve footnotes and omitted-media/table counts; render footnotes in the reader.
+- Extend `BookProject` metadata with `wordCount` and `chapterCount` so catalogue cards/metrics do not need full text loaded.
+
+### Current execution status at checkpoint update
+- Static catalogue migration already committed to main; active Firestore book/category reads and writes were removed from App.tsx.
+- Old localStorage book/category cache keys are removed on app load; old `INITIAL_BOOKS`, `INITIAL_CATEGORIES`, and `HUKM_PRESET_MEDIA` seeds were removed from `src/data/hukmData.ts`.
+- Writer/new-book/category publishing controls and the fake "investigation" spotlight were removed from active UI.
+- Founder-only, exact-confirmation API `POST /api/auth/purge-legacy-library` and UI modal are implemented. It deletes only `books`, `bookDraftChapters`, `categories` and preserves user accounts/progress/bookmarks/annotations/notifications/subscribers/admin records. Production deletion has NOT yet been executed.
+- Initial Wikisource sync workflow encountered Hugging Face Dataset Viewer HTTP 500 transient auth-check failures. A retry was added; run `42095906072` may still be in progress from its earlier workflow snapshot. It may commit Wikisource files; the revised Open Arabic Books sync should replace the generated output and remove stale JSON files.
+- The static-library regression tests were added to `package.json` test script. Older tests were revised to reflect no cloud publishing UI.
+- Latest verified code state must be re-fetched from main; this checkpoint is being updated while work continues.
+
+### Exact resume instructions (revised)
+1. Re-fetch latest `main`.
+2. Replace `src/data/library/manifest.json` with Open Arabic Books dataset selection criteria (metadata config + chapters config), target 20–28 complete works, balanced by category, minimum ~8,000 words and at least 3 sections, maximum per-book size and total-word budget.
+3. Rewrite `scripts/sync-public-library.mjs` to page through metadata rows, accept only `translation_covered === true` + `original_text_status === 'public-domain'` + CC BY 4.0 colophon, select a balanced category mix, then fetch chapter rows by `book_id` with pagination and validate summed text words against metadata.
+4. Generate `catalog.json` metadata and lazy per-book JSON files. Include exact per-book attribution, license quote, publisher URL, source hash, dataset revision, and omitted images/SVG/tables counts. Include footnotes as structured data.
+5. Update `index.ts` to lazy-load book JSON modules. Update App handlers to load full books on demand. Update cards/hero metrics to use metadata `wordCount` and `chapterCount`. Update reader to display footnotes and omissions.
+6. Verify generated titles, credits, chapters, rights and content sizes in CI logs and NOTICE. Do not call a title "complete" unless chapter and word-count validation passes.
+7. Run CI tests/typecheck/build. Fix failures and checkpoint. Then address Vercel build-rate-limit.
+8. After deployment, the founder must execute the confirmation-gated legacy purge from the owner-only control. Production Firestore cleanup is not complete until endpoint returns exact deletion counts and the status marker is completed.
