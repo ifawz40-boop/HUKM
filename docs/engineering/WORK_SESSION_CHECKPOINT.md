@@ -104,3 +104,44 @@
 - Google AI Studio synchronization has not been independently confirmed.
 
 **RESUME HERE:** First inspect latest `main` and the CI run for the latest owner-provisioning commit (currently `619d473b605b279399d162e7d1db0124958a4076`). Fix any failing tests/type errors and save the fix plus an updated checkpoint to `main`. Then provide the operator with the local runbook steps (`bun run owner:bootstrap`, followed by `bun run owner:verify`); wait for the non-secret verifier output and confirm that Firebase Auth `role: owner`, `admins/{uid}` (`isFounder: true`), and `_system/bootstrap.status=completed` agree. Never ask for or accept the service-account key in chat.
+
+## Owner provisioning continuation — 2026-11-05 19:06 UTC
+
+### Additional issues found and corrected on main
+- Corrected the owner email validation path. The earlier inline regex had an escaping defect in the new HTTP grant endpoint and read-only verifier. Added one shared `isValidOwnerEmail()` helper in `src/server/ownerBootstrapGuards.ts`; the initial bootstrap CLI, verifier, and API grant route now use it. Added tests for valid and malformed email input.
+- Enforced the user's selected ownership model: one original founder may appoint additional owners; additional owners cannot appoint further owners. Added server middleware `requireFounderOwner`, which requires a verified `role: owner` token AND the caller's official `admins/{uid}` record with `role: owner` and `isFounder: true`. The `POST /api/auth/grant-owner` route now uses this middleware.
+- Updated the admin management UI to show the add-owner form only when the current UID appears in the loaded admin registry with `isFounder: true`. Other owners see a clear explanation and the server independently denies their attempts.
+- Closed a Firestore privilege-escalation path: `firestore.rules` now denies all client-side create/update/delete operations on `/admins/{uid}`. Reads remain available to verified admins/owners. Role registry mutations are restricted to trusted Firebase Admin SDK server operations and the local bootstrap CLI, preventing additional owners from editing their own `isFounder` flag.
+- Added a static security regression test in `tests/security.test.ts` asserting that client writes to the admin registry remain denied.
+- Updated `docs/security/OWNER_BOOTSTRAP_RUNBOOK.md` with the separate Firestore rules deployment command. A GitHub/Vercel source deployment does NOT deploy Firestore rules.
+
+### Relevant commits in this continuation
+- Founder-only server authorization: `8c5dfc191ec046653330041982cb8ad00a95abbc`
+- Shared email validation helper and adoption: `901f40920b3e5835c9ae9d2cacffea7d16037182`, `b433ce79ec7196690ed01dce6c44d8d6cea48cb1`, `e557485f99f5879bd87745ac09f502d48e1978ce`, `62cfb7fe8058524a15280fc483b8c2bf34dfb209`
+- Founder-only UI and regression tests: `991ef285e43794423879457cd52e32e8d97815ee`, `c57ca622dad31369a6ef12d24ed5f54a52f973c8`, `2fb8e54caef068b77f8d89f2bbabb16215cc3d6e`
+- Firestore admin-registry write lockdown: `2f604643cd690534e05904028ee293972af8e9d1`
+- Firestore rules regression test: `68dbeef29ce9a6ed27bbfedb87ea6a752d7db754`
+- Runbook rules-deployment instructions: `fe207ba2a11efa4f40b2e1ef521c6bd1d204fdf4`
+- Duplicate import cleanup and final documentation alignment: `d4a40c6d13a911fc3be424d1ae0fb2673dde31e3`, `11a95dfc37dde00708e4189f44ad68e8d8a9c84b`, `e70f536eaaee3f07e9a8f493ed0d74f8873500ce`, `25cbdf6741cba635c2168838748440d901e25705`
+
+### Current verification state
+- Latest reviewed source commit before this checkpoint: `fe207ba2a11efa4f40b2e1ef521c6bd1d204fdf4`.
+- GitHub combined commit status reports Vercel `failure` for that commit. The status target is a Vercel deployment page; no successful production deployment is confirmed.
+- The repository CI workflow `.github/workflows/ci.yml` runs tests, TypeScript check, and production build on pushes to `main`. The available GitHub connector's commit-workflow wrapper only returns pull-request-triggered runs; it returned no run for this push commit. Therefore the Actions test/typecheck/build result remains unverified. Do not state that tests passed.
+- Firebase production bootstrap has NOT been executed. No Auth custom claim, `admins/{uid}`, or `_system/bootstrap` production data has been changed.
+- The updated Firestore rules have NOT been deployed to Firebase. The rule change is only committed in GitHub until the operator runs the documented Firebase CLI command and confirms success.
+- Google AI Studio synchronization has not been independently confirmed.
+
+### Exact next actions
+1. Inspect GitHub Actions for the latest `main` push and fix any test, typecheck, or build failures before proceeding.
+2. From the repository root, deploy the committed Firestore rules using:
+   `firebase deploy --only firestore:rules --project gen-lang-client-0492732633`
+   Confirm deployment success in CLI output or Firebase Console. Do not assume Vercel deploys these rules.
+3. With the Firebase Admin credential stored locally outside the repository, run:
+   `bun run owner:bootstrap`
+   then `bun run owner:verify`.
+4. Only mark the founder owner active when the verifier reports all PASS for verified Auth email, `role: owner` claim, `admins/{uid}` with `isFounder: true`, and completed/locked `_system/bootstrap`.
+5. Sign out and sign back in, confirm the owner management panel, and verify only the founder sees the additional-owner appointment form.
+6. Never request or accept Firebase service-account credentials in chat.
+
+**RESUME MARKER:** Start at latest `main`, inspect GitHub Actions (push-triggered run not exposed by current connector wrapper), then verify/deploy Firestore rules, then local Firebase bootstrap. Latest checkpoint must be advanced after any further code change.
