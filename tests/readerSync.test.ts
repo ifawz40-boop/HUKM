@@ -217,7 +217,7 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
     it('preserves safe deterministic identifiers without lossy normalization', () => {
       const id = formatReadingProgressId('user-123', 'book_abc-01', 'ch-1');
       assert.equal(id, 'prog_user-123_book_abc-01_ch-1');
-      assert.match(id, /^[a-zA-Z0-9_\\-]+$/);
+      assert.match(id, /^[a-zA-Z0-9_\-]+$/);
       assert.ok(id.length <= 128);
     });
 
@@ -225,7 +225,7 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
       assert.throws(() => formatReadingProgressId('user@123', 'book-1', 'ch-1'), /Refusing lossy ID normalization/);
       assert.throws(() => formatReadingProgressId('', 'book-1', 'ch-1'), /must all be non-empty/);
       assert.throws(() => formatReadingProgressId('u'.repeat(60), 'b'.repeat(40), 'c'.repeat(40)), /Refusing lossy truncation/);
-    });;
+    });
   });
 
   // =========================================================================
@@ -269,15 +269,15 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
     });
 
     it('binds reading progress document identity and keeps its owner/book/chapter immutable', () => {
-      assert.match(rulesContent, /function isValidReadingProgressCreate\\(progressId\\)/);
-      assert.match(rulesContent, /data\\.id == progressId/);
-      assert.match(rulesContent, /function isValidReadingProgressUpdate\\(progressId\\)/);
-      assert.match(rulesContent, /incomingData\\.bookId == existingData\\.bookId/);
-      assert.match(rulesContent, /incomingData\\.chapterId == existingData\\.chapterId/);
-      assert.match(rulesContent, /allow create: if isSignedIn\\(\\) && isValidId\\(progressId\\) && isValidReadingProgressCreate\\(progressId\\)/);
-      assert.match(rulesContent, /allow update: if isSignedIn\\(\\) && resource\\.data\\.userId == request\\.auth\\.uid && isValidReadingProgressUpdate\\(progressId\\)/);
-      assert.match(rulesContent, /data\\.scrollPercent >= 0 && data\\.scrollPercent <= 100/);
-    });;
+      assert.match(rulesContent, /function isValidReadingProgressCreate\(progressId\)/);
+      assert.match(rulesContent, /data\.id == progressId/);
+      assert.match(rulesContent, /function isValidReadingProgressUpdate\(progressId\)/);
+      assert.match(rulesContent, /incomingData\.bookId == existingData\.bookId/);
+      assert.match(rulesContent, /incomingData\.chapterId == existingData\.chapterId/);
+      assert.match(rulesContent, /allow create: if isSignedIn\(\) && isValidId\(progressId\) && isValidReadingProgressCreate\(progressId\)/);
+      assert.match(rulesContent, /allow update: if isSignedIn\(\) && resource\.data\.userId == request\.auth\.uid && isValidReadingProgressUpdate\(progressId\)/);
+      assert.match(rulesContent, /data\.scrollPercent >= 0 && data\.scrollPercent <= 100/);
+    });
   });
 
   // =========================================================================
