@@ -322,7 +322,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       setSelectedChapterId(target.id);
       setChapterNumber(target.chapterNumber);
       setChapterTitle(target.title);
-      setChapterContent(target.content.join('\\n\\n'));
+      setChapterContent(target.content.join('\n\n'));
       setChapterStatus(target.status);
       editorBaseUpdatedAtRef.current = target.updatedAt || null;
       setLastLocalAutosavedAt(null);
@@ -518,7 +518,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
           setSelectedChapterId(nextChapter.id);
           setChapterNumber(nextChapter.chapterNumber);
           setChapterTitle(nextChapter.title);
-          setChapterContent(nextChapter.content.join('\\n\\n'));
+          setChapterContent(nextChapter.content.join('\n\n'));
           setChapterStatus(nextChapter.status);
           editorBaseUpdatedAtRef.current = nextChapter.updatedAt || null;
           setLastLocalAutosavedAt(null);
