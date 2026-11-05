@@ -75,6 +75,19 @@ export interface ReadingProgress {
   chapterScrollPositions?: Record<string, number>; // chapterId -> scrollPercent (0 to 100)
 }
 
+export interface WriterDraftSnapshot {
+  id: string;
+  userId: string;
+  bookId: string;
+  chapterId: string | null;
+  chapterNumber: number;
+  title: string;
+  content: string;
+  status: 'draft' | 'ready';
+  baseUpdatedAt: string | null;
+  savedAt: string;
+}
+
 export type ReaderAnnotationColor = 'gold' | 'green' | 'blue' | 'rose';
 export type ReaderAnnotationSyncStatus = 'local' | 'pending' | 'synced';
 
