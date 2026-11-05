@@ -45,13 +45,13 @@ describe('HUKM — bundled heritage library architecture', () => {
   });
 
   it('must validate source tier, license, book length, chapters, genre and completeness before bundling', () => {
-    assert.match(syncScript, /works-pd-core/);
+    assert.match(syncScript, /Bayanat-Labs\/open-arabic-books/);
     assert.match(syncScript, /CC BY-SA 4\.0/);
     assert.match(syncScript, /row\.words/);
     assert.match(syncScript, /row\.chapters/);
     assert.match(syncScript, /row\.source_pages/);
     assert.match(syncScript, /row\.genre === 'poetry'/);
-    assert.match(syncScript, /أعمال غير مكتملة/);
+    assert.match(syncScript, /original_text_status/);
     assert.match(syncScript, /minimumBooks/);
   });
 
@@ -90,9 +90,12 @@ describe('HUKM — bundled heritage library architecture', () => {
       assert.ok(book.chapters.length > 0, `${file} must include chapters`);
       assert.ok(book.chapters.every((chapter: any) => chapter.status === 'ready' && chapter.content.length > 0));
       assert.equal(book.rights.license, 'CC BY-SA 4.0');
-      assert.ok(book.rights.sourceUrl);
+      assert.ok(book.rights.bookUrl);
       assert.ok(book.rights.historyUrl);
-      assert.ok(book.rights.sourcePages.length > 0);
+      assert.ok(book.rights.sourceHash);
+      assert.ok(book.rights.licenseQuote);
+      assert.equal(book.rights.translationCovered, true);
+      assert.equal(book.rights.originalTextStatus, 'public-domain');
     }
   });
 });
