@@ -2,13 +2,24 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { decideOwnerBootstrap, assertOwnerClaimCanBeAssigned } from '../src/server/ownerBootstrapGuards.ts';
+import { decideOwnerBootstrap, assertOwnerClaimCanBeAssigned, isValidOwnerEmail } from '../src/server/ownerBootstrapGuards.ts';
 
 const base = {
   ownerUid: 'firebase-user-uid',
   ownerAdminExists: false,
   registeredOwnerUids: [] as string[],
 };
+
+describe('owner email validation', () => {
+  it('accepts normal email addresses and rejects malformed input', () => {
+    assert.equal(isValidOwnerEmail('ifawz40@gmail.com'), true);
+    assert.equal(isValidOwnerEmail('person.name+tag@example.co.uk'), true);
+    assert.equal(isValidOwnerEmail('not-an-email'), false);
+    assert.equal(isValidOwnerEmail('person @example.com'), false);
+    assert.equal(isValidOwnerEmail('person@example'), false);
+    assert.equal(isValidOwnerEmail('person\\\\@example.com'), false);
+  });
+});
 
 describe('first-owner bootstrap guards', () => {
   it('allows a clean initial reservation only when no owner/admin record exists', () => {
@@ -70,6 +81,7 @@ describe('owner bootstrap integration invariants', () => {
     const script = read('scripts/bootstrap-owner.ts');
     const api = read('src/server/authClaimsApi.ts');
     assert.ok(script.includes('BOOTSTRAP_CONFIRMATION'));
+    assert.ok(script.includes('isValidOwnerEmail(email)'));
     assert.ok(script.includes('FIREBASE_PROJECT_ID'));
     assert.ok(script.includes('FIREBASE_DATABASE_ID'));
     assert.ok(script.includes("auth.getUserByEmail(ownerEmail)"));
@@ -79,7 +91,10 @@ describe('owner bootstrap integration invariants', () => {
 
   it('grants future owners only through authenticated owner middleware and verified Firebase accounts', () => {
     const api = read('src/server/authClaimsApi.ts');
-    assert.ok(api.includes("authClaimsRouter.post('/grant-owner', authenticateToken, requireOwnerRole"));
+    assert.ok(api.includes("authClaimsRouter.post('/grant-owner', authenticateToken, requireFounderOwner"));
+    assert.ok(api.includes("export async function requireFounderOwner"));
+    assert.ok(api.includes("founderDoc.data()?.isFounder !== true"));
+    assert.ok(api.includes('isValidOwnerEmail(email)'));
     assert.ok(api.includes('targetUser.emailVerified'));
     assert.ok(api.includes("role: 'owner'"));
     assert.ok(api.includes('isFounder: false'));
@@ -90,6 +105,7 @@ describe('owner bootstrap integration invariants', () => {
   it('provides a read-only verifier for matching Auth claims and Firestore founder state', () => {
     const verifier = read('scripts/verify-owner.ts');
     assert.ok(verifier.includes("auth.getUserByEmail(email)"));
+    assert.ok(verifier.includes('isValidOwnerEmail(email)'));
     assert.ok(verifier.includes("user.customClaims?.role === 'owner'"));
     assert.ok(verifier.includes("bootstrap.status === 'completed'"));
     assert.ok(verifier.includes("admin.isFounder === true"));
