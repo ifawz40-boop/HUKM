@@ -401,21 +401,23 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                   <span>المكتبة والمشاريع</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => onNavigate('writer')}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                    currentView === 'writer'
-                      ? 'bg-[#c59b27]/20 text-[#f0cb69] border border-[#c59b27]/40 shadow-sm'
-                      : 'text-[#cbd5e1] hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <PenTool className="h-3.5 w-3.5 text-[#d4af37]" />
-                  <span>استوديو التأليف</span>
-                  <span className="rounded-full bg-[#c59b27] px-1.5 py-0.2 text-[10px] font-black text-[#070d1e]">
-                    إدارة
-                  </span>
-                </button>
+                {isEffectiveOwner && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('writer')}
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                      currentView === 'writer'
+                        ? 'bg-[#c59b27]/20 text-[#f0cb69] border border-[#c59b27]/40 shadow-sm'
+                        : 'text-[#cbd5e1] hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <PenTool className="h-3.5 w-3.5 text-[#d4af37]" />
+                    <span>استوديو التأليف</span>
+                    <span className="rounded-full bg-[#c59b27] px-1.5 py-0.2 text-[10px] font-black text-[#070d1e]">
+                      إدارة
+                    </span>
+                  </button>
+                )}
 
                 <button
                   type="button"
