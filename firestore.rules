@@ -50,6 +50,31 @@ service cloud.firestore {
       return resource.data;
     }
 
+    // Draft identity is immutable after creation. This protects against races where
+    // two clients preflight the same truncated/legacy ID before either batch commits.
+    function isValidDraftChapterCreate(draftId) {
+      let data = incoming();
+      return isAdmin() &&
+             isValidId(draftId) &&
+             data.keys().hasAll(['id', 'bookId', 'chapterId', 'status']) &&
+             data.id == draftId &&
+             data.bookId is string && data.bookId.size() > 0 && data.bookId.size() <= 128 &&
+             data.chapterId is string && data.chapterId.size() > 0 && data.chapterId.size() <= 128 &&
+             data.status == 'draft';
+    }
+
+    function isValidDraftChapterUpdate(draftId) {
+      let data = incoming();
+      let previous = existing();
+      return isAdmin() &&
+             isValidId(draftId) &&
+             data.keys().hasAll(['id', 'bookId', 'chapterId', 'status']) &&
+             data.id == draftId &&
+             data.bookId == previous.bookId &&
+             data.chapterId == previous.chapterId &&
+             data.status == 'draft';
+    }
+
     // 1. Users Collection
     // Strict field-level validation: Users may update only approved profile fields.
     // Users must NEVER set or change role, accountStatus, permissions, or administrative metadata.
@@ -173,7 +198,10 @@ service cloud.firestore {
     // Strictly confidential! Only verified Admins and Owner can read, create, update, or delete draft chapters.
     // Public users have ZERO read or write access.
     match /bookDraftChapters/{draftId} {
-      allow read, write: if isAdmin() && isValidId(draftId);
+      allow read: if isAdmin() && isValidId(draftId);
+      allow create: if isValidDraftChapterCreate(draftId);
+      allow update: if isValidDraftChapterUpdate(draftId);
+      allow delete: if isAdmin() && isValidId(draftId);
     }
   }
 }
