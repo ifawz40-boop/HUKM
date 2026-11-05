@@ -225,9 +225,7 @@ async function bootstrap() {
     console.log(`✅ OWNER claim ({ role: 'owner' }) merged and granted successfully to UID=${ownerUser.uid}`);
   } catch (claimErr: any) {
     console.error('❌ FATAL: Failed to assign OWNER claim in Firebase Authentication:', claimErr.message);
-    if (ownerClaimGranted) {
-      await restoreCustomClaims(ownerUser.uid, ownerExistingClaims, 'OWNER');
-    }
+    await restoreCustomClaims(ownerUser.uid, ownerExistingClaims, 'OWNER');
     console.error('⚠️ The bootstrap reservation remains in PENDING status for this exact OWNER UID.');
     console.error('⚠️ You may safely resolve network/IAM credentials and re-run with the same OWNER_EMAIL to complete.');
     process.exit(1);
@@ -248,12 +246,8 @@ async function bootstrap() {
       console.log(`✅ ADMIN claim ({ role: 'admin' }) merged and granted successfully to UID=${managerUser.uid}`);
     } catch (claimErr: any) {
       console.error('❌ Failed to assign ADMIN claim in Firebase Authentication:', claimErr.message);
-      if (managerClaimGranted) {
-        await restoreCustomClaims(managerUser.uid, managerExistingClaims, 'MANAGER');
-      }
-      if (ownerClaimGranted) {
-        await restoreCustomClaims(ownerUser.uid, ownerExistingClaims, 'OWNER');
-      }
+      await restoreCustomClaims(managerUser.uid, managerExistingClaims, 'MANAGER');
+      await restoreCustomClaims(ownerUser.uid, ownerExistingClaims, 'OWNER');
       console.error('⚠️ Bootstrap NOT marked completed. Reservation remains safely pending for this exact configuration.');
       process.exit(1);
     }
