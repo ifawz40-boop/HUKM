@@ -53,6 +53,31 @@ interface BookReaderViewProps {
   onShowToast?: (message: string) => void;
 }
 
+const renderSearchHighlights = (text: string, query: string): React.ReactNode => {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return text;
+
+  const source = text.toLocaleLowerCase();
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  let matchIndex = source.indexOf(needle, cursor);
+  let key = 0;
+
+  while (matchIndex !== -1) {
+    if (matchIndex > cursor) parts.push(text.slice(cursor, matchIndex));
+    parts.push(
+      <mark key={key++} className="rounded bg-amber-300/70 text-[#1f2937] px-0.5">
+        {text.slice(matchIndex, matchIndex + needle.length)}
+      </mark>
+    );
+    cursor = matchIndex + needle.length;
+    matchIndex = source.indexOf(needle, cursor);
+  }
+
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+};
+
 export const BookReaderView: React.FC<BookReaderViewProps> = ({
   book,
   initialChapterId,
@@ -800,12 +825,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
                 key={idx}
                 className={`text-justify leading-[2.1] tracking-wide rounded-lg transition-colors ${activeSpeechParagraph === idx ? 'bg-[#c59b27]/10 ring-1 ring-[#c59b27]/30 px-3 py-2' : ''}`}
               >
-                {chapterSearchQuery.trim()
-                  ? paragraph.split(new RegExp(`(${chapterSearchQuery.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\              <p
-                key={idx}
-                className="text-justify leading-[2.1] tracking-wide"
-              >
-                {paragraph}
+                {renderSearchHighlights(paragraph, chapterSearchQuery)}
               </p>')})`, 'gi')).map((part, partIndex) =>
                       part.toLocaleLowerCase() === chapterSearchQuery.trim().toLocaleLowerCase()
                         ? <mark key={partIndex} className="rounded bg-amber-300/70 text-[#1f2937] px-0.5">{part}</mark>
