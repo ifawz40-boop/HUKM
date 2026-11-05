@@ -18,6 +18,7 @@ import {
   StickyNote,
   Highlighter,
   Trash2,
+  Search,
 } from 'lucide-react';
 import { UserProfile, AdminRequest } from '../types/auth';
 import { createAdminRequest, getMyAdminRequest } from '../services/adminClaimsClient';
@@ -59,6 +60,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'bookmarks' | 'notes'>(initialTab);
   const [readerNotes, setReaderNotes] = useState<ReaderAnnotation[]>([]);
+  const [readerNotesSearch, setReaderNotesSearch] = useState('');
   const [isLoadingReaderNotes, setIsLoadingReaderNotes] = useState(false);
   const [savedSubTab, setSavedSubTab] = useState<'favorites' | 'history'>('favorites');
   const [isResending, setIsResending] = useState(false);
@@ -98,7 +100,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     fetchAllReaderAnnotationsFromFirestore(user.id).then(async (cloudNotes) => {
       if (!active || !cloudNotes) return;
       const latestLocal = getAllReaderAnnotations(user.id);
-      const merged = mergeReaderAnnotations(latestLocal, cloudNotes);
+      const merged = mergeReaderAnnotations(latestLocal, cloudNotes)
+        .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
       saveAllReaderAnnotations(merged, user.id);
       if (active) setReaderNotes(merged);
 
@@ -133,6 +136,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const isUserOwner = isOwner(user);
   const isUserAdmin = isAdmin(user);
   const bookmarkedBooks = books.filter((b) => (user.bookmarks || []).includes(b.id));
+  const filteredReaderNotes = readerNotes.filter((note) => {
+    const query = readerNotesSearch.trim().toLocaleLowerCase();
+    if (!query) return true;
+    const bookTitle = books.find((book) => book.id === note.bookId)?.title || '';
+    const chapterTitle = books.find((book) => book.id === note.bookId)?.chapters.find((chapter) => chapter.id === note.chapterId)?.title || '';
+    return [note.selectedText, note.note, bookTitle, chapterTitle]
+      .some((value) => value.toLocaleLowerCase().includes(query));
+  });
 
   // Compute actual reading history records for this user
   const allProgress = getAllReadingProgress(user.id);
@@ -599,6 +610,17 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <span className="rounded-lg border border-[#c59b27]/25 bg-[#c59b27]/10 px-2 py-1 text-[10px] font-bold text-[#f0cb69]">{readerNotes.length} مقتطف</span>
             </div>
 
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b]" />
+              <input
+                value={readerNotesSearch}
+                onChange={(e) => setReaderNotesSearch(e.target.value)}
+                placeholder="ابحث في المقتطفات والكتب والملاحظات..."
+                aria-label="البحث في دفتر الملاحظات"
+                className="w-full rounded-xl border border-white/10 bg-[#070d1e] py-2.5 pr-9 pl-3 text-xs text-white outline-none focus:border-[#c59b27]"
+              />
+            </div>
+
             {isLoadingReaderNotes ? (
               <div className="py-8 text-center text-xs text-[#94a3b8]">جاري تحميل دفتر الملاحظات...</div>
             ) : readerNotes.length === 0 ? (
@@ -607,10 +629,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <p className="font-bold text-white">دفترك ما زال فارغاً</p>
                 <p className="text-[11px] text-[#64748b]">أثناء القراءة، حدد أي مقتطف واضغط زر التمييز لحفظه هنا مع ملاحظتك الشخصية.</p>
               </div>
+            ) : filteredReaderNotes.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-xs text-[#94a3b8]">لا توجد مقتطفات تطابق بحثك.</div>
             ) : (
               <>
                 <div className="max-h-[48vh] overflow-y-auto space-y-2 no-scrollbar pr-1">
-                  {readerNotes.map((note) => {
+                  {filteredReaderNotes.map((note) => {
                     const book = books.find((item) => item.id === note.bookId);
                     const chapter = book?.chapters.find((item) => item.id === note.chapterId);
                     const colorClass = note.color === 'green'
