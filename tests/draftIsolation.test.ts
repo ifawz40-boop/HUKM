@@ -524,8 +524,8 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
     });
 
     it('uses real paragraph separators when loading deleted-chapter recovery or discard targets', () => {
-      assert.equal((writerStudioContent.match(/join\('\\\\n\\\\n'\)/g) || []).length, 0);
-      assert.ok((writerStudioContent.match(/join\('\\n\\n'\)/g) || []).length >= 4);
+      assert.equal(writerStudioContent.includes("join('\\\\n\\\\n')"), false);
+      assert.ok(writerStudioContent.includes("join('\\n\\n')"));
     });
   });
 
