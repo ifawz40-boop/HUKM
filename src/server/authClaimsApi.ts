@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { adminAuth, adminDb } from './firebaseAdmin.ts';
 import { isValidOwnerEmail } from './ownerBootstrapGuards.ts';
+import { isValidOwnerEmail } from './ownerBootstrapGuards.ts';
 
 export const authClaimsRouter = Router();
 
@@ -394,7 +395,7 @@ authClaimsRouter.post('/grant-owner', authenticateToken, requireFounderOwner, as
   const actor = (req as any).user;
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!isValidOwnerEmail(email)) {
     return res.status(400).json({ success: false, message: 'يرجى إدخال بريد إلكتروني صحيح للحساب المراد ترقيته.' });
   }
 
