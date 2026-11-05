@@ -17,6 +17,8 @@ import type { UserProfile } from '../src/types/auth.ts';
 describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
 
   const rulesContent = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf-8');
+  const firestoreServiceContent = fs.readFileSync(path.resolve(process.cwd(), 'src/firebase/firestoreService.ts'), 'utf-8');
+  const adminModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/AdminManagementModal.tsx'), 'utf-8');
 
   // =========================================================================
   // SECTION 1: Static Rules Invariant Audit (firestore.rules)
@@ -636,6 +638,29 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(ownerItems.hasManageCategoriesCTA, true);
       assert.equal(ownerItems.hasAdminManagementCTA, true);
       assert.equal(ownerItems.hasEmailModalCTA, true);
+    });
+  });
+
+  describe('Audit: empty admin and ban collections must clear stale UI state', () => {
+    it('returns empty arrays for successful empty cloud reads, reserving null for failures', () => {
+      const adminsBlock = firestoreServiceContent.slice(
+        firestoreServiceContent.indexOf('export async function fetchAdminsFromFirestore'),
+        firestoreServiceContent.indexOf('export async function saveAdminToFirestore')
+      );
+      const bansBlock = firestoreServiceContent.slice(
+        firestoreServiceContent.indexOf('export async function fetchBansFromFirestore'),
+        firestoreServiceContent.indexOf('export async function saveBanToFirestore')
+      );
+      assert.match(adminsBlock, /if \(snapshot\.empty\) return \[\]/);
+      assert.match(adminsBlock, /catch \(error\)[\s\S]*?return null/);
+      assert.match(bansBlock, /if \(snapshot\.empty\) return \[\]/);
+      assert.match(bansBlock, /catch \(error\)[\s\S]*?return null/);
+    });
+
+    it('replaces UI lists with successful empty cloud results instead of retaining stale entries', () => {
+      assert.match(adminModalContent, /if \(remote !== null\) \{\s*setAdminsList\(remote\)/);
+      assert.match(adminModalContent, /if \(remote !== null\) \{\s*setBansList\(remote\)/);
+      assert.match(adminModalContent, /else \{\s*setBansList\(getStoredBans\(\)\)/);
     });
   });
 
