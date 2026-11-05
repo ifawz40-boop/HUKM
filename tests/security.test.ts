@@ -128,6 +128,14 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.ok(rulesContent.includes("get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin'"));
     });
 
+    it('must deny all client writes to the admin registry so founder status cannot be self-assigned', () => {
+      assert.match(
+        rulesContent,
+        /match \/admins\/\{adminId\}\s*\{\s*allow read: if isAdmin\(\);\s*allow create, update, delete: if false;/
+      );
+      assert.ok(rulesContent.includes('Only trusted Firebase Admin SDK server'));
+    });
+
     it('must keep category mutations Owner-only at the Firestore boundary', () => {
       assert.ok(rulesContent.includes("allow create, update, delete: if isOwner() && isValidId(categoryId);"));
       assert.equal(rulesContent.includes("allow create, update, delete: if isAdmin() && isValidId(categoryId);"), false);
