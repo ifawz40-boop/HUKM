@@ -41,12 +41,33 @@ export async function loginWithFirebaseGoogle(): Promise<{ email: string; name: 
 // ----------------------------------------------------
 
 /**
- * Format a stable, rules-compliant document ID for isolated draft chapters.
- * Pattern: draft_<bookId>_<chapterId> sanitized to [a-zA-Z0-9_-], max 128 chars.
+ * Format a backwards-compatible document ID for isolated draft chapters.
+ * Existing safe IDs keep their exact historical value. Unsafe or overlong inputs
+ * are rejected instead of being normalized into a potentially colliding ID.
  */
 export function formatDraftChapterId(bookId: string, chapterId: string): string {
   const raw = `draft_${bookId}_${chapterId}`;
-  return raw.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 128);
+  if (!/^[a-zA-Z0-9_-]+$/.test(raw)) {
+    throw new Error('Draft IDs may contain only letters, numbers, underscores, and hyphens. Refusing lossy ID normalization.');
+  }
+  if (raw.length > 128) {
+    throw new Error('Draft ID exceeds Firestore’s 128-character application limit. Refusing lossy truncation.');
+  }
+  return raw;
+}
+
+/**
+ * Keep every non-ready chapter private, including unknown or legacy runtime statuses.
+ * The TypeScript status union is intentionally not trusted as runtime validation.
+ */
+export function partitionBookChapters(chapters: BookChapter[] = []): {
+  readyChapters: BookChapter[];
+  draftChapters: BookChapter[];
+} {
+  return {
+    readyChapters: chapters.filter((chapter) => chapter.status === 'ready'),
+    draftChapters: chapters.filter((chapter) => chapter.status !== 'ready'),
+  };
 }
 
 /**
@@ -153,9 +174,7 @@ export async function fetchBooksFromFirestore(isAdminUser: boolean = false): Pro
 export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
   const path = `books/${book.id}`;
   try {
-    const allChapters = book.chapters || [];
-    const readyChapters = allChapters.filter((ch) => ch.status === 'ready');
-    const draftChapters = allChapters.filter((ch) => ch.status === 'draft');
+    const { readyChapters, draftChapters } = partitionBookChapters(book.chapters || []);
 
     const batch = writeBatch(db);
     let cleanupCount = 0;
@@ -194,8 +213,7 @@ export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
     for (const draft of draftChapters) {
       const draftId = formatDraftChapterId(book.id, draft.id);
       const draftRef = doc(db, 'bookDraftChapters', draftId);
-      // A sanitized/truncated ID can collide with a draft from another book or chapter.
-      // Verify ownership before setDoc so an existing unrelated draft is never overwritten.
+      // Verify ownership before setDoc so an existing unrelated legacy record is never overwritten.
       const existingDraftDoc = await getDoc(draftRef);
       if (existingDraftDoc.exists()) {
         const existingData = existingDraftDoc.data();
