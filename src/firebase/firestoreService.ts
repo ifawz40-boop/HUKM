@@ -826,6 +826,14 @@ export async function deleteReaderAnnotationFromFirestore(
       'chapters', annotation.chapterId,
       'readerAnnotationEntries', annotation.id
     );
+    const existingAnnotation = await getDoc(annotationRef);
+    if (!existingAnnotation.exists()) return true;
+    const existingData = existingAnnotation.data();
+    if (
+      existingData.userId !== userId ||
+      existingData.bookId !== annotation.bookId ||
+      existingData.chapterId !== annotation.chapterId
+    ) return false;
     await deleteDoc(annotationRef);
     return true;
   } catch (error) {
