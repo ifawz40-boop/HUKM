@@ -70,6 +70,21 @@ export function partitionBookChapters(chapters: BookChapter[] = []): {
   };
 }
 
+/** Firestore documents are limited to 1 MiB. Keep a conservative JSON byte budget
+ * to leave room for Firestore's internal encoding and field/index overhead.
+ */
+export const FIRESTORE_DOCUMENT_SAFE_LIMIT_BYTES = 800 * 1024;
+
+export function assertFirestoreDocumentSize(payload: Record<string, unknown>, label: string): void {
+  const serialized = JSON.stringify(payload);
+  const byteLength = new TextEncoder().encode(serialized).length;
+  if (byteLength > FIRESTORE_DOCUMENT_SAFE_LIMIT_BYTES) {
+    throw new Error(
+      `${label} is approximately ${byteLength} bytes; the safe Firestore document budget is ${FIRESTORE_DOCUMENT_SAFE_LIMIT_BYTES} bytes. Reduce or split the content before saving.`
+    );
+  }
+}
+
 /**
  * Fetch books from Firestore.
  * - If adminUser: queries all books, retrieves isolated drafts from /bookDraftChapters,
@@ -213,14 +228,8 @@ export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
     for (const draft of draftChapters) {
       const draftId = formatDraftChapterId(book.id, draft.id);
       const draftRef = doc(db, 'bookDraftChapters', draftId);
-      // Verify ownership before setDoc so an existing unrelated legacy record is never overwritten.
-      const existingDraftDoc = await getDoc(draftRef);
-      if (existingDraftDoc.exists()) {
-        const existingData = existingDraftDoc.data();
-        if (existingData.bookId !== book.id || existingData.chapterId !== draft.id) {
-          throw new Error(`Draft document ID collision with existing record "${draftId}". Save was safely aborted.`);
-        }
-      }
+      // Firestore rules enforce immutable (bookId, chapterId) identity on updates,
+      // so this write is race-safe without one extra document read per draft.
       const draftPayload: Record<string, any> = {
         id: draftId,
         bookId: book.id,
@@ -237,6 +246,7 @@ export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
         viewsCount: draft.viewsCount || 0,
         updatedAt: draft.updatedAt || new Date().toISOString(),
       };
+      assertFirestoreDocumentSize(draftPayload, `Draft chapter "${draft.title || draft.id}"`);
       batch.set(draftRef, draftPayload, { merge: true });
     }
 
@@ -247,6 +257,7 @@ export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
       chapters: readyChapters,
       updatedAt: new Date().toISOString(),
     };
+    assertFirestoreDocumentSize(bookPayload, `Book "${book.title || book.id}"`);
     batch.set(bookRef, bookPayload, { merge: true });
 
     // 4. Commit batch atomically
