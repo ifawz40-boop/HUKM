@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookProject } from '../types/hukm';
+import { getBookResearchDraft, removeBookResearchDraft, saveBookResearchDraft, type BookResearchDraftSnapshot } from '../utils/bookResearchRecovery';
 import { BookOpen, ExternalLink, FileText, Plus, Quote, Save, Trash2 } from 'lucide-react';
 
 type RawEntry = Record<string, unknown>;
@@ -39,6 +40,9 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
   const [hasRemoteResearchChanges, setHasRemoteResearchChanges] = useState(false);
+  const [researchRecoveryDraft, setResearchRecoveryDraft] = useState<BookResearchDraftSnapshot | null>(null);
+  const [isResearchHydrated, setIsResearchHydrated] = useState(false);
+  const draftSaveWarningShownRef = useRef(false);
   const previousBookIdRef = useRef<string | undefined>(undefined);
   const previousUpdatedAtRef = useRef<string | undefined>(undefined);
 
@@ -49,10 +53,18 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
     const bookChanged = previousBookIdRef.current !== book.id;
 
     if (bookChanged) {
+      setIsResearchHydrated(false);
       previousBookIdRef.current = book.id;
       previousUpdatedAtRef.current = book.updatedAt;
       setSources(remoteSources);
       setQuotes(remoteQuotes);
+      const savedDraft = getBookResearchDraft(book.id);
+      const draftDiffersFromCloud = Boolean(savedDraft && (
+        JSON.stringify(savedDraft.sources) !== JSON.stringify(remoteSources) ||
+        JSON.stringify(savedDraft.quotes) !== JSON.stringify(remoteQuotes)
+      ));
+      setResearchRecoveryDraft(draftDiffersFromCloud ? savedDraft : null);
+      if (savedDraft && !draftDiffersFromCloud) removeBookResearchDraft(book.id);
       setHasRemoteResearchChanges(false);
       setSourceTitle('');
       setSourceAuthor('');
@@ -64,6 +76,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
       setQuoteSourceId('');
       setQuotePage('');
       setQuoteNote('');
+      setIsResearchHydrated(true);
       return;
     }
 
@@ -72,10 +85,37 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
       const localMatchesRemote =
         JSON.stringify(remoteSources) === JSON.stringify(sources) &&
         JSON.stringify(remoteQuotes) === JSON.stringify(quotes);
-      // Do not silently replace unsaved local research edits when another session updates this book.
+      // Keep unsaved local work and surface a conflict instead of silently overwriting it.
       setHasRemoteResearchChanges(!localMatchesRemote);
     }
   }, [book?.id, book?.updatedAt]);
+
+  // Persist only source/quote list changes locally; no Firestore writes occur until the explicit save action.
+  useEffect(() => {
+    if (!book || !isResearchHydrated || researchRecoveryDraft) return;
+    const remoteSources = Array.isArray(book.sources) ? book.sources : [];
+    const remoteQuotes = Array.isArray(book.quotes) ? book.quotes : [];
+    const matchesCloud =
+      JSON.stringify(sources) === JSON.stringify(remoteSources) &&
+      JSON.stringify(quotes) === JSON.stringify(remoteQuotes);
+    if (matchesCloud) {
+      removeBookResearchDraft(book.id);
+      draftSaveWarningShownRef.current = false;
+      return;
+    }
+    const saved = saveBookResearchDraft({
+      bookId: book.id,
+      sources,
+      quotes,
+      savedAt: new Date().toISOString(),
+    });
+    if (!saved && !draftSaveWarningShownRef.current) {
+      draftSaveWarningShownRef.current = true;
+      onShowToast('تعذر حفظ نسخة استرداد ملف البحث على هذا الجهاز. احفظ الملف في السحابة قبل مغادرة الاستوديو.');
+    } else if (saved) {
+      draftSaveWarningShownRef.current = false;
+    }
+  }, [book?.id, book?.sources, book?.quotes, sources, quotes, isResearchHydrated, researchRecoveryDraft, onShowToast]);
 
   const selectableSources = useMemo(
     () =>
@@ -204,6 +244,9 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
         onShowToast('تعذر حفظ المراجع والاقتباسات. لم تُحفظ التعديلات؛ حاول مرة أخرى قبل مغادرة الصفحة.');
         return;
       }
+      removeBookResearchDraft(book.id);
+      setResearchRecoveryDraft(null);
+      setHasRemoteResearchChanges(false);
       onShowToast('تم حفظ ملف البحث ومراجعه بنجاح.');
     } catch {
       onShowToast('حدث خطأ أثناء حفظ ملف البحث.');
@@ -213,12 +256,31 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
     }
   };
 
+  const handleRestoreLocalResearchDraft = () => {
+    if (!researchRecoveryDraft || researchRecoveryDraft.bookId !== book?.id) return;
+    setSources(researchRecoveryDraft.sources);
+    setQuotes(researchRecoveryDraft.quotes);
+    setResearchRecoveryDraft(null);
+    setHasRemoteResearchChanges(false);
+    onShowToast('تم استعادة تعديلات ملف البحث من هذا الجهاز. احفظها في السحابة لتثبيتها.');
+  };
+
+  const handleDiscardLocalResearchDraft = () => {
+    if (!researchRecoveryDraft || !book) return;
+    if (!window.confirm('هل تريد تجاهل نسخة البحث المحلية غير المحفوظة نهائياً؟')) return;
+    removeBookResearchDraft(book.id);
+    setResearchRecoveryDraft(null);
+    onShowToast('تم تجاهل نسخة البحث المحلية.');
+  };
+
   const handleReloadRemoteResearch = () => {
     if (!book) return;
     if (!window.confirm('سيؤدي تحميل النسخة الأحدث إلى استبدال التعديلات المحلية غير المحفوظة. هل تريد المتابعة؟')) return;
     setSources(Array.isArray(book.sources) ? book.sources : []);
     setQuotes(Array.isArray(book.quotes) ? book.quotes : []);
     setHasRemoteResearchChanges(false);
+    setResearchRecoveryDraft(null);
+    removeBookResearchDraft(book.id);
     onShowToast('تم تحميل أحدث نسخة من ملف البحث.');
   };
 
@@ -246,6 +308,18 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
         </button>
       </div>
 
+      {researchRecoveryDraft && researchRecoveryDraft.bookId === book.id && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3 text-xs text-sky-100">
+          <div className="min-w-0 flex-1">
+            <p className="font-bold">وجدنا نسخة محلية غير محفوظة من ملف البحث</p>
+            <p className="mt-1 text-[10px] text-sky-100/75">آخر حفظ محلي: {new Date(researchRecoveryDraft.savedAt).toLocaleString('ar-EG')} — لم تُرسل هذه النسخة إلى السحابة.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={handleRestoreLocalResearchDraft} disabled={isSaving} className="rounded-lg bg-sky-200 px-3 py-2 font-bold text-[#08243b] disabled:opacity-50">استعادة النسخة</button>
+            <button type="button" onClick={handleDiscardLocalResearchDraft} disabled={isSaving} className="rounded-lg border border-sky-200/40 px-3 py-2 font-bold text-sky-100 disabled:opacity-50">تجاهلها</button>
+          </div>
+        </div>
+      )}
       {hasRemoteResearchChanges && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100">
           <p className="min-w-0 flex-1 leading-relaxed">هناك نسخة أحدث من ملف المراجع على الخادم. احتفظنا بتعديلاتك الحالية ولم نستبدلها تلقائياً.</p>
