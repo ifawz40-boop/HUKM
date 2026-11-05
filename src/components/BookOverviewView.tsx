@@ -18,6 +18,9 @@ import {
   Search,
   ArrowUpDown,
   Sparkles,
+  FileText,
+  Quote,
+  ExternalLink,
 } from 'lucide-react';
 import { BookProject, BookChapter, CategoryItem } from '../types/hukm';
 import { calculateBookStats, getCategoryName } from '../utils/hukmEngine';
@@ -40,6 +43,25 @@ interface BookOverviewViewProps {
   onToggleBookmark?: () => void;
   onShowToast: (msg: string) => void;
 }
+
+type ResearchRecord = Record<string, unknown>;
+
+const isResearchRecord = (value: unknown): value is ResearchRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const researchText = (value: unknown): string =>
+  typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+
+const safeResearchUrl = (value: unknown): string => {
+  const raw = researchText(value);
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? raw : '';
+  } catch {
+    return '';
+  }
+};
 
 export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
   book,
@@ -325,7 +347,71 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
           </p>
         </section>
 
-        {/* Chapters Index & Catalog (فهرس الفصول - مثل truthnovel.top) */}
+        {/* Published bibliography and quotations */}
+        {((Array.isArray(book.sources) && book.sources.length > 0) || (Array.isArray(book.quotes) && book.quotes.length > 0)) && (
+          <section className="rounded-2xl border border-[#c59b27]/20 bg-[#0a1329] p-6 sm:p-8 space-y-6">
+            <h2 className="flex items-center gap-2 text-lg font-black text-white font-cairo">
+              <FileText className="h-5 w-5 text-[#d4af37]" />
+              المراجع والاقتباسات الموثقة
+            </h2>
+
+            {Array.isArray(book.sources) && book.sources.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-[#f0cb69]">المصادر</h3>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {book.sources.map((item, index) => {
+                    const record = isResearchRecord(item) ? item : {};
+                    const title = researchText(record.title) || researchText(record.name) || (typeof item === 'string' ? item : `مرجع ${index + 1}`);
+                    const author = researchText(record.author);
+                    const publisher = researchText(record.publisher);
+                    const year = researchText(record.year);
+                    const note = researchText(record.note);
+                    const url = safeResearchUrl(record.url);
+                    const id = researchText(record.id);
+                    return (
+                      <div key={id || `source-${index}`} className="rounded-xl border border-white/10 bg-[#070d1e] p-4 space-y-1.5">
+                        <p className="text-sm font-bold text-white">{title}</p>
+                        <p className="text-[11px] text-[#94a3b8]">{[author, publisher, year].filter(Boolean).join(' • ')}</p>
+                        {note && <p className="text-xs leading-relaxed text-[#cbd5e1]">{note}</p>}
+                        {url && <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#f0cb69] hover:underline"><ExternalLink className="h-3 w-3" />فتح المصدر</a>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {Array.isArray(book.quotes) && book.quotes.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-[#f0cb69]"><Quote className="h-4 w-4" />اقتباسات مختارة</h3>
+                <div className="space-y-3">
+                  {book.quotes.map((item, index) => {
+                    const record = isResearchRecord(item) ? item : {};
+                    const quote = researchText(record.text) || researchText(record.quote) || (typeof item === 'string' ? item : 'اقتباس موثق');
+                    const sourceId = researchText(record.sourceId);
+                    const source = Array.isArray(book.sources) ? book.sources.find((sourceItem) => isResearchRecord(sourceItem) && sourceItem.id === sourceId) : undefined;
+                    const sourceName = source && isResearchRecord(source) ? researchText(source.title) || researchText(source.name) : '';
+                    const page = researchText(record.page);
+                    const note = researchText(record.note);
+                    const id = researchText(record.id);
+                    return (
+                      <div key={id || `quote-${index}`} className="rounded-xl border border-white/10 bg-[#070d1e] p-4 space-y-2">
+                        <blockquote className="whitespace-pre-wrap text-sm leading-loose text-[#e2e8f0]">«{quote}»</blockquote>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#94a3b8]">
+                          {sourceName && <span>المصدر: {sourceName}</span>}
+                          {page && <span>الصفحة: {page}</span>}
+                        </div>
+                        {note && <p className="border-t border-white/5 pt-2 text-xs text-[#cbd5e1]">{note}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Chapters Index & Catalog (فهرس الفصول) */}
         <section className="rounded-2xl border border-white/10 bg-[#0a1329] p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div>
