@@ -15,6 +15,19 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
   const writerStudioContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/BookWriterStudio.tsx'), 'utf-8');
   const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
 
+  describe('Invariant 0: Draft ID collision protection', () => {
+    it('must verify an existing draft document belongs to the exact book and chapter before overwrite', () => {
+      assert.match(firestoreServiceContent, /getDoc\(draftRef\)/);
+      assert.match(firestoreServiceContent, /existingData\.bookId !== book\.id \|\| existingData\.chapterId !== draft\.id/);
+    });
+
+    it('must detect draft ID collisions globally across the migration plan before writes', () => {
+      assert.match(migrationScriptContent, /const plannedDraftOwners = new Map/);
+      assert.match(migrationScriptContent, /Global draft ID collision detected/);
+      assert.match(migrationScriptContent, /Existing draft ID collision/);
+    });
+  });
+
   // =========================================================================
   // SECTION 1: Firestore Security Rules & Blueprint Invariants
   // =========================================================================
