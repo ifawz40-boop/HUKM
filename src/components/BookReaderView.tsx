@@ -337,17 +337,18 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   // Keyboard navigation: Left = Prev, Right = Next
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsChapterSearchOpen(false);
+        setIsSettingsOpen(false);
+        return;
+      }
+
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         setIsChapterSearchOpen(true);
         return;
-      }
-
-      if (e.key === 'Escape') {
-        setIsChapterSearchOpen(false);
-        setIsSettingsOpen(false);
       }
 
       if (e.key === 'ArrowLeft' && prevChapter) {
