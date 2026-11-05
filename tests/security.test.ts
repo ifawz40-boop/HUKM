@@ -283,6 +283,31 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     });
   });
 
+  describe('Reader annotation security invariants', () => {
+    it('must scope annotation documents beneath the owning user and book/chapter path', () => {
+      assert.match(rulesContent, /match \/readerAnnotations\/\{bookId\}\/chapters\/\{chapterId\}\/items\/\{annotationId\}/);
+      assert.match(rulesContent, /request\.auth\.uid == userId/);
+      assert.match(rulesContent, /data\.userId == userId/);
+      assert.match(rulesContent, /data\.bookId == bookId/);
+      assert.match(rulesContent, /data\.chapterId == chapterId/);
+    });
+
+    it('must restrict annotation fields, excerpt size, note size, offsets and colors', () => {
+      assert.match(rulesContent, /data\.selectedText\.size\(\) <= 2000/);
+      assert.match(rulesContent, /data\.note\.size\(\) <= 2000/);
+      assert.match(rulesContent, /data\.endOffset is int && data\.endOffset > data\.startOffset/);
+      assert.match(rulesContent, /data\.color in \['gold', 'green', 'blue', 'rose'\]/);
+    });
+
+    it('must prevent changing annotation ownership, book, chapter or anchor offsets', () => {
+      assert.match(rulesContent, /data\.userId == userId/);
+      assert.match(rulesContent, /data\.paragraphIndex == previous\.paragraphIndex/);
+      assert.match(rulesContent, /data\.startOffset == previous\.startOffset/);
+      assert.match(rulesContent, /data\.endOffset == previous\.endOffset/);
+      assert.match(rulesContent, /affected\.hasOnly\(\['selectedText', 'note', 'color', 'updatedAt'\]\)/);
+    });
+  });
+
   // Test 11: Unverified account cannot get administrative privileges (Phase 1.3)
   describe('Test 11: Unverified account cannot get administrative privileges (Phase 1.3)', () => {
     it('should deny admin/owner privileges if email_verified is false, even with Google provider or claims', () => {
