@@ -17,7 +17,8 @@
     "test:drafts": "tsx --test tests/draftIsolation.test.ts",
     "test:email": "tsx --test tests/emailTemplateSecurity.test.ts",
     "test:http": "tsx --test tests/httpSecurity.test.ts",
-    "owner:bootstrap": "tsx scripts/bootstrap-owner.ts"
+    "owner:bootstrap": "tsx scripts/bootstrap-owner.ts",
+    "owner:verify": "tsx scripts/verify-owner.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
