@@ -102,6 +102,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     currentBook?.chapters[0]?.id || ''
   );
   const [isCreatingChapter, setIsCreatingChapter] = useState(false);
+  const [isSavingChapter, setIsSavingChapter] = useState(false);
+  const isSavingChapterRef = useRef(false);
   const currentChapter = isCreatingChapter
     ? undefined
     : currentBook?.chapters.find((c) => c.id === selectedChapterId) ||
@@ -315,7 +317,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Save current chapter
   const handleSaveChapter = async () => {
-    if (!currentBook) return;
+    if (!currentBook || isSavingChapterRef.current) return;
 
     if (!chapterTitle.trim()) {
       alert('يرجى إدخال عنوان الفصل.');
@@ -397,6 +399,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
+    isSavingChapterRef.current = true;
+    setIsSavingChapter(true);
     try {
       const result = await onUpdateBook(updatedBook);
       if (result === false) {
@@ -419,6 +423,9 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       showNotification('تم حفظ وتحديث الفصل بنجاح ومزامنته سحابياً ✓');
     } catch (err: any) {
       showNotification('حدث خطأ أثناء حفظ الفصل. تم الاحتفاظ بالبيانات محلياً.', true);
+    } finally {
+      isSavingChapterRef.current = false;
+      setIsSavingChapter(false);
     }
   };
 
@@ -1029,11 +1036,11 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                     </span>
                     <button
                       onClick={handleSaveChapter}
-                      disabled={!currentBook}
+                      disabled={!currentBook || isSavingChapter}
                       className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 px-4 py-2 text-xs font-bold text-white shadow-md transition-all cursor-pointer disabled:opacity-50"
                     >
                       <Save className="h-4 w-4" />
-                      <span>{chapterStatus === 'draft' ? 'حفظ المسودة' : 'حفظ ونشر الفصل'}</span>
+                      <span>{isSavingChapter ? 'جارٍ الحفظ...' : chapterStatus === 'draft' ? 'حفظ المسودة' : 'حفظ ونشر الفصل'}</span>
                     </button>
                   </div>
                 </div>
@@ -1110,11 +1117,11 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                   </p>
                   <button
                     onClick={handleSaveChapter}
-                    disabled={!currentBook}
+                    disabled={!currentBook || isSavingChapter}
                     className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:scale-102 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <Save className="h-4 w-4" />
-                    <span>حفظ ونشر التعديلات فوراً</span>
+                    <span>{isSavingChapter ? 'جارٍ الحفظ...' : 'حفظ ونشر التعديلات فوراً'}</span>
                   </button>
                 </div>
               </div>
