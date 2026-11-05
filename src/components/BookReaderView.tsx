@@ -251,15 +251,19 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [selectedEndOffset, setSelectedEndOffset] = useState(0);
   const [annotationNoteDraft, setAnnotationNoteDraft] = useState('');
   const [annotationColor, setAnnotationColor] = useState<ReaderAnnotationColor>('gold');
-  const annotationSyncInFlightRef = useRef<Set<string>>(new Set());
-  const syncAnnotationToCloud = useCallback(async (annotation: ReaderAnnotation): Promise<boolean> => {
-    if (!annotation.userId || annotationSyncInFlightRef.current.has(annotation.id)) return false;
-    annotationSyncInFlightRef.current.add(annotation.id);
-    try {
-      return await saveReaderAnnotationToFirestore(annotation);
-    } finally {
-      annotationSyncInFlightRef.current.delete(annotation.id);
-    }
+  const annotationSyncPromisesRef = useRef<Map<string, Promise<boolean>>>(new Map());
+  const syncAnnotationToCloud = useCallback((annotation: ReaderAnnotation): Promise<boolean> => {
+    if (!annotation.userId) return Promise.resolve(false);
+    const existingRequest = annotationSyncPromisesRef.current.get(annotation.id);
+    if (existingRequest) return existingRequest;
+
+    const request = saveReaderAnnotationToFirestore(annotation)
+      .catch(() => false)
+      .finally(() => {
+        annotationSyncPromisesRef.current.delete(annotation.id);
+      });
+    annotationSyncPromisesRef.current.set(annotation.id, request);
+    return request;
   }, []);
 
 
@@ -823,6 +827,9 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   const handleDeleteAnnotation = async (annotation: ReaderAnnotation) => {
     if (currentUser?.id) {
+      // Wait for any pending create/update to finish, then delete its cloud result to avoid resurrection.
+      const inFlightSync = annotationSyncPromisesRef.current.get(annotation.id);
+      if (inFlightSync) await inFlightSync;
       // A pending local edit can still have an older cloud document; delete both copies.
       const deleted = await deleteReaderAnnotationFromFirestore(currentUser.id, annotation);
       if (!deleted) {
