@@ -81,3 +81,18 @@ export async function reviewAdminRequest(uid: string, action: 'approve' | 'rejec
     return { success: false, message: err.message || 'تعذرت مراجعة الطلب.' };
   }
 }
+
+/** Grant a verified existing account the additional OWNER role. Strictly server-authorized. */
+export async function grantOwnerRole(email: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/auth/grant-owner', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || 'تعذرت إضافة المالك.' };
+  }
+}
