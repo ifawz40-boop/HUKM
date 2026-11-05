@@ -153,3 +153,44 @@
 - Firebase Emulator tests have not been run. The static security regression tests are committed but remain unverified until CI or a local test run completes.
 
 **LATEST CODE COMMIT:** `a95a64233d106eac092a578094ea4f27f20a1d6b`.
+
+
+## CI recovery and source verification — 2026-11-05 19:24 UTC
+
+### Findings fixed on main
+- Fixed owner-email validation to reject malformed/backslash-containing addresses and enforce a bounded email shape in `src/server/ownerBootstrapGuards.ts`.
+- Replaced obsolete manager-bootstrap source assertions in `tests/security.test.ts` with tests for the current single-founder bootstrap design and its claim rollback path.
+- Fixed malformed JSX around the founder-only additional-owner form in `src/components/AdminManagementModal.tsx`.
+- Fixed a TypeScript control-flow issue by returning the reservation decision directly from the Firestore transaction in `scripts/bootstrap-owner.ts`.
+- Moved the founder-state derivation below the `adminsList` state initialization to remove use-before-declaration errors.
+
+### Verified commits
+- Email validation fix: `1f3881e34add5c61cc714a296512c510053409ab`
+- Bootstrap test alignment: `bb377735e55e03a04337d87196232e4770143462`
+- Reservation guard test correction: `2045a27b2d96d6677665e25503606fbb9aae3e12`
+- Founder UI JSX fix: `221ce99e805fda89aaf19d03b5d02dfbcd7686c9`
+- Bootstrap transaction return fix: `608a6ca2e88fe8418e8584685723a58542be489f`
+- Founder-state initialization fix: `5cb8023bd1d3559a74aa80b88955255b6669d310`
+
+### CI evidence
+- GitHub Actions run: https://github.com/ifawz40-boop/HUKM/actions/runs/42093380355
+- Commit: `5cb8023bd1d3559a74aa80b88955255b6669d310`
+- Result: SUCCESS — locked dependency install, full test suite, TypeScript check, and Vite production build all completed successfully.
+- The full test suite passed after updating stale assertions; TypeScript and production build both passed after the two source-level fixes.
+
+### Still blocked / not verified
+- GitHub combined status for the code commit continues to show Vercel `failure`, with the target URL indicating a Vercel build-rate-limit/upgrade page. No successful production deployment is confirmed.
+- Firestore rules are committed but have NOT been deployed to Firebase. No live rules compiler/emulator or production rule evaluation has been run in this session.
+- Firebase Auth custom claims and Firestore `admins/{uid}` / `_system/bootstrap` production documents have NOT been modified. First-owner bootstrap and read-only verifier have NOT been executed.
+- Google AI Studio synchronization remains unconfirmed.
+
+### Exact resume point
+1. Start from latest `main`; do not use a local checkout assumption.
+2. The current code commit is `5cb8023bd1d3559a74aa80b88955255b6669d310`; this checkpoint update will be a documentation-only commit after it.
+3. Before owner provisioning, the operator must deploy Firestore rules using the runbook command and confirm success:
+   `firebase deploy --only firestore:rules --project gen-lang-client-0492732633`
+4. Then run the local-only `bun run owner:bootstrap` and `bun run owner:verify` with credentials kept outside the repository and never shared in chat.
+5. Confirm the verifier reports all PASS, then sign out/in and verify founder-only owner management UI.
+6. Revisit Vercel build-rate-limit failure and independently confirm Google AI Studio sync.
+
+**LATEST VERIFIED CODE COMMIT:** `5cb8023bd1d3559a74aa80b88955255b6669d310`.
