@@ -287,7 +287,7 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
                             }} className="rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-3 py-2 text-[11px] font-bold text-emerald-300 disabled:opacity-50">
                               {reviewingRequestUid === request.uid ? 'جاري التنفيذ...' : 'موافقة ومنح صلاحية المدير'}
                             </button>
-                            <button type="button" disabled={reviewingRequestUid === request.uid} onClick={async () => {
+                            <button type="button" disabled={reviewingRequestUid === request.uid || request.status === 'needs_attention' || (request.status === 'processing' && (!request.processingAt || Date.now() - Date.parse(request.processingAt) <= 5 * 60 * 1000))} onClick={async () => {
                               if (!confirm('هل تريد رفض طلب الإدارة؟ لن تُمنح أي صلاحيات لهذا الحساب.')) return;
                               setReviewingRequestUid(request.uid);
                               const result = await reviewAdminRequest(request.uid, 'reject');
