@@ -44,6 +44,33 @@ export interface ChapterMedia {
   badgeText?: string;
 }
 
+export interface BookSourcePage {
+  title: string;
+  url: string;
+  revisionId?: number | null;
+  revisionTimestamp?: string | null;
+}
+
+export interface BookRights {
+  license: string;
+  licenseUrl: string;
+  attribution: string;
+  datasetName: string;
+  datasetVersion: string;
+  datasetUrl: string;
+  dumpDate: string;
+  tier: string;
+  publicDomainRule?: string;
+  authorDeathYear?: number | null;
+  latestDeathYear?: number | null;
+  sourceUrl: string;
+  historyUrl?: string;
+  sourcePages: BookSourcePage[];
+  sourceLicense: string;
+  sourceLicenseUrl: string;
+  datasetCitation: string;
+}
+
 export interface BookProject {
   id: string;
   title: string;
@@ -60,6 +87,7 @@ export interface BookProject {
   chapters: BookChapter[];
   createdAt: string;
   updatedAt: string;
+  rights?: BookRights;
   // Optional legacy compatibility
   sources?: any[];
   quotes?: any[];
