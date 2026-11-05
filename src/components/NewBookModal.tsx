@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, BookOpen, AlertCircle, Eye, Loader2 } from 'lucide-react';
+import { X, Plus, BookOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { BookProject, CategoryItem, MediaType, PublishingStatus } from '../types/hukm';
 
 interface NewBookModalProps {
@@ -17,12 +17,11 @@ export const NewBookModal: React.FC<NewBookModalProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [author, setAuthor] = useState('إبراهيم فوزي');
+  const [author, setAuthor] = useState('');
   const [category, setCategory] = useState<string>(categories[0]?.id || 'investigations');
   const [summary, setSummary] = useState('');
   const [status, setStatus] = useState<PublishingStatus>('draft'); // Draft by default for safety
   const [motto, setMotto] = useState('«وعشان الموضوع مش زي ما إنت فاكر… تعالى نعرف.»');
-  const [initialViews, setInitialViews] = useState<number>(3500);
   const [coverType, setCoverType] = useState<MediaType>('image');
   const [coverImage, setCoverImage] = useState(
     'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80'
@@ -61,7 +60,6 @@ export const NewBookModal: React.FC<NewBookModalProps> = ({
 
     const bookId = `book-${Date.now()}`;
     const chapterId = `ch-${Date.now()}`;
-    const parsedViews = Number(initialViews) >= 0 ? Number(initialViews) : 0;
 
     // Build chapters cleanly without any fake or placeholder content
     const chapters = [];
@@ -77,7 +75,7 @@ export const NewBookModal: React.FC<NewBookModalProps> = ({
         status: (isPublishedMode ? 'ready' : 'draft') as 'ready' | 'draft',
         wordCount: paragraphs.join(' ').split(/\s+/).filter(Boolean).length,
         readingTimeMinutes: Math.max(1, Math.ceil(paragraphs.join(' ').split(/\s+/).filter(Boolean).length / 200)),
-        viewsCount: parsedViews,
+        viewsCount: 0,
         updatedAt: new Date().toISOString(),
       });
     }
@@ -86,14 +84,14 @@ export const NewBookModal: React.FC<NewBookModalProps> = ({
       id: bookId,
       title: title.trim(),
       subtitle: subtitle.trim() || 'مشروع بحثي موثق من حُكم | HUKM MEDIA',
-      author: author.trim() || 'إبراهيم فوزي',
+      author: author.trim(),
       category: category,
       coverImage: coverImage.trim(),
       coverMediaType: coverType,
       status: status,
       summary: summary.trim(),
       motto: motto.trim(),
-      viewsCount: parsedViews,
+      viewsCount: 0,
       socialLinks: {},
       sources: [],
       quotes: [],
@@ -196,7 +194,7 @@ export const NewBookModal: React.FC<NewBookModalProps> = ({
                 disabled={isSubmitting}
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                placeholder="مثال: إبراهيم فوزي"
+                placeholder="اكتب اسم المؤلف إن كان مختلفًا عن جهة النشر"
                 className="w-full rounded-xl bg-[#070d1e] p-2.5 text-xs font-bold text-white border border-white/10 focus:border-[#d4af37] focus:outline-none"
               />
             </div>
@@ -217,41 +215,7 @@ export const NewBookModal: React.FC<NewBookModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-[#d4af37] mb-1">
-                القسم / المسار المعرفي
-              </label>
-              <select
-                disabled={isSubmitting}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-xl bg-[#070d1e] p-2.5 text-xs font-semibold text-white border border-white/10 focus:border-[#d4af37] focus:outline-none cursor-pointer"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold text-[#f0cb69] mb-1">
-                <Eye className="h-3.5 w-3.5 text-[#d4af37]" />
-                <span>المشاهدات المبدئية عند النشر:</span>
-              </label>
-              <input
-                type="number"
-                min={0}
-                disabled={isSubmitting}
-                value={initialViews}
-                onChange={(e) => setInitialViews(Number(e.target.value))}
-                placeholder="مثال: 5000"
-                className="w-full rounded-xl bg-[#070d1e] p-2.5 text-xs font-bold text-[#f0cb69] border border-[#c59b27]/40 focus:border-[#d4af37] focus:outline-none"
-              />
-            </div>
-          </div>
+          <p className="text-[11px] text-[#94a3b8]">تبدأ المشاهدات من صفر، وتُحتسب تلقائيًا من تفاعل القراء الحقيقي.</p>
 
           <div>
             <label className="block text-xs font-bold text-[#d4af37] mb-1">
