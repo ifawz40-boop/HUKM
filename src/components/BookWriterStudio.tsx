@@ -86,7 +86,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const [novelTitle, setNovelTitle] = useState('');
   const [novelAuthor, setNovelAuthor] = useState('');
   const [novelCategory, setNovelCategory] = useState(categories[0]?.id || 'investigations');
-  const [novelStatus, setNovelStatus] = useState<'ongoing' | 'completed'>('ongoing');
+  const [novelStatus, setNovelStatus] = useState<'draft' | 'ongoing' | 'completed'>('draft');
   const [novelCover, setNovelCover] = useState(PRESET_COVERS[0].url);
   const [novelSummary, setNovelSummary] = useState('');
 
@@ -281,7 +281,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     setNovelTitle('');
     setNovelAuthor('');
     setNovelCategory(categories[0]?.id || 'investigations');
-    setNovelStatus('ongoing');
+    setNovelStatus('draft');
     setNovelCover(PRESET_COVERS[0].url);
     setNovelSummary('');
     setIsNovelModalOpen(true);
@@ -293,7 +293,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     setNovelTitle(book.title);
     setNovelAuthor(book.author || '');
     setNovelCategory(book.category);
-    setNovelStatus((book.status as 'ongoing' | 'completed') || 'ongoing');
+    setNovelStatus(book.status === 'completed' ? 'completed' : ['published', 'ongoing', 'ready'].includes(book.status) ? 'ongoing' : 'draft');
     setNovelCover(book.coverImage || PRESET_COVERS[0].url);
     setNovelSummary(book.summary || '');
     setIsNovelModalOpen(true);
@@ -305,6 +305,15 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     if (!novelTitle.trim()) {
       alert('يرجى إدخال عنوان الرواية / العمل.');
       return;
+    }
+
+    if (novelStatus !== 'draft') {
+      const targetBook = editingNovelId ? books.find((book) => book.id === editingNovelId) : null;
+      const readyChapterCount = (targetBook?.chapters || []).filter((chapter) => chapter.status === 'ready').length;
+      if (readyChapterCount === 0) {
+        alert('لا يمكن إتاحة العمل للقراء قبل وجود فصل واحد منشور على الأقل. احفظه كمسودة أولاً، ثم انشره بعد تجهيز المحتوى.');
+        return;
+      }
     }
 
     if (editingNovelId) {
@@ -1014,7 +1023,16 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                 <label className="block text-xs font-bold text-[#cbd5e1] mb-1">
                   حالة العمل:
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-white cursor-pointer">
+                    <input
+                      type="radio"
+                      name="status"
+                      checked={novelStatus === 'draft'}
+                      onChange={() => setNovelStatus('draft')}
+                    />
+                    <span>مسودة خاصة (لا تظهر للقراء)</span>
+                  </label>
                   <label className="flex items-center gap-1.5 text-xs text-white cursor-pointer">
                     <input
                       type="radio"
