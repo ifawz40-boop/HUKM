@@ -116,6 +116,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     currentChapter?.status || 'draft'
   );
   const editorBaseUpdatedAtRef = useRef<string | null>(currentChapter?.updatedAt || null);
+  const dismissedRecoveryKeyRef = useRef<string | null>(null);
 
   // New Category State
   const [newCatName, setNewCatName] = useState('');
@@ -134,6 +135,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     editorBaseUpdatedAtRef.current = firstChapter?.updatedAt || null;
     setRecoverySnapshot(null);
     setLastLocalAutosavedAt(null);
+    dismissedRecoveryKeyRef.current = null;
     setSelectedChapterId(firstChapter?.id || '');
     setChapterNumber(firstChapter?.chapterNumber || 1);
     setChapterTitle(firstChapter?.title || '');
@@ -173,6 +175,11 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       snapshot = getWriterDraftSnapshot(currentUserId, currentBook.id, null);
     }
     if (!snapshot) {
+      setRecoverySnapshot(null);
+      return;
+    }
+    const snapshotKey = `${currentBook.id}::${snapshot.chapterId || 'new'}`;
+    if (dismissedRecoveryKeyRef.current === snapshotKey) {
       setRecoverySnapshot(null);
       return;
     }
@@ -244,7 +251,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   ]);
 
   const handleRestoreWriterDraft = () => {
-    if (!recoverySnapshot || !currentBook) return;
+    if (!recoverySnapshot || !currentBook || recoverySnapshot.userId !== currentUserId || recoverySnapshot.bookId !== currentBook.id) return;
+    dismissedRecoveryKeyRef.current = `${currentBook.id}::${recoverySnapshot.chapterId || 'new'}`;
     const existingChapter = recoverySnapshot.chapterId
       ? currentBook.chapters.find((chapter) => chapter.id === recoverySnapshot.chapterId)
       : null;
@@ -268,10 +276,11 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   const handleDiscardWriterDraft = () => {
     if (!recoverySnapshot || !currentBook || !currentUserId) return;
+    dismissedRecoveryKeyRef.current = null;
     removeWriterDraftSnapshot(currentUserId, currentBook.id, recoverySnapshot.chapterId);
     const target = recoverySnapshot.chapterId
       ? currentBook.chapters.find((chapter) => chapter.id === recoverySnapshot.chapterId)
-      : currentBook.chapters[0];
+      : currentBook.chapters.find((chapter) => chapter.id === selectedChapterId) || currentBook.chapters[0];
     setRecoverySnapshot(null);
     if (target) {
       handleSelectChapter(target);
@@ -290,6 +299,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   // Sync state when current chapter changes
   const handleSelectChapter = (ch: BookChapter) => {
     setRecoverySnapshot(null);
+    dismissedRecoveryKeyRef.current = null;
     setIsCreatingChapter(false);
     editorBaseUpdatedAtRef.current = ch.updatedAt || null;
     setSelectedChapterId(ch.id);
@@ -405,6 +415,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     if (!currentBook) return;
     const nextNumber = Math.max(0, ...currentBook.chapters.map((chapter) => chapter.chapterNumber || 0)) + 1;
     setRecoverySnapshot(null);
+    dismissedRecoveryKeyRef.current = null;
     setIsCreatingChapter(true);
     editorBaseUpdatedAtRef.current = null;
     setSelectedChapterId('');
