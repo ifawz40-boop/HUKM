@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Compass,
-  PenTool,
   Search,
-  PlusCircle,
   Menu,
   X,
   Layers,
@@ -42,9 +40,7 @@ interface HukmNavbarProps {
   isReaderPreviewMode?: boolean;
   onToggleReaderPreview?: () => void;
   onNavigate: (view: string, categoryId?: string) => void;
-  onOpenNewBook: () => void;
   onOpenSearch: () => void;
-  onOpenManageCategories: () => void;
   onOpenAuthModal: (mode?: 'login' | 'signup') => void;
   onOpenProfileModal: (tab?: 'profile' | 'bookmarks') => void;
   onSelectNotification: (notif: AppNotification) => void;
@@ -66,9 +62,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
   isReaderPreviewMode = false,
   onToggleReaderPreview,
   onNavigate,
-  onOpenNewBook,
   onOpenSearch,
-  onOpenManageCategories,
   onOpenAuthModal,
   onOpenProfileModal,
   onSelectNotification,
@@ -401,35 +395,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                   <span>المكتبة والمشاريع</span>
                 </button>
 
-                {isEffectiveOwner && (
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('writer')}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                      currentView === 'writer'
-                        ? 'bg-[#c59b27]/20 text-[#f0cb69] border border-[#c59b27]/40 shadow-sm'
-                        : 'text-[#cbd5e1] hover:bg-white/5 hover:text-white'
-                    }`}
-                  >
-                    <PenTool className="h-3.5 w-3.5 text-[#d4af37]" />
-                    <span>استوديو التأليف</span>
-                    <span className="rounded-full bg-[#c59b27] px-1.5 py-0.2 text-[10px] font-black text-[#070d1e]">
-                      إدارة
-                    </span>
-                  </button>
-                )}
 
-                {isEffectiveOwner && (
-                  <button
-                    type="button"
-                    onClick={onOpenManageCategories}
-                    className="flex items-center gap-1.5 rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/30 px-2.5 py-1.5 text-[11px] font-bold text-[#f0cb69] transition-colors cursor-pointer"
-                    title="إضافة أو حذف أقسام الكتب"
-                  >
-                    <Layers className="h-3 w-3 text-[#d4af37]" />
-                    <span>إدارة الأقسام</span>
-                  </button>
-                )}
               </>
             )}
 
@@ -544,19 +510,6 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
             <Search className="h-4 w-4 text-[#d4af37]" />
             <span className="hidden md:inline text-xs">ابحث...</span>
           </button>
-
-          {/* Owner-only: Quick Publish Book CTA */}
-          {isEffectiveOwner && (
-            <button
-              type="button"
-              onClick={onOpenNewBook}
-              className="hidden sm:flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#c59b27] to-[#997314] hover:from-[#f0cb69] hover:to-[#b88c1b] px-3 sm:px-3.5 py-2 text-xs font-bold text-[#070d1e] shadow-lg shadow-[#c59b27]/20 transition-all hover:scale-102 active:scale-95 cursor-pointer"
-              aria-label="رفع كتاب جديد"
-            >
-              <PlusCircle className="h-4 w-4" />
-              <span>كتاب جديد</span>
-            </button>
-          )}
 
           {/* User Profile or Guest Login CTA */}
           {currentUser ? (
@@ -750,51 +703,8 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                   </button>
                 )}
 
-                {/* Admin & Owner Authoring Tools */}
                 {isEffectiveAdmin && (
                   <>
-                    {isEffectiveOwner && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          onNavigate('writer');
-                        }}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#e2e8f0] hover:bg-white/5 cursor-pointer"
-                      >
-                        <PenTool className="h-4 w-4 text-[#d4af37]" />
-                        <span>استوديو تأليف الكتب</span>
-                      </button>
-                    )}
-
-                    {isEffectiveOwner && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          onOpenNewBook();
-                        }}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#f0cb69] bg-[#c59b27]/10 border border-[#c59b27]/20 cursor-pointer"
-                      >
-                        <PlusCircle className="h-4 w-4 text-[#d4af37]" />
-                        <span>رفع كتاب جديد</span>
-                      </button>
-                    )}
-
-                    {isEffectiveOwner && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          onOpenManageCategories();
-                        }}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#cbd5e1] hover:bg-white/5 cursor-pointer"
-                      >
-                        <Layers className="h-4 w-4 text-[#d4af37]" />
-                        <span>إدارة وتعديل الأقسام</span>
-                      </button>
-                    )}
-
                     {onOpenAdminManagement && (
                       <button
                         type="button"
