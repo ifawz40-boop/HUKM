@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { adminAuth, adminDb } from './firebaseAdmin.ts';
+import { isValidOwnerEmail } from './ownerBootstrapGuards.ts';
 
 export const authClaimsRouter = Router();
 
