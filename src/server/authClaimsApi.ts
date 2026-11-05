@@ -376,8 +376,8 @@ authClaimsRouter.post('/grant-owner', authenticateToken, requireOwnerRole, async
     }
 
     const previousClaims = (targetUser.customClaims || {}) as Record<string, any>;
-    if (previousClaims.role === 'owner' || previousClaims.role === 'admin') {
-      return res.status(409).json({ success: false, message: 'الحساب يمتلك صلاحية إدارية بالفعل.' });
+    if (previousClaims.role !== undefined && previousClaims.role !== null && previousClaims.role !== 'reader') {
+      return res.status(409).json({ success: false, message: 'الحساب يمتلك رتبة أو مطالبة صلاحيات غير متوقعة؛ لم يتم تغييرها.' });
     }
 
     const targetRef = adminDb.collection('admins').doc(targetUser.uid);
