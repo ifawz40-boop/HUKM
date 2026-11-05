@@ -137,6 +137,20 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   });
 
   const [contentWidth, setContentWidth] = useState<'normal' | 'wide' | 'compact'>('normal');
+  const [lineHeight, setLineHeight] = useState<number>(() => {
+    try {
+      const saved = Number(localStorage.getItem('hukm_reader_lineheight'));
+      if (Number.isFinite(saved) && saved >= 1.6 && saved <= 2.6) return saved;
+    } catch {}
+    return 2.1;
+  });
+  const [readingSpeedWpm, setReadingSpeedWpm] = useState<number>(() => {
+    try {
+      const saved = Number(localStorage.getItem('hukm_reader_speed'));
+      if (Number.isFinite(saved) && saved >= 120 && saved <= 400) return saved;
+    } catch {}
+    return 220;
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [copiedShare, setCopiedShare] = useState(false);
@@ -280,8 +294,10 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       localStorage.setItem('hukm_reader_fontsize', fontSize.toString());
       localStorage.setItem('hukm_reader_font', fontFamily);
       localStorage.setItem('hukm_reader_theme', theme);
+      localStorage.setItem('hukm_reader_lineheight', String(lineHeight));
+      localStorage.setItem('hukm_reader_speed', String(readingSpeedWpm));
     } catch {}
-  }, [fontSize, fontFamily, theme]);
+  }, [fontSize, fontFamily, theme, lineHeight, readingSpeedWpm]);
 
   // Track chapter view and restore its last position without changing completion state.
   useEffect(() => {
@@ -524,6 +540,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   const wordsCount = currentChapter ? calculateWordsCount(currentChapter.content) : 0;
   const readTime = calculateReadingTimeMinutes(wordsCount);
+  const estimatedRemainingMinutes = Math.ceil((wordsCount * (1 - Math.min(100, Math.max(0, scrollProgress)) / 100)) / readingSpeedWpm);
 
   return (
     <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} transition-colors duration-300 pb-28`} dir="rtl">
@@ -679,7 +696,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
         {/* Reader Customization Settings Drawer */}
         {isSettingsOpen && (
-          <div className="mx-auto max-w-4xl mt-3 pt-3 border-t border-current/15 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="mx-auto max-w-5xl mt-3 pt-3 border-t border-current/15 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
             {/* 1. Theme Mode */}
             <div className="space-y-1.5">
               <span className="font-bold opacity-75 block">نمط الإضاءة والخلفية:</span>
@@ -766,6 +783,58 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* 4. Reading column width */}
+            <div className="space-y-1.5">
+              <span className="font-bold opacity-75 block">عرض صفحة القراءة:</span>
+              <div className="flex items-center gap-1.5">
+                {(['compact', 'normal', 'wide'] as const).map((width) => (
+                  <button
+                    key={width}
+                    onClick={() => setContentWidth(width)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold border ${contentWidth === width ? 'bg-[#c59b27] text-[#070d1e] border-[#c59b27]' : 'border-current/20'}`}
+                  >
+                    {width === 'compact' ? 'ضيّق' : width === 'normal' ? 'متوسط' : 'واسع'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. Paragraph line height */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold opacity-75">تباعد السطور</span>
+                <span className="font-mono opacity-70">{lineHeight.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min={1.6}
+                max={2.6}
+                step={0.1}
+                value={lineHeight}
+                onChange={(e) => setLineHeight(Number(e.target.value))}
+                className="w-full cursor-pointer accent-[#c59b27]"
+                aria-label="تباعد السطور"
+              />
+            </div>
+
+            {/* 6. Personal reading-speed estimate */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold opacity-75">سرعة القراءة التقديرية</span>
+                <span className="font-mono opacity-70">{readingSpeedWpm} كلمة/د</span>
+              </div>
+              <input
+                type="range"
+                min={120}
+                max={400}
+                step={10}
+                value={readingSpeedWpm}
+                onChange={(e) => setReadingSpeedWpm(Number(e.target.value))}
+                className="w-full cursor-pointer accent-[#c59b27]"
+                aria-label="سرعة القراءة بالكلمات في الدقيقة"
+              />
+            </div>
           </div>
         )}
       </header>
@@ -793,7 +862,9 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           <div className="flex items-center justify-center gap-4 text-xs opacity-75 pt-2 border-t border-current/10">
             <span>{wordsCount} كلمة</span>
             <span>•</span>
-            <span>~{readTime} دقائق قراءة</span>
+            <span>~{readTime} دقائق قراءة إجمالاً</span>
+            <span>•</span>
+            <span>باقي ~{estimatedRemainingMinutes} دقيقة</span>
             <span>•</span>
             <span>المؤلف: {book.author || 'حُكم | HUKM MEDIA'}</span>
           </div>
@@ -837,14 +908,14 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
         {/* Chapter Body Content */}
         <article
           className={`space-y-6 ${fontClasses} leading-loose`}
-          style={{ fontSize: `${fontSize}px` }}
+          style={{ fontSize: `${fontSize}px`, lineHeight }}
         >
           {currentChapter ? (
             currentChapter.content.map((paragraph, idx) => (
               <p
                 id={`reader-paragraph-${idx}`}
                 key={idx}
-                className={`text-justify leading-[2.1] tracking-wide rounded-lg transition-colors ${activeSpeechParagraph === idx ? 'bg-[#c59b27]/10 ring-1 ring-[#c59b27]/30 px-3 py-2' : ''}`}
+                className={`text-justify tracking-wide rounded-lg transition-colors ${activeSpeechParagraph === idx ? 'bg-[#c59b27]/10 ring-1 ring-[#c59b27]/30 px-3 py-2' : ''}`}
               >
                 {renderSearchHighlights(paragraph, chapterSearchQuery)}
               </p>
