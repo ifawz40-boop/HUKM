@@ -216,10 +216,15 @@ export function mergeGuestReadingProgressWithUser(
         lastChapterId: latestLastChapter,
         completedChapterIds: combinedCompleted,
         lastReadAt: guestDate > existingDate ? guestProg.lastReadAt : existing.lastReadAt,
-        chapterScrollPositions: {
-          ...(existing.chapterScrollPositions || {}),
-          ...(guestProg.chapterScrollPositions || {}),
-        },
+        chapterScrollPositions: guestDate > existingDate
+          ? {
+              ...(existing.chapterScrollPositions || {}),
+              ...(guestProg.chapterScrollPositions || {}),
+            }
+          : {
+              ...(guestProg.chapterScrollPositions || {}),
+              ...(existing.chapterScrollPositions || {}),
+            },
       };
     }
   }
