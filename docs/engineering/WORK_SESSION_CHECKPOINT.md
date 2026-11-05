@@ -145,3 +145,11 @@
 6. Never request or accept Firebase service-account credentials in chat.
 
 **RESUME MARKER:** Start at latest `main`, inspect GitHub Actions (push-triggered run not exposed by current connector wrapper), then verify/deploy Firestore rules, then local Firebase bootstrap. Latest checkpoint must be advanced after any further code change.
+
+### Final audit follow-up — 2026-11-05 19:07 UTC
+- Updated the grant-owner API documentation to explicitly state that only the verified founder can appoint additional owners: `a95a64233d106eac092a578094ea4f27f20a1d6b`.
+- Final source review confirmed the shared email validator is used by the bootstrap CLI, verifier, and grant-owner API; the grant-owner route is founder-gated; the founder-only UI condition is present; Firestore rules deny client writes to `/admins/{uid}`; and regression tests are included in the package test script.
+- The repository's CI workflow is push-triggered. The currently available commit workflow retrieval wrapper returns PR-triggered runs only, so no assertion about the push CI result is made. The latest combined status still reports a Vercel failure associated with the build-rate-limit page.
+- Firebase Emulator tests have not been run. The static security regression tests are committed but remain unverified until CI or a local test run completes.
+
+**LATEST CODE COMMIT:** `a95a64233d106eac092a578094ea4f27f20a1d6b`.
