@@ -33,7 +33,7 @@ const CONFIRMATION = 'HUKM_INITIAL_OWNER';
 
 function requireOwnerEmail(value: string | undefined): string {
   const email = value?.trim().toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || !isValidOwnerEmail(email)) {
     throw new Error('OWNER_EMAIL is missing or invalid. Set it to the verified Firebase Auth email.');
   }
   return email;
