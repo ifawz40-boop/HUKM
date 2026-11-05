@@ -1,7 +1,8 @@
 import type { WriterDraftSnapshot } from '../types/hukm';
 
-export const MAX_WRITER_DRAFT_SNAPSHOTS = 30;
-export const MAX_WRITER_DRAFT_CONTENT_CHARS = 700_000;
+export const MAX_WRITER_DRAFT_SNAPSHOTS = 12;
+export const MAX_WRITER_DRAFT_CONTENT_CHARS = 350_000;
+export const MAX_WRITER_DRAFT_TOTAL_CHARS = 2_000_000;
 
 export function getWriterDraftStorageKey(userId: string): string {
   return `hukm_user_${userId}_writer_drafts_v1`;
@@ -19,6 +20,7 @@ export function getAllWriterDraftSnapshots(userId: string): WriterDraftSnapshot[
       typeof item === 'object' &&
       (item as WriterDraftSnapshot).userId === userId &&
       typeof (item as WriterDraftSnapshot).bookId === 'string' &&
+      typeof (item as WriterDraftSnapshot).id === 'string' &&
       typeof (item as WriterDraftSnapshot).title === 'string' &&
       typeof (item as WriterDraftSnapshot).content === 'string' &&
       ((item as WriterDraftSnapshot).chapterId === null || typeof (item as WriterDraftSnapshot).chapterId === 'string') &&
@@ -56,12 +58,19 @@ export function saveWriterDraftSnapshot(snapshot: WriterDraftSnapshot): boolean 
     ) return false;
 
     const all = getAllWriterDraftSnapshots(snapshot.userId);
-    const next = [
+    const ordered = [
       ...all.filter((item) => !(item.bookId === snapshot.bookId && item.chapterId === snapshot.chapterId)),
       snapshot,
-    ]
-      .sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))
-      .slice(0, MAX_WRITER_DRAFT_SNAPSHOTS);
+    ].sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+
+    const next: WriterDraftSnapshot[] = [];
+    let totalChars = 0;
+    for (const item of ordered) {
+      if (next.length >= MAX_WRITER_DRAFT_SNAPSHOTS) break;
+      if (totalChars + item.content.length > MAX_WRITER_DRAFT_TOTAL_CHARS) continue;
+      next.push(item);
+      totalChars += item.content.length;
+    }
 
     localStorage.setItem(getWriterDraftStorageKey(snapshot.userId), JSON.stringify(next));
     return true;
