@@ -78,8 +78,8 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
       onShowToast('اكتب عنوان المصدر أولًا.');
       return;
     }
-    if (sources.length >= 100) {
-      onShowToast('وصلت إلى الحد الأقصى للمراجع في هذا العمل (100).');
+    if (sources.length >= 50) {
+      onShowToast('وصلت إلى الحد الأقصى للمراجع في هذا العمل (50).');
       return;
     }
     if (sourceUrl.trim()) {
@@ -100,8 +100,8 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
         author: sourceAuthor.trim().slice(0, 150),
         publisher: sourcePublisher.trim().slice(0, 150),
         year: sourceYear.trim().slice(0, 4),
-        url: sourceUrl.trim().slice(0, 2048),
-        note: sourceNote.trim().slice(0, 1000),
+        url: sourceUrl.trim().slice(0, 1024),
+        note: sourceNote.trim().slice(0, 500),
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -118,18 +118,18 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
       onShowToast('اكتب نص الاقتباس أولًا.');
       return;
     }
-    if (quotes.length >= 200) {
-      onShowToast('وصلت إلى الحد الأقصى للاقتباسات في هذا العمل (200).');
+    if (quotes.length >= 100) {
+      onShowToast('وصلت إلى الحد الأقصى للاقتباسات في هذا العمل (100).');
       return;
     }
     setQuotes((current) => [
       ...current,
       {
         id: makeEntryId('quote'),
-        text: quoteText.trim().slice(0, 4000),
+        text: quoteText.trim().slice(0, 2000),
         sourceId: quoteSourceId || '',
         page: quotePage.trim().slice(0, 40),
-        note: quoteNote.trim().slice(0, 500),
+        note: quoteNote.trim().slice(0, 300),
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -198,8 +198,8 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
             <input value={sourceAuthor} onChange={(e) => setSourceAuthor(e.target.value)} maxLength={150} placeholder="المؤلف / الجهة" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
             <input value={sourcePublisher} onChange={(e) => setSourcePublisher(e.target.value)} maxLength={150} placeholder="الناشر / الدورية / الأرشيف" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
             <input value={sourceYear} onChange={(e) => setSourceYear(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} inputMode="numeric" placeholder="سنة النشر" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
-            <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} type="url" maxLength={2048} placeholder="رابط المصدر (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
-            <textarea value={sourceNote} onChange={(e) => setSourceNote(e.target.value)} maxLength={1000} rows={2} placeholder="ملاحظات حول موثوقية المصدر أو موضع الاستفادة منه" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
+            <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} type="url" maxLength={1024} placeholder="رابط المصدر (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
+            <textarea value={sourceNote} onChange={(e) => setSourceNote(e.target.value)} maxLength={500} rows={2} placeholder="ملاحظات حول موثوقية المصدر أو موضع الاستفادة منه" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
           </div>
 
           <button type="button" onClick={handleAddSource} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c59b27]/40 bg-[#c59b27]/10 px-3 py-2 text-xs font-bold text-[#f0cb69] hover:bg-[#c59b27]/20">
@@ -216,13 +216,21 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
               const publisher = readText(record.publisher);
               const year = readText(record.year);
               const url = readText(record.url);
+              const safeUrl = (() => {
+                try {
+                  const parsed = new URL(url);
+                  return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? url : '';
+                } catch {
+                  return '';
+                }
+              })();
               const id = readText(record.id);
               return (
                 <div key={id || `legacy-source-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-[#070d1e] p-3">
                   <div className="min-w-0 space-y-1">
                     <p className="text-xs font-bold text-white">{title}</p>
                     <p className="text-[10px] text-[#94a3b8]">{[author, publisher, year].filter(Boolean).join(' • ') || 'بيانات وصفية غير متاحة'}</p>
-                    {url && <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 break-all text-[10px] text-[#f0cb69] hover:underline"><ExternalLink className="h-3 w-3 shrink-0" />{url}</a>}
+                    {safeUrl && <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 break-all text-[10px] text-[#f0cb69] hover:underline"><ExternalLink className="h-3 w-3 shrink-0" />{url}</a>}
                   </div>
                   <button type="button" onClick={() => setSources((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`حذف المصدر ${title}`} className="shrink-0 rounded-lg p-2 text-[#94a3b8] hover:bg-rose-500/10 hover:text-rose-300">
                     <Trash2 className="h-4 w-4" />
@@ -241,14 +249,14 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
             <span className="text-[10px] text-[#94a3b8]">{quotes.length} / 200</span>
           </div>
 
-          <textarea value={quoteText} onChange={(e) => setQuoteText(e.target.value)} maxLength={4000} rows={4} placeholder="نص الاقتباس كما ورد في المصدر، مع الحفاظ على دقته..." className="w-full rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs leading-relaxed text-white outline-none focus:border-[#c59b27]" />
+          <textarea value={quoteText} onChange={(e) => setQuoteText(e.target.value)} maxLength={2000} rows={4} placeholder="نص الاقتباس كما ورد في المصدر، مع الحفاظ على دقته..." className="w-full rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs leading-relaxed text-white outline-none focus:border-[#c59b27]" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <select value={quoteSourceId} onChange={(e) => setQuoteSourceId(e.target.value)} className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]">
               <option value="">اربط الاقتباس بمصدر (اختياري)</option>
               {selectableSources.map((source) => <option key={source.id} value={source.id}>{source.title}</option>)}
             </select>
             <input value={quotePage} onChange={(e) => setQuotePage(e.target.value)} maxLength={40} placeholder="رقم الصفحة / الموضع" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
-            <input value={quoteNote} onChange={(e) => setQuoteNote(e.target.value)} maxLength={500} placeholder="ملاحظة تحليلية قصيرة (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
+            <input value={quoteNote} onChange={(e) => setQuoteNote(e.target.value)} maxLength={300} placeholder="ملاحظة تحليلية قصيرة (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
           </div>
 
           <button type="button" onClick={handleAddQuote} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c59b27]/40 bg-[#c59b27]/10 px-3 py-2 text-xs font-bold text-[#f0cb69] hover:bg-[#c59b27]/20">
