@@ -1,18 +1,10 @@
-import { BookProject, CategoryItem, CreatorAccount, ChapterMedia } from '../types/hukm';
+import { BookProject, CategoryItem, ChapterMedia } from '../types/hukm';
 
 export const HUKM_LOGO = '/assets/aistudio/Screenshot_2026-08-15_192106_2319f985.png';
 
 export const HUKM_MOTTO = '«وعشان الموضوع مش زي ما إنت فاكر… تعالى نعرف.»';
 export const HUKM_DESCRIPTION =
   'من العلوم والتكنولوجيا إلى مجالات التاريخ والفلسفة؛ نقتفي أثر الأسئلة التي تستحق البحث، ونقرأ ما بين السطور لنستخرج من بينها الـ "حُكم". نبحث، نفكك، ونفهم.';
-
-export const DEFAULT_CREATOR: CreatorAccount = {
-  name: 'Dr/ Islam Mohamed',
-  email: 'dr.islam.mohamed@hukm.media',
-  channelName: 'حُكم | HUKM MEDIA',
-  role: 'official_publisher',
-  isOfficialVerified: true,
-};
 
 export const HUKM_PRESET_MEDIA: ChapterMedia[] = [
   {
