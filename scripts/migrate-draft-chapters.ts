@@ -28,7 +28,13 @@ const DATABASE_ID = process.env.FIREBASE_DATABASE_ID || 'ai-studio-truthnovel-3a
 
 function formatDraftChapterId(bookId: string, chapterId: string): string {
   const raw = `draft_${bookId}_${chapterId}`;
-  return raw.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 128);
+  if (!/^[a-zA-Z0-9_-]+$/.test(raw)) {
+    throw new Error(`Unsafe draft ID inputs for book "${bookId}" / chapter "${chapterId}". Refusing lossy ID normalization.`);
+  }
+  if (raw.length > 128) {
+    throw new Error(`Draft ID exceeds 128 characters for book "${bookId}" / chapter "${chapterId}". Refusing lossy truncation.`);
+  }
+  return raw;
 }
 
 async function runMigration() {
@@ -99,7 +105,7 @@ async function runMigration() {
     for (const plan of migrationPlan) {
       for (const draft of plan.draftChapters) {
         const draftId = formatDraftChapterId(plan.bookId, draft.id);
-        const ownerKey = `${plan.bookId}::${draft.id}`;
+        const ownerKey = JSON.stringify([plan.bookId, draft.id]);
         const previousOwner = plannedDraftOwners.get(draftId);
         if (previousOwner && previousOwner !== ownerKey) {
           throw new Error(`Global draft ID collision detected for "${draftId}" across planned chapters. No migration writes were performed.`);
