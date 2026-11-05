@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { Request, Response } from 'express';
 import { createRateLimiter } from '../src/server/requestProtection.ts';
 
@@ -73,3 +75,22 @@ describe('API rate limiting', () => {
     assert.throws(() => createRateLimiter({ windowMs: 1_000, max: 0, message: 'x' }), RangeError);
   });
 });
+describe('API protection wiring', () => {
+  for (const entrypoint of ['server.ts', 'api/index.ts']) {
+    it(`applies the shared security, rate-limit, body-size, and error protections in ${entrypoint}`, () => {
+      const source = fs.readFileSync(path.resolve(process.cwd(), entrypoint), 'utf-8');
+      assert.ok(source.includes('app.use(applySecurityHeaders)'));
+      assert.ok(source.includes("app.use('/api', createRateLimiter("));
+      assert.ok(source.includes("app.use('/api/auth', createRateLimiter("));
+      assert.ok(source.includes("app.use('/api/email', createRateLimiter("));
+      assert.ok(source.includes("express.json({ limit: '256kb' })"));
+      assert.ok(source.includes('app.use(apiErrorHandler)'));
+    });
+  }
+
+  it('places a dedicated send limiter on the email dispatch route', () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
+    assert.ok(source.includes("emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken"));
+  });
+});
+
