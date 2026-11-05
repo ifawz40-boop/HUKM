@@ -1,0 +1,234 @@
+{
+  "dataset": "Bayanat-Labs/arabic-wikisource-pd",
+  "config": "works-pd-core",
+  "split": "train",
+  "version": "0.1.0",
+  "dumpDate": "2026-10-01",
+  "minimumBooks": 6,
+  "books": [
+    {
+      "id": "al-bukhala",
+      "title": "البخلاء",
+      "aliases": [
+        "البخلاء"
+      ],
+      "category": "adab",
+      "minWords": 5000,
+      "expectedAuthor": "الجاحظ"
+    },
+    {
+      "id": "al-bayan-wa-al-tabyin",
+      "title": "البيان والتبيين",
+      "aliases": [
+        "البيان والتبيين"
+      ],
+      "category": "language",
+      "minWords": 10000,
+      "expectedAuthor": "الجاحظ"
+    },
+    {
+      "id": "al-kamil-fi-al-lugha",
+      "title": "الكامل في اللغة والأدب",
+      "aliases": [
+        "الكامل في اللغة",
+        "الكامل في اللغة والأدب"
+      ],
+      "category": "language",
+      "minWords": 8000,
+      "expectedAuthor": "المبرد"
+    },
+    {
+      "id": "muqaddimat-ibn-khaldun",
+      "title": "مقدمة ابن خلدون",
+      "aliases": [
+        "مقدمة ابن خلدون"
+      ],
+      "category": "history",
+      "minWords": 15000,
+      "expectedAuthor": "ابن خلدون"
+    },
+    {
+      "id": "risalat-al-ghufran",
+      "title": "رسالة الغفران",
+      "aliases": [
+        "رسالة الغفران"
+      ],
+      "category": "literature",
+      "minWords": 5000,
+      "expectedAuthor": "المعري"
+    },
+    {
+      "id": "tahafut-al-falasifa",
+      "title": "تهافت الفلاسفة",
+      "aliases": [
+        "تهافت الفلاسفة (الغزالي)",
+        "تهافت الفلاسفة"
+      ],
+      "category": "philosophy",
+      "minWords": 5000,
+      "expectedAuthor": "الغزالي"
+    },
+    {
+      "id": "al-munqidh-min-al-dalal",
+      "title": "المنقذ من الضلال",
+      "aliases": [
+        "المنقذ من الضلال"
+      ],
+      "category": "philosophy",
+      "minWords": 2500,
+      "expectedAuthor": "الغزالي"
+    },
+    {
+      "id": "uyun-al-akhbar",
+      "title": "عيون الأخبار",
+      "aliases": [
+        "عيون الأخبار"
+      ],
+      "category": "literature",
+      "minWords": 8000,
+      "expectedAuthor": "ابن قتيبة"
+    },
+    {
+      "id": "adab-al-katib",
+      "title": "أدب الكاتب",
+      "aliases": [
+        "أدب الكاتب"
+      ],
+      "category": "language",
+      "minWords": 4000,
+      "expectedAuthor": "ابن قتيبة"
+    },
+    {
+      "id": "kitab-al-maarif",
+      "title": "كتاب المعارف",
+      "aliases": [
+        "كتاب المعارف"
+      ],
+      "category": "history",
+      "minWords": 4000,
+      "expectedAuthor": "ابن قتيبة"
+    },
+    {
+      "id": "al-shir-wa-al-shuara",
+      "title": "الشعر والشعراء",
+      "aliases": [
+        "الشعر والشعراء"
+      ],
+      "category": "literature",
+      "minWords": 5000,
+      "expectedAuthor": "ابن قتيبة"
+    },
+    {
+      "id": "al-hayawan",
+      "title": "الحيوان",
+      "aliases": [
+        "الحيوان"
+      ],
+      "category": "science",
+      "minWords": 10000,
+      "expectedAuthor": "الجاحظ"
+    },
+    {
+      "id": "al-imtaa-wa-al-muanasa",
+      "title": "الإمتاع والمؤانسة",
+      "aliases": [
+        "الإمتاع والمؤانسة"
+      ],
+      "category": "philosophy",
+      "minWords": 5000,
+      "expectedAuthor": "التوحيدي"
+    },
+    {
+      "id": "al-muqabasat",
+      "title": "المقابسات",
+      "aliases": [
+        "المقابسات"
+      ],
+      "category": "philosophy",
+      "minWords": 3000,
+      "expectedAuthor": "التوحيدي"
+    },
+    {
+      "id": "tarikh-al-tabari",
+      "title": "تاريخ الرسل والملوك",
+      "aliases": [
+        "تاريخ الرسل والملوك",
+        "تاريخ الطبري"
+      ],
+      "category": "history",
+      "minWords": 15000,
+      "expectedAuthor": "الطبري"
+    },
+    {
+      "id": "al-aghani",
+      "title": "الأغاني",
+      "aliases": [
+        "الأغاني"
+      ],
+      "category": "literature",
+      "minWords": 15000,
+      "expectedAuthor": "الأصفهاني"
+    },
+    {
+      "id": "maqamat-al-hariri",
+      "title": "مقامات الحريري",
+      "aliases": [
+        "مقامات الحريري"
+      ],
+      "category": "literature",
+      "minWords": 3000,
+      "expectedAuthor": "الحريري"
+    },
+    {
+      "id": "mujam-al-buldan",
+      "title": "معجم البلدان",
+      "aliases": [
+        "معجم البلدان"
+      ],
+      "category": "geography",
+      "minWords": 8000,
+      "expectedAuthor": "ياقوت الحموي"
+    },
+    {
+      "id": "kitab-al-ibar",
+      "title": "كتاب العبر",
+      "aliases": [
+        "كتاب العبر"
+      ],
+      "category": "history",
+      "minWords": 15000,
+      "expectedAuthor": "ابن خلدون"
+    },
+    {
+      "id": "rihlat-ibn-battuta",
+      "title": "رحلة ابن بطوطة",
+      "aliases": [
+        "تحفة النظار في غرائب الأمصار وعجائب الأسفار",
+        "رحلة ابن بطوطة"
+      ],
+      "category": "travel",
+      "minWords": 8000,
+      "expectedAuthor": "ابن بطوطة"
+    },
+    {
+      "id": "al-itibar-usama",
+      "title": "الاعتبار",
+      "aliases": [
+        "الاعتبار"
+      ],
+      "category": "history",
+      "minWords": 4000,
+      "expectedAuthor": "أسامة بن منقذ"
+    },
+    {
+      "id": "nihayat-al-arab",
+      "title": "نهاية الأرب في فنون الأدب",
+      "aliases": [
+        "نهاية الأرب في فنون الأدب"
+      ],
+      "category": "history",
+      "minWords": 8000,
+      "expectedAuthor": "النويري"
+    }
+  ]
+}
