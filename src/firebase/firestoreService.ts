@@ -559,7 +559,13 @@ export async function saveReadingProgressToFirestore(
     return false;
   }
 
-  const progressId = progress.id || formatReadingProgressId(progress.userId, progress.bookId, progress.chapterId);
+  let progressId: string;
+  try {
+    progressId = progress.id || formatReadingProgressId(progress.userId, progress.bookId, progress.chapterId);
+  } catch (error) {
+    console.warn('Reading progress was not saved because its document ID is unsafe:', error);
+    return false;
+  }
   const path = `readingProgress/${progressId}`;
 
   // Filter payload strictly to fields allowed in firestore.rules
@@ -631,10 +637,9 @@ export async function fetchUserSingleProgress(
   chapterId: string
 ): Promise<ReadingProgressRecord | null> {
   if (!userId || !bookId || !chapterId) return null;
-  const progressId = formatReadingProgressId(userId, bookId, chapterId);
-  const path = `readingProgress/${progressId}`;
-
   try {
+    const progressId = formatReadingProgressId(userId, bookId, chapterId);
+    const path = `readingProgress/${progressId}`;
     const docRef = doc(db, 'readingProgress', progressId);
     const snapshot = await getDoc(docRef);
     if (!snapshot.exists()) return null;
@@ -685,7 +690,7 @@ export async function uploadGuestReadingProgressToFirestore(
         : (isCompleted ? 100 : 0);
 
       const record: ReadingProgressRecord = {
-        id: formatReadingProgressId(userId, bookId, chapterId),
+        id: '', // saveReadingProgressToFirestore generates and validates the canonical ID
         userId,
         bookId,
         chapterId,
