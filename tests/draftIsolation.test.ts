@@ -49,8 +49,11 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(rulesContent, /match\s+\/bookDraftChapters\/\{draftId\}\s*\{/);
     });
 
-    it('must restrict /bookDraftChapters strictly to isAdmin() with isValidId(draftId)', () => {
-      assert.match(rulesContent, /allow read,\s*write:\s*if isAdmin\(\)\s*&&\s*isValidId\(draftId\);/);
+    it('must restrict all /bookDraftChapters operations to verified admins', () => {
+      assert.match(rulesContent, /allow read: if isAdmin\(\) && isValidId\(draftId\)/);
+      assert.match(rulesContent, /allow create: if isValidDraftChapterCreate\(draftId\)/);
+      assert.match(rulesContent, /allow update: if isValidDraftChapterUpdate\(draftId\)/);
+      assert.match(rulesContent, /allow delete: if isAdmin\(\) && isValidId\(draftId\)/);
     });
 
     it('must never allow public read or write on /bookDraftChapters', () => {
