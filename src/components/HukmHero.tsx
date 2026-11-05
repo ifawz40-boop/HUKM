@@ -52,7 +52,7 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
               </span>
               <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1">
                 <Crown className="h-3.5 w-3.5 text-amber-400" />
-                <span>المؤسس: Dr/ Islam Mohamed</span>
+                <span>المنصة: حُكم | HUKM MEDIA</span>
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white font-cairo mt-1">
