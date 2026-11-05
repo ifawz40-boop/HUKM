@@ -181,7 +181,7 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
                 <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-cover scale-105" />
               </div>
               <span className="text-xs font-bold text-[#f0cb69]">
-                استوديو النشر والتوثيق المعرفي الرسمي
+                مكتبة التراث العربي المفتوحة
               </span>
             </div>
 
@@ -641,13 +641,13 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
           <div className="space-y-2 text-right">
             <span className="text-xs font-bold text-[#f0cb69] flex items-center gap-1.5">
               <Sparkles className="h-4 w-4" />
-              <span>جاهز للاطلاع على الأبحاث أو بدء التأليف؟</span>
+              <span>جاهز لاكتشاف نصوص التراث العربي؟</span>
             </span>
             <h3 className="text-xl sm:text-2xl font-black text-white font-cairo">
               انطلق الآن في رحلة تفكيك وفهم المعرفة
             </h3>
             <p className="text-xs sm:text-sm text-[#cbd5e1] max-w-xl">
-              تصفح الأقسام والكتب فور نشرها، أو ابدأ بنشر كتابك وبحثك الاستقصائي الأول إذا كنت من فريق إدارة المنصة.
+              تصفح الكتب والنصوص التراثية المضمّنة داخل الموقع، واطّلع على مصدر كل نص وترخيص إعادة نشره.
             </p>
           </div>
 
