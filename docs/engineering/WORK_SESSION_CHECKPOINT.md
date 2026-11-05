@@ -3,8 +3,8 @@
 - Repository: `ifawz40-boop/HUKM`
 - Working branch: `main` only
 - Checkpoint date: 2026-11-05
-- Current baseline commit: `923cda8dff45a74ddce8122c7e1ec18f3e9cb81e`
-- Commit URL: https://github.com/ifawz40-boop/HUKM/commit/923cda8dff45a74ddce8122c7e1ec18f3e9cb81e
+- Last verified code commit: `6017efde43d885663878c5c9789220928ec1ac0d`
+- Last verified code commit URL: https://github.com/ifawz40-boop/HUKM/commit/6017efde43d885663878c5c9789220928ec1ac0d
 - Google AI Studio source branch: `main`
 - Vercel deployment model: GitHub integration; do not claim production deployment without deployment evidence.
 
@@ -23,9 +23,22 @@
 6. GitHub Actions run #127 completed successfully for commit `923cda8dff45a74ddce8122c7e1ec18f3e9cb81e`: locked dependency installation, complete test script, TypeScript check, and production build all passed.
    - Run: https://github.com/ifawz40-boop/HUKM/actions/runs/42085306830
 
+## Additional completed batch — Vercel proxy-aware rate limiting
+
+1. Confirmed from official Vercel documentation that Vercel overwrites `X-Forwarded-For` with the public client IP at its edge.
+2. Confirmed Express defaults `trust proxy` to false, which means `req.ip` ignores forwarded client identity unless configured.
+3. Added conditional `app.set('trust proxy', 1)` to both `api/index.ts` and `server.ts` only when `VERCEL === '1'`. This keeps local execution from trusting forwarded headers while allowing Vercel's single trusted proxy hop to populate visitor-specific `req.ip` for the in-memory rate limiters.
+4. Added a regression assertion to `tests/requestProtection.test.ts` that both entry points keep the exact one-hop configuration conditional on Vercel.
+5. CI run #130 passed all tests, TypeScript check, and production build for commit `6017efde43d885663878c5c9789220928ec1ac0d`.
+   - Run: https://github.com/ifawz40-boop/HUKM/actions/runs/42085756446
+
 ## Files changed
 
 - `package.json`: expanded the CI test command to execute every currently tracked test file identified in the repository inventory.
+- `api/index.ts`: conditionally trusts the Vercel edge proxy hop so rate limiting keys on the visitor IP.
+- `server.ts`: keeps the same conditional proxy configuration for entrypoint parity; local execution remains untrusted.
+- `tests/requestProtection.test.ts`: guards the Vercel proxy configuration and existing API protection wiring.
+- `docs/engineering/WORK_SESSION_CHECKPOINT.md`: this durable session record.
 
 ## Findings / risks to carry forward
 
@@ -35,6 +48,7 @@
 - Firestore rules begin with default deny and explicitly constrain users, admins, books, annotations, subscribers, and reading progress. Complete rule-by-rule audit remains pending.
 - External reference candidates: `mbret/prose-reader` is MIT-licensed and could be evaluated as an optional future EPUB/PDF reading engine; `Oghamark/homebranch-web` is AGPL-3.0, so do not copy/adapt code without a deliberate license review. HUKM's current custom chapter/content model may not need a full EPUB engine.
 - No verified Vercel Production deployment status or Google AI Studio synchronization status was established in this session.
+- The proxy-aware rate-limit fix is based on documented Vercel/Express header behavior; it is covered by CI regression checks but has not yet been confirmed against a live Vercel request's observed `req.ip`.
 
 ## Next work — resume in this order
 
