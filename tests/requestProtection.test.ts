@@ -76,6 +76,12 @@ describe('API rate limiting', () => {
   });
 });
 describe('API protection wiring', () => {
+  it('trusts exactly one Vercel proxy hop for visitor-specific rate limiting, without enabling proxy trust locally', () => {
+    for (const entrypoint of ['server.ts', 'api/index.ts']) {
+      const source = fs.readFileSync(path.resolve(process.cwd(), entrypoint), 'utf-8');
+      assert.match(source, /if \(process\.env\.VERCEL === '1'\) \{\s*app\.set\('trust proxy', 1\);\s*\}/);
+    }
+  });
   for (const entrypoint of ['server.ts', 'api/index.ts']) {
     it(`applies the shared security, rate-limit, body-size, and error protections in ${entrypoint}`, () => {
       const source = fs.readFileSync(path.resolve(process.cwd(), entrypoint), 'utf-8');
