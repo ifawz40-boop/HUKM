@@ -387,8 +387,8 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
 });
 
 /**
- * Grant an additional OWNER role. Only an existing verified Owner may call this.
- * The founder record is immutable; additional owners are explicitly non-founder.
+ * Grant an additional OWNER role. Only the verified founder may call this.
+ * Additional owners are explicitly non-founder and cannot appoint other owners.
  */
 authClaimsRouter.post('/grant-owner', authenticateToken, requireFounderOwner, async (req: Request, res: Response) => {
   const actor = (req as any).user;
