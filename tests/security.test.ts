@@ -25,6 +25,22 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
   const adminModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/AdminManagementModal.tsx'), 'utf-8');
   const bootstrapOwnerContent = fs.readFileSync(path.resolve(process.cwd(), 'scripts/bootstrap-owner.ts'), 'utf-8');
 
+  describe('Deployment configuration hardening', () => {
+    it('disables the Express fingerprint header in both server entry points', () => {
+      const serverContent = fs.readFileSync(path.resolve(process.cwd(), 'server.ts'), 'utf-8');
+      const vercelApiContent = fs.readFileSync(path.resolve(process.cwd(), 'api/index.ts'), 'utf-8');
+      assert.ok(serverContent.includes("app.disable('x-powered-by')"));
+      assert.ok(vercelApiContent.includes("app.disable('x-powered-by')"));
+    });
+
+    it('documents the server-side Resend configuration without committing credentials', () => {
+      const envExample = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf-8');
+      assert.ok(envExample.includes('RESEND_API_KEY="YOUR_RESEND_API_KEY"'));
+      assert.ok(envExample.includes('EMAIL_FROM='));
+      assert.equal(/RESEND_API_KEY="re_[^"]+"/.test(envExample), false);
+    });
+  });
+
   describe('Elevated role registry verification', () => {
     it('requires a verified claim and an exact matching active registry role', () => {
       assert.equal(resolveVerifiedUserRole('owner', true, 'owner'), 'owner');

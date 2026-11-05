@@ -6,6 +6,7 @@ import { createRateLimiter } from '../src/server/requestProtection.ts';
 import { apiErrorHandler } from '../src/server/apiErrorHandler.ts';
 
 const app = express();
+app.disable('x-powered-by');
 
 app.use(applySecurityHeaders);
 app.use('/api', createRateLimiter({

@@ -35,6 +35,7 @@ function getHost(): string {
 
 async function startServer() {
   const app = express();
+  app.disable('x-powered-by');
   const PORT = getPort();
   const HOST = getHost();
   const isProd = process.env.NODE_ENV === 'production';
