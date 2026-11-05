@@ -58,6 +58,7 @@ import {
 } from '../src/utils/readerAnnotations.ts';
 import { formatReadingProgressId } from '../src/firebase/firestoreService.ts';
 import type { UserProfile } from '../src/types/auth.ts';
+import type { ReaderAnnotation } from '../src/types/hukm.ts';
 
 describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', () => {
   beforeEach(() => {
@@ -241,7 +242,7 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
   });
 
   describe('Reader annotations — local privacy and cloud merge behavior', () => {
-    const annotation = (overrides: Record<string, unknown> = {}) => ({
+    const annotation = (overrides: Partial<ReaderAnnotation> = {}): ReaderAnnotation => ({
       id: 'ann_test_1',
       bookId: 'book-annotations',
       chapterId: 'chapter-1',
