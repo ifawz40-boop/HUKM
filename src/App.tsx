@@ -148,7 +148,7 @@ export default function App() {
           // ---------------------------------------------------------------
           // STEP 2: READING PROGRESS LOCAL MERGE & SEPARATE CLOUD UPLOAD
           // ---------------------------------------------------------------
-          const guestProgress = getAllReadingProgress(); // Reads guest or legacy
+          const guestProgress = getAllReadingProgress(); // Reads only the guest-owned partition
           const hasGuestProgress = hasGuestReadingProgress() || Object.keys(guestProgress).length > 0;
           const userProgress = getAllReadingProgress(profile.id);
           const mergedProgress = mergeGuestReadingProgressWithUser(guestProgress, userProgress);
