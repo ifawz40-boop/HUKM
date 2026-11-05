@@ -292,8 +292,9 @@ export default function App() {
   const handleQuickResumeChapter = (bookId: string, chapterId: string) => {
     const targetBook = books.find((book) => book.id === bookId);
     const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
-    if (!targetBook || (!isOwner && !isPublicBook)) {
-      showToast('هذا العمل غير متاح للقراءة بهذا الحساب.');
+    const chapterIsPublic = targetBook?.chapters?.some((chapter) => chapter.id === chapterId && chapter.status === 'ready');
+    if (!targetBook || (!isOwner && (!isPublicBook || !chapterIsPublic))) {
+      showToast('هذا الفصل غير متاح للقراءة بهذا الحساب.');
       return;
     }
     setSelectedBookId(bookId);
@@ -372,7 +373,13 @@ export default function App() {
   // Firestore applies the same published-status filter; this is the client-side privacy boundary.
   const accessibleBooks = isOwner
     ? books
-    : books.filter((book) => ['published', 'completed', 'ongoing', 'ready'].includes(book.status));
+    : books
+        .filter((book) => ['published', 'completed', 'ongoing', 'ready'].includes(book.status))
+        .map((book) => ({
+          ...book,
+          // Cached owner snapshots may contain embedded draft chapters; expose ready chapters only.
+          chapters: (book.chapters || []).filter((chapter) => chapter.status === 'ready'),
+        }));
 
   const currentBook = (selectedBookId
     ? accessibleBooks.find((book) => book.id === selectedBookId)
@@ -394,8 +401,9 @@ export default function App() {
   const handleOpenReader = (bookId: string, chapterId?: string) => {
     const targetBook = books.find((book) => book.id === bookId);
     const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
-    if (!targetBook || (!isOwner && !isPublicBook)) {
-      showToast('هذا العمل غير متاح للقراءة بهذا الحساب.');
+    const chapterIsPublic = !chapterId || targetBook?.chapters?.some((chapter) => chapter.id === chapterId && chapter.status === 'ready');
+    if (!targetBook || (!isOwner && (!isPublicBook || !chapterIsPublic))) {
+      showToast(chapterId ? 'هذا الفصل غير متاح للقراءة بهذا الحساب.' : 'هذا العمل غير متاح للقراءة بهذا الحساب.');
       return;
     }
     setSelectedBookId(bookId);
