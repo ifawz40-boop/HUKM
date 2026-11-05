@@ -165,6 +165,37 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         chapterStatus !== currentChapter.status
       ) : Boolean(selectedChapterId && (chapterTitle.trim() || chapterContent.trim())));
 
+  // Persist dirty editor content synchronously before any navigation that would replace it.
+  const preserveCurrentEditorDraft = (): WriterDraftSnapshot | null | false => {
+    if (!isEditorDirty) return null;
+    if (!currentUserId || !currentBook) {
+      alert('لا يمكن الانتقال الآن لأن التعديلات غير المحفوظة لا يمكن ربطها بحساب كتابة. احفظ الفصل أولاً.');
+      return false;
+    }
+
+    const chapterId = isCreatingChapter ? null : currentChapter?.id || selectedChapterId || null;
+    const savedAt = new Date().toISOString();
+    const snapshot: WriterDraftSnapshot = {
+      id: `${currentBook.id}::${chapterId || 'new'}`,
+      userId: currentUserId,
+      bookId: currentBook.id,
+      chapterId,
+      chapterNumber: Math.max(1, Number(chapterNumber) || 1),
+      title: chapterTitle,
+      content: chapterContent,
+      status: chapterStatus,
+      baseUpdatedAt: editorBaseUpdatedAtRef.current,
+      savedAt,
+    };
+
+    if (!saveWriterDraftSnapshot(snapshot)) {
+      alert('تعذر حفظ نسخة استرداد محلية. لم ننقلك حتى لا تفقد تعديلاتك الحالية.');
+      return false;
+    }
+    setLastLocalAutosavedAt(savedAt);
+    return snapshot;
+  };
+
   // Offer recovery rather than overwriting a local snapshot automatically.
   useEffect(() => {
     if (!currentUserId || !currentBook) {
@@ -302,7 +333,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Sync state when current chapter changes
   const handleSelectChapter = (ch: BookChapter) => {
-    if (isSavingChapterRef.current) return;
+    if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
     setRecoverySnapshot(null);
     setLastLocalAutosavedAt(null);
     dismissedRecoveryKeyRef.current = null;
@@ -432,7 +463,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Add new chapter trigger: defaults strictly to 'draft' and clean empty content
   const handleCreateNewChapter = () => {
-    if (!currentBook || isSavingChapterRef.current) return;
+    if (!currentBook || isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
     const nextNumber = Math.max(0, ...currentBook.chapters.map((chapter) => chapter.chapterNumber || 0)) + 1;
     setRecoverySnapshot(null);
     setLastLocalAutosavedAt(null);
@@ -450,6 +481,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   // Delete chapter
   const handleDeleteChapter = async (chId: string) => {
     if (!currentBook || isSavingChapterRef.current) return;
+    const preservedSnapshot = selectedChapterId === chId ? preserveCurrentEditorDraft() : null;
+    if (preservedSnapshot === false) return;
     if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الفصل؟')) return;
 
     const remaining = currentBook.chapters.filter((c) => c.id !== chId);
@@ -465,11 +498,20 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         showNotification('فشل حذف الفصل من السحابة.', true);
         return;
       }
-      if (currentUserId) removeWriterDraftSnapshot(currentUserId, currentBook.id, chId);
-      if (recoverySnapshot?.chapterId === chId) setRecoverySnapshot(null);
+      if (currentUserId && !preservedSnapshot) removeWriterDraftSnapshot(currentUserId, currentBook.id, chId);
+      if (recoverySnapshot?.chapterId === chId && !preservedSnapshot) setRecoverySnapshot(null);
       if (selectedChapterId === chId) {
         if (remaining.length > 0) {
-          handleSelectChapter(remaining[0]);
+          const nextChapter = remaining[0];
+          setIsCreatingChapter(false);
+          setSelectedChapterId(nextChapter.id);
+          setChapterNumber(nextChapter.chapterNumber);
+          setChapterTitle(nextChapter.title);
+          setChapterContent(nextChapter.content.join('\\n\\n'));
+          setChapterStatus(nextChapter.status);
+          editorBaseUpdatedAtRef.current = nextChapter.updatedAt || null;
+          setLastLocalAutosavedAt(null);
+          setRecoverySnapshot(preservedSnapshot || null);
         } else {
           setIsCreatingChapter(false);
           setSelectedChapterId('');
@@ -478,6 +520,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
           setChapterContent('');
           editorBaseUpdatedAtRef.current = null;
           setLastLocalAutosavedAt(null);
+          setRecoverySnapshot(preservedSnapshot || null);
         }
       }
       showNotification('تم حذف الفصل بنجاح.');
@@ -844,6 +887,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => {
+                              if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
                               onSelectBook(book.id);
                               setActiveTab('editor');
                             }}
