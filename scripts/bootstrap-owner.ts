@@ -109,10 +109,8 @@ async function bootstrapOwner(): Promise<void> {
   let existingClaims = (ownerUser.customClaims || {}) as Record<string, unknown>;
   const bootstrapRef = db.collection('_system').doc('bootstrap');
   const ownerAdminRef = db.collection('admins').doc(ownerUser.uid);
-  let reservationDecision: 'reserve' | 'resume' = 'reserve';
-
   console.log('Checking bootstrap lock and owner registry in one Firestore transaction...');
-  await db.runTransaction(async (transaction) => {
+  const reservationDecision = await db.runTransaction(async (transaction) => {
     // All reads are completed before any transaction write.
     const bootstrapSnap = await transaction.get(bootstrapRef);
     const ownerAdminSnap = await transaction.get(ownerAdminRef);
@@ -123,7 +121,7 @@ async function bootstrapOwner(): Promise<void> {
       ...foundersSnap.docs.map((doc) => String(doc.data().uid || doc.id)),
     ])];
 
-    reservationDecision = decideOwnerBootstrap({
+    const decision = decideOwnerBootstrap({
       bootstrapExists: bootstrapSnap.exists,
       bootstrapData: bootstrapSnap.exists ? (bootstrapSnap.data() || {}) : null,
       ownerUid: ownerUser.uid,
@@ -132,9 +130,9 @@ async function bootstrapOwner(): Promise<void> {
     });
 
     // An owner claim is accepted only when resuming this same UID's pending lock.
-    assertOwnerClaimCanBeAssigned(existingClaims.role, reservationDecision === 'resume');
+    assertOwnerClaimCanBeAssigned(existingClaims.role, decision === 'resume');
 
-    if (reservationDecision === 'reserve') {
+    if (decision === 'reserve') {
       transaction.create(bootstrapRef, {
         status: 'pending',
         completed: false,
@@ -153,6 +151,7 @@ async function bootstrapOwner(): Promise<void> {
         attempts: Number.isSafeInteger(current.attempts) ? Number(current.attempts) + 1 : 2,
       });
     }
+    return decision;
   });
 
   console.log(`Reservation secured: ${reservationDecision} for the verified target UID.`);
