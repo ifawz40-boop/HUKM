@@ -116,7 +116,7 @@ service cloud.firestore {
              data.startOffset == previous.startOffset &&
              data.endOffset == previous.endOffset &&
              data.createdAt == previous.createdAt &&
-             affected.hasOnly(['selectedText', 'note', 'color', 'updatedAt']) &&
+             affected.hasOnly(['note', 'color', 'updatedAt']) &&
              data.selectedText is string && data.selectedText.size() > 0 && data.selectedText.size() <= 2000 &&
              data.note is string && data.note.size() <= 2000 &&
              data.color in ['gold', 'green', 'blue', 'rose'] &&
