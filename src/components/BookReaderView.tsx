@@ -36,7 +36,6 @@ import {
 } from '../utils/readingTracker';
 import {
   saveReadingProgressToFirestore,
-  formatReadingProgressId,
 } from '../firebase/firestoreService';
 
 interface BookReaderViewProps {
@@ -198,7 +197,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
     cloudSyncInFlightRef.current.add(syncKey);
     saveReadingProgressToFirestore({
-      id: formatReadingProgressId(currentUser.id, book.id, currentChapter.id),
+      id: '',
       userId: currentUser.id,
       bookId: book.id,
       chapterId: currentChapter.id,
