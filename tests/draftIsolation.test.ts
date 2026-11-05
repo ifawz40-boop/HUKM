@@ -377,25 +377,25 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
 
   describe('Milestone 1 follow-up: fail-closed and batch safety', () => {
     it('does not return a partial admin book list when draft retrieval fails', () => {
-      assert.match(firestoreServiceContent, /Fail closed: never return a partial admin book list[\\s\\S]*?throw draftErr/);
+      assert.match(firestoreServiceContent, /Fail closed: never return a partial admin book list[\s\S]*?throw draftErr/);
     });
 
     it('aborts save if draft cleanup query fails or write count exceeds Firestore batch limit', () => {
-      assert.match(firestoreServiceContent, /Fail closed: committing without a complete cleanup query[\\s\\S]*?throw queryErr/);
-      assert.match(firestoreServiceContent, /cleanupCount \\+ draftChapters\\.length \\+ 1 > 500/);
+      assert.match(firestoreServiceContent, /Fail closed: committing without a complete cleanup query[\s\S]*?throw queryErr/);
+      assert.match(firestoreServiceContent, /cleanupCount \+ draftChapters\.length \+ 1 > 500/);
     });
 
     it('does not delete a book when draft enumeration fails', () => {
-      assert.match(firestoreServiceContent, /never delete the parent book if its draft records could not be enumerated[\\s\\S]*?throw queryErr/);
+      assert.match(firestoreServiceContent, /never delete the parent book if its draft records could not be enumerated[\s\S]*?throw queryErr/);
     });
 
     it('migration only leaves explicitly ready chapters public', () => {
-      assert.match(migrationScriptContent, /const ready = chapters\\.filter\\(\\(c: any\\) => c\\.status === 'ready'\\)/);
-      assert.match(migrationScriptContent, /const drafts = chapters\\.filter\\(\\(c: any\\) => c\\.status !== 'ready'\\)/);
+      assert.match(migrationScriptContent, /const ready = chapters\.filter\(\(c: any\) => c\.status === 'ready'\)/);
+      assert.match(migrationScriptContent, /const drafts = chapters\.filter\(\(c: any\) => c\.status !== 'ready'\)/);
     });
 
     it('migration writes draft copies in bounded batches before stripping public legacy content', () => {
-      assert.match(migrationScriptContent, /offset \\+= 450/);
+      assert.match(migrationScriptContent, /offset \+= 450/);
       assert.match(migrationScriptContent, /Strip legacy drafts only after every private copy/);
     });
   });
