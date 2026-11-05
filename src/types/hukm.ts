@@ -48,7 +48,7 @@ export interface BookProject {
   id: string;
   title: string;
   subtitle?: string;
-  author?: string; // Dr/ Islam Mohamed or custom
+  author?: string; // Optional author attribution; omitted when not provided
   category: string; // Dynamic Category ID
   coverImage: string;
   coverMediaType?: MediaType;
@@ -87,10 +87,3 @@ export interface ReadingProgressRecord {
   updatedAt?: any;
 }
 
-export interface CreatorAccount {
-  name: string;
-  email: string;
-  channelName: string;
-  role: 'official_publisher';
-  isOfficialVerified: boolean;
-}
