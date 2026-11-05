@@ -10,11 +10,12 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test tests/security.test.ts tests/readerSync.test.ts tests/adminSubscribers.test.ts tests/draftIsolation.test.ts",
+    "test": "tsx --test tests/security.test.ts tests/readerSync.test.ts tests/adminSubscribers.test.ts tests/draftIsolation.test.ts tests/emailTemplateSecurity.test.ts",
     "test:security": "tsx --test tests/security.test.ts",
     "test:reader": "tsx --test tests/readerSync.test.ts",
     "test:admin": "tsx --test tests/adminSubscribers.test.ts",
-    "test:drafts": "tsx --test tests/draftIsolation.test.ts"
+    "test:drafts": "tsx --test tests/draftIsolation.test.ts",
+    "test:email": "tsx --test tests/emailTemplateSecurity.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

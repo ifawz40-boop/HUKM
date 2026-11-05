@@ -1,6 +1,29 @@
 import { BookProject, BookChapter } from '../types/hukm';
 import { HUKM_LOGO, HUKM_MOTTO } from '../data/hukmData';
 
+/** Escape untrusted text before inserting it into an HTML email. */
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character] || character);
+}
+
+/** Allow only web URLs in email attributes; reject javascript:, data:, and malformed URLs. */
+function safeEmailUrl(value?: string | null): string {
+  if (!value || typeof value !== 'string') return '';
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
+    return escapeHtml(parsed.toString());
+  } catch {
+    return '';
+  }
+}
+
 export function getHukmEmailHeader(): string {
   return `
     <!-- HUKM BRAND HEADER -->
@@ -31,6 +54,7 @@ export function getHukmEmailHeader(): string {
 }
 
 export function getHukmEmailFooter(userEmail?: string): string {
+  const safeUserEmail = escapeHtml(userEmail);
   return `
     <!-- HUKM BRAND FOOTER -->
     <tr>
@@ -58,7 +82,7 @@ export function getHukmEmailFooter(userEmail?: string): string {
             <td align="center" style="padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);">
               <p style="margin: 0; font-family: 'Cairo', Tahoma, sans-serif; font-size: 11px; color: #64748b; line-height: 1.8;">
                 تصلك هذه الرسالة التلقائية لأنك مسجل ومعتمد في منصة <strong>حُكم | HUKM MEDIA</strong>.<br/>
-                ${userEmail ? `تم الإرسال إلى: <span style="color: #cbd5e1;">${userEmail}</span> | ` : ''}
+                ${safeUserEmail ? 'تم الإرسال إلى: <span style="color: #cbd5e1;">' + safeUserEmail + '</span> | ' : ''}
                 الناشر: <strong style="color: #f0cb69;">إدارة ومنصة حُكم</strong>
               </p>
               <p style="margin: 8px 0 0 0; font-family: 'Cairo', Tahoma, sans-serif; font-size: 10px; color: #475569;">
@@ -76,7 +100,7 @@ export function getHukmEmailFooter(userEmail?: string): string {
  * Generate Welcome Email HTML for new signups
  */
 export function generateWelcomeEmailHtml(userName: string, userEmail: string): string {
-  const safeName = userName || 'قارئنا الكريم';
+  const safeName = escapeHtml(userName || 'قارئنا الكريم');
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -163,14 +187,25 @@ export function generateNewReleaseEmailHtml(
   chapter?: BookChapter,
   subscriberName?: string
 ): string {
-  const safeName = subscriberName || 'عزيزنا القارئ';
+  const safeName = escapeHtml(subscriberName || 'عزيزنا القارئ');
+  const safeBookTitle = escapeHtml(book.title);
+  const safeBookId = encodeURIComponent(book.id);
+  const safeCoverImage = safeEmailUrl(book.coverImage);
+  const safeBookSubtitle = escapeHtml(book.subtitle || '');
+  const safeBookSummary = escapeHtml(book.summary || '');
+  const safeChapterTitle = chapter ? escapeHtml(chapter.title) : '';
+  const safeChapterSubtitle = escapeHtml(chapter?.subtitle || '');
+  const safeEpisodeDescription = escapeHtml(
+    book.standaloneEpisode?.description || 'يمكنك مشاهدة الحلقة الوثائقية كاملة بجودة عالية بالتزامن مع قراءة فصول الكتاب.'
+  );
   const isChapterRelease = !!chapter;
   const releaseTitle = isChapterRelease
-    ? `فصل جديد: ${chapter.title}`
-    : `كتاب استقصائي جديد: ${book.title}`;
+    ? `فصل جديد: ${safeChapterTitle}`
+    : `كتاب استقصائي جديد: ${safeBookTitle}`;
 
   const hasEpisode = book.standaloneEpisode?.hasStandaloneEpisode;
-  const episodeUrl = book.standaloneEpisode?.videoUrl || book.socialLinks?.youtubeUrl;
+  const episodeUrl = safeEmailUrl(book.standaloneEpisode?.videoUrl || book.socialLinks?.youtubeUrl);
+  const releaseDescription = safeChapterSubtitle || safeBookSubtitle || safeBookSummary;
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -203,7 +238,7 @@ export function generateNewReleaseEmailHtml(
             ${releaseTitle}
           </h2>
           <p style="margin: 0 0 20px 0; font-size: 13px; color: #d4af37; font-weight: 600;">
-            من مشروع: ${book.title}
+            من مشروع: ${safeBookTitle}
           </p>
 
           <p style="font-size: 14px; line-height: 1.9; color: #cbd5e1; margin: 0 0 20px 0;">
@@ -212,15 +247,15 @@ export function generateNewReleaseEmailHtml(
 
           <!-- Book Feature Banner -->
           <div style="border-radius: 16px; overflow: hidden; border: 1px solid rgba(197, 155, 39, 0.35); background-color: #070d1e; margin-bottom: 24px;">
-            ${book.coverImage ? `
-            <img src="${book.coverImage}" alt="${book.title}" width="100%" style="display: block; max-height: 240px; object-fit: cover;" />
+            ${safeCoverImage ? `
+            <img src="${safeCoverImage}" alt="${safeBookTitle}" width="100%" style="display: block; max-height: 240px; object-fit: cover;" />
             ` : ''}
             <div style="padding: 18px;">
               <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 800; color: #ffffff;">
-                ${book.title}
+                ${safeBookTitle}
               </h3>
               <p style="margin: 0; font-size: 12px; line-height: 1.7; color: #94a3b8;">
-                ${chapter?.subtitle || book.subtitle || book.summary}
+                ${releaseDescription}
               </p>
             </div>
           </div>
@@ -234,7 +269,7 @@ export function generateNewReleaseEmailHtml(
                   🎬 تنويه: تم تخصيص حلقة مفرقة ومستقلة لهذا الموضوع
                 </span>
                 <p style="margin: 0; font-size: 12px; color: #cbd5e1; line-height: 1.6;">
-                  ${book.standaloneEpisode?.description || 'يمكنك مشاهدة الحلقة الوثائقية كاملة بجودة عالية بالتزامن مع قراءة فصول الكتاب.'}
+                  ${safeEpisodeDescription}
                 </p>
                 ${episodeUrl ? `
                 <div style="margin-top: 10px;">
@@ -250,7 +285,7 @@ export function generateNewReleaseEmailHtml(
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 10px auto 10px auto;">
             <tr>
               <td align="center" style="border-radius: 14px; background: linear-gradient(135deg, #d4af37 0%, #c59b27 50%, #997314 100%); box-shadow: 0 8px 24px rgba(197, 155, 39, 0.35);">
-                <a href="https://hukm.media?book=${book.id}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">
+                <a href="https://hukm.media?book=${safeBookId}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">
                   📖 بدء قراءة الإصدار الآن
                 </a>
               </td>
@@ -275,12 +310,16 @@ export function generateCustomBroadcastEmailHtml(
   actionUrl: string = 'https://hukm.media',
   actionLabel: string = 'زيارة منصة حُكم'
 ): string {
+  const safeSubject = escapeHtml(subject);
+  const safeBodyContent = escapeHtml(bodyContent);
+  const safeActionUrl = safeEmailUrl(actionUrl) || 'https://hukm.media';
+  const safeActionLabel = escapeHtml(actionLabel);
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject} | حُكم HUKM MEDIA</title>
+  <title>${safeSubject} | حُكم HUKM MEDIA</title>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 </head>
 <body style="margin: 0; padding: 0; background-color: #030712; font-family: 'Cairo', Tahoma, sans-serif; direction: rtl; text-align: right; -webkit-font-smoothing: antialiased;">
@@ -296,20 +335,20 @@ export function generateCustomBroadcastEmailHtml(
               📢 بيان وتنويه رسمي للمشتركين
             </span>
             <h2 style="margin: 4px 0 0 0; font-size: 21px; font-weight: 900; color: #ffffff; line-height: 1.4;">
-              ${subject}
+              ${safeSubject}
             </h2>
           </div>
 
           <div style="font-size: 14px; line-height: 1.9; color: #cbd5e1; margin: 0 0 24px 0; white-space: pre-line;">
-            ${bodyContent}
+            ${safeBodyContent}
           </div>
 
           <!-- CTA Button -->
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 10px auto;">
             <tr>
               <td align="center" style="border-radius: 14px; background: linear-gradient(135deg, #d4af37 0%, #c59b27 50%, #997314 100%); box-shadow: 0 8px 24px rgba(197, 155, 39, 0.35);">
-                <a href="${actionUrl}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">
-                  ${actionLabel}
+                <a href="${safeActionUrl}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">
+                  ${safeActionLabel}
                 </a>
               </td>
             </tr>
