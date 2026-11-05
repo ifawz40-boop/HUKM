@@ -36,6 +36,7 @@ $env:BOOTSTRAP_CONFIRMATION = "HUKM_INITIAL_OWNER"
 
 bun install --frozen-lockfile
 bun run owner:bootstrap
+bun run owner:verify
 ```
 
 If dependencies are already installed from the lockfile, `npm ci` may be skipped. The credential must belong to the intended Firebase project and have only the IAM permissions required to read/update Firebase Authentication users and read/write the HUKM Firestore database. Do not grant broad project Owner access just for this script.
@@ -51,7 +52,9 @@ The script prints a success confirmation only after all of these have completed:
 - refresh-token revocation;
 - atomic creation of `admins/{uid}` and transition of `_system/bootstrap` to `completed`.
 
-Then:
+Then run the read-only verifier above. It checks Firebase Auth custom claims and the exact Firestore bootstrap/owner registry fields without changing data.
+
+After the verifier reports all checks as PASS:
 1. Sign out of HUKM in the browser.
 2. Sign back in using the same verified Google account.
 3. Confirm the owner-only management panel appears.
@@ -67,6 +70,7 @@ Do not mark provisioning complete based on a UI screenshot alone; the claim and 
 - If the script reports a pending reservation for the same UID, rerun with the same verified account and same project/database after correcting the credential/network issue.
 - If it reports a different UID, an existing owner/admin record, an unknown lock state, or a completed bootstrap, stop. Do not delete Firestore documents or edit custom claims manually to bypass the guard.
 - If the script reports that automatic rollback failed, stop and inspect both Firebase Authentication custom claims and the Firestore `admins` / `_system/bootstrap` records before any retry.
+- The read-only verifier returns a non-zero exit code if any of the required Auth/Firestore facts disagree. Do not manually edit production records just to make the verifier pass.
 
 ## Adding another owner later
 
