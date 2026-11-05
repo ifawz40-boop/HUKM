@@ -94,12 +94,13 @@
 - Read-only verification CLI: `6a973f893752b05a32f762596faf766d08c096c1`
 - Verification runbook and test updates: `e6a0f1285920f6ac553315cb9ca4dc700f832d0b` and `0a12d43237a6171889d2bb54d5839ccf183dc2e8`
 - Latest claim/founder-state rechecks: `d6e72cacf5f720a29d55f06d8af010229fe73414` and `7d3d01c62db238fc3845804566d19843f7540804`
+- Script command documentation alignment: `619d473b605b279399d162e7d1db0124958a4076`
 
 ### Verification state and next resume marker
-- Source files and the new test/runbook files were committed directly to `main`; latest code commit at checkpoint preparation: `7d3d01c62db238fc3845804566d19843f7540804`.
+- Source files and the new test/runbook files were committed directly to `main`; latest code commit at checkpoint preparation: `619d473b605b279399d162e7d1db0124958a4076`.
 - A combined GitHub commit-status query returned a Vercel status of `failure` pointing to the Vercel build-rate-limit/upgrade page. This is not evidence of a successful Vercel deployment.
 - GitHub Actions test/typecheck/build result for the owner-provisioning batch has not yet been independently confirmed. Do not claim the tests or production build passed until the Actions run is inspected.
 - Firebase production bootstrap has NOT been executed. No Firebase Auth custom claim or Firestore admin/bootstrap document has been changed by this work.
 - Google AI Studio synchronization has not been independently confirmed.
 
-**RESUME HERE:** First inspect latest `main` and the CI run for the latest owner-provisioning commit (currently `7d3d01c62db238fc3845804566d19843f7540804`). Fix any failing tests/type errors and save the fix plus an updated checkpoint to `main`. Then provide the operator with the local runbook steps (`bun run owner:bootstrap`, followed by `bun run owner:verify`); wait for the non-secret verifier output and confirm that Firebase Auth `role: owner`, `admins/{uid}` (`isFounder: true`), and `_system/bootstrap.status=completed` agree. Never ask for or accept the service-account key in chat.
+**RESUME HERE:** First inspect latest `main` and the CI run for the latest owner-provisioning commit (currently `619d473b605b279399d162e7d1db0124958a4076`). Fix any failing tests/type errors and save the fix plus an updated checkpoint to `main`. Then provide the operator with the local runbook steps (`bun run owner:bootstrap`, followed by `bun run owner:verify`); wait for the non-secret verifier output and confirm that Firebase Auth `role: owner`, `admins/{uid}` (`isFounder: true`), and `_system/bootstrap.status=completed` agree. Never ask for or accept the service-account key in chat.
