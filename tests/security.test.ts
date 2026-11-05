@@ -61,7 +61,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     });
 
     it('keeps the App owner-only gate tied to the verified Owner check', () => {
-      assert.match(appContent, /const isOwner = isEffectiveOwner\\(currentUser, isReaderPreviewMode\\);/);
+      assert.ok(appContent.includes('const isOwner = isEffectiveOwner(currentUser, isReaderPreviewMode);'));
       assert.doesNotMatch(appContent, /const isOwner = isActualAdminOrOwner/);
     });
   });
@@ -89,6 +89,8 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(rulesContent, /request\.auth\.token\.role == 'owner'/);
       assert.match(rulesContent, /request\.auth\.token\.role == 'admin'/);
       assert.match(rulesContent, /exists\(\/databases\/\$\(database\)\/documents\/admins\/\$\(request\.auth\.uid\)\)/);
+      assert.ok(rulesContent.includes("get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'owner'"));
+      assert.ok(rulesContent.includes("get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin'"));
     });
 
     it('must enforce strict field-level validation on users collection', () => {
