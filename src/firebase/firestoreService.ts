@@ -361,7 +361,7 @@ export async function fetchAdminsFromFirestore(): Promise<AdminAccount[] | null>
   const path = 'admins';
   try {
     const snapshot = await getDocs(collection(db, path));
-    if (snapshot.empty) return null;
+    if (snapshot.empty) return [];
     const admins: AdminAccount[] = [];
     snapshot.forEach((d) => {
       admins.push(d.data() as AdminAccount);
@@ -399,7 +399,7 @@ export async function fetchBansFromFirestore(): Promise<BannedAccount[] | null> 
   const path = 'bans';
   try {
     const snapshot = await getDocs(collection(db, path));
-    if (snapshot.empty) return null;
+    if (snapshot.empty) return [];
     const bans: BannedAccount[] = [];
     snapshot.forEach((d) => {
       bans.push(d.data() as BannedAccount);
