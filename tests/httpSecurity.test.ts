@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import type { Request, Response, NextFunction } from 'express';
 import { applySecurityHeaders } from '../src/server/httpSecurity.ts';
 
-function runMiddleware(path: string) {
+function runMiddleware(path: string, secure = false, forwardedProto?: string) {
   const headers: Record<string, string> = {};
   let nextCalled = false;
   applySecurityHeaders(
-    { path } as Request,
+    { path, secure, headers: forwardedProto ? { 'x-forwarded-proto': forwardedProto } : {} } as Request,
     { setHeader: (name: string, value: string) => { headers[name] = value; } } as unknown as Response,
     (() => { nextCalled = true; }) as NextFunction
   );
@@ -22,8 +22,17 @@ describe('HTTP security headers', () => {
     assert.equal(headers['Referrer-Policy'], 'strict-origin-when-cross-origin');
     assert.equal(headers['X-Permitted-Cross-Domain-Policies'], 'none');
     assert.equal(headers['Permissions-Policy'], 'camera=(), microphone=(), geolocation=()');
+    assert.equal(headers['X-DNS-Prefetch-Control'], 'off');
+    assert.equal(headers['X-Download-Options'], 'noopen');
+    assert.equal(headers['Strict-Transport-Security'], undefined);
     assert.equal(headers['Cache-Control'], undefined);
     assert.equal(nextCalled, true);
+  });
+
+  it('enables HSTS only when the request is HTTPS at the app or trusted edge', () => {
+    assert.equal(runMiddleware('/', true).headers['Strict-Transport-Security'], 'max-age=15552000');
+    assert.equal(runMiddleware('/', false, 'https, http').headers['Strict-Transport-Security'], 'max-age=15552000');
+    assert.equal(runMiddleware('/', false, 'http').headers['Strict-Transport-Security'], undefined);
   });
 
   it('prevents authenticated API responses from being cached', () => {

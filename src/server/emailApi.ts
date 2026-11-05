@@ -1,8 +1,15 @@
 import { Router, type Request, type Response } from 'express';
 import { authenticateToken, requireOwnerRole } from './authClaimsApi.ts';
 import { adminDb } from './firebaseAdmin.ts';
+import { createRateLimiter } from './requestProtection.ts';
 
 export const emailApiRouter = Router();
+
+const sendEmailRateLimit = createRateLimiter({
+  windowMs: 60_000,
+  max: 5,
+  message: 'تم تجاوز عدد عمليات إرسال البريد المسموح بها. يرجى الانتظار دقيقة قبل المحاولة مجدداً.',
+});
 
 /**
  * Check whether email provider credentials are configured on the server
@@ -28,7 +35,7 @@ emailApiRouter.get('/status', authenticateToken, async (_req: Request, res: Resp
  * Chunks broadcast recipients into batches of 50 to ensure no subscribers are dropped.
  * Accurately logs and returns the exact number of recipients dispatched.
  */
-emailApiRouter.post('/send', authenticateToken, async (req: Request, res: Response) => {
+emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (!user || (user.role !== 'owner' && user.role !== 'admin') || !user.email_verified) {
     return res.status(403).json({

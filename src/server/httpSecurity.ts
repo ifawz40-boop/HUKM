@@ -15,6 +15,17 @@ export function applySecurityHeaders(
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('X-Download-Options', 'noopen');
+
+  // Respect HTTPS at the edge without forcing HSTS on local HTTP development.
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const forwardedHttps =
+    typeof forwardedProto === 'string' &&
+    forwardedProto.split(',')[0]?.trim().toLowerCase() === 'https';
+  if (req.secure || forwardedHttps) {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000');
+  }
 
   if (req.path === '/api' || req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store, max-age=0');

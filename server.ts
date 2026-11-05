@@ -5,6 +5,7 @@ import { createServer as createViteServer } from 'vite';
 import { authClaimsRouter } from './src/server/authClaimsApi.ts';
 import { emailApiRouter } from './src/server/emailApi.ts';
 import { applySecurityHeaders } from './src/server/httpSecurity.ts';
+import { createRateLimiter } from './src/server/requestProtection.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +27,7 @@ function getPort(): number {
 function getHost(): string {
   const hostArgIdx = process.argv.indexOf('--host');
   if (hostArgIdx !== -1 && process.argv[hostArgIdx + 1]) {
-    return process.argv[hostArgIdx + 1];
+    return process.argv[process.argv.indexOf('--host') + 1];
   }
   return '0.0.0.0';
 }
@@ -38,7 +39,22 @@ async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
 
   app.use(applySecurityHeaders);
-  app.use(express.json());
+  app.use('/api', createRateLimiter({
+    windowMs: 60_000,
+    max: 120,
+    message: 'تم تجاوز عدد الطلبات المسموح به. حاول مرة أخرى بعد قليل.',
+  }));
+  app.use('/api/auth', createRateLimiter({
+    windowMs: 60_000,
+    max: 30,
+    message: 'تم تجاوز عدد محاولات المصادقة والإدارة. يرجى الانتظار دقيقة.',
+  }));
+  app.use('/api/email', createRateLimiter({
+    windowMs: 60_000,
+    max: 20,
+    message: 'تم تجاوز عدد طلبات البريد الإلكتروني. يرجى المحاولة لاحقاً.',
+  }));
+  app.use(express.json({ limit: '256kb' }));
 
   // Mount backend API routes for Custom Claims & Admin Management
   app.use('/api/auth', authClaimsRouter);
