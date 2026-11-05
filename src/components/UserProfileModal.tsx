@@ -606,9 +606,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </div>
             ) : (
               <>
-                {readerNotes.length >= 300 && (
-                  <p className="text-[10px] text-amber-300">نعرض أحدث 300 مقتطف في هذا العرض.</p>
-                )}
                 <div className="max-h-[48vh] overflow-y-auto space-y-2 no-scrollbar pr-1">
                   {readerNotes.map((note) => {
                     const book = books.find((item) => item.id === note.bookId);
