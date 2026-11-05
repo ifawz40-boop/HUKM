@@ -61,12 +61,12 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
           <div className="flex items-center gap-3 rounded-2xl bg-[#070d1e]/80 border border-white/5 px-4 py-2 text-xs">
             <div>
               <span className="font-black text-[#f0cb69] block text-sm">{totalBooksCount}</span>
-              <span className="text-[10px] text-[#94a3b8]">أعمال وروايات</span>
+              <span className="text-[10px] text-[#94a3b8]">كتابًا</span>
             </div>
             <div className="h-6 w-px bg-white/10" />
             <div>
               <span className="font-black text-white block text-sm">{totalChaptersCount}</span>
-              <span className="text-[10px] text-[#94a3b8]">فصول منشورة</span>
+              <span className="text-[10px] text-[#94a3b8]">أقسام وفصول</span>
             </div>
           </div>
 
