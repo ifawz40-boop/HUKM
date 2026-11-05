@@ -1251,8 +1251,13 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             <span>•</span>
             <span>باقي ~{estimatedRemainingMinutes} دقيقة</span>
             <span>•</span>
-            <span>المؤلف: {book.author || 'حُكم | HUKM MEDIA'}</span>
+            <span>المؤلف: {book.author || 'غير منسوب'}</span>
           </div>
+          {book.rights && (
+            <p className="border-t border-current/10 pt-3 text-[10px] leading-6 opacity-70">
+              النص من <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="underline">ويكي مصدر العربي</a>، مرخص وفق <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="underline">CC BY-SA 4.0</a>. <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="underline">بيانات المصدر والترخيص</a>.
+            </p>
+          )}
         </div>
 
         {/* Native, no-API Arabic text-to-speech controls */}
