@@ -29,3 +29,35 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 - License: MIT
 - Reviewed for: EPUB/PDF reading engine and React reader architecture.
 - Not bundled in this phase: HUKM currently stores authored chapters as Firestore text content and has no secure ebook-file storage/streaming path. Integrating a binary ebook reader before that storage design would create an incomplete feature.
+
+
+## react-book-reader — reading-layout readiness pattern adapted
+
+- Repository: https://github.com/umuterturk/react-book-reader
+- Source file: `src/components/BookReader.tsx` (`waitForResources` helper)
+- License: MIT
+- Copyright (c) 2026 Umut Erturk
+
+HUKM adapts the small resource-readiness pattern (wait for document fonts and subsequent animation frames) in `src/components/BookReaderView.tsx` so saved scroll positions are restored after typography and layout have settled. No reader component, pagination implementation, styles, or other source files were copied.
+
+MIT License
+
+Copyright (c) 2026 Umut Erturk
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
