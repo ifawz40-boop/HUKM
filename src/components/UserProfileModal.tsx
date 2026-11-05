@@ -199,7 +199,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       onShowToast?.('تعذر حفظ التعديل محلياً. لم نغيّر النسخة الحالية.');
       return;
     }
-    saveAllReaderAnnotations(nextLocal, user.id);
     notifyReaderAnnotationsChanged(user.id);
     setReaderNotes([...nextLocal].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))));
     setEditingReaderNote(null);
