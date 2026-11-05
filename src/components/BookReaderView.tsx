@@ -52,6 +52,23 @@ interface BookReaderViewProps {
   onShowToast?: (message: string) => void;
 }
 
+/**
+ * Wait for web fonts and two paint frames before restoring a scroll checkpoint.
+ * Adapted from the resource-readiness pattern in react-book-reader (MIT).
+ */
+const waitForReaderResources = async (): Promise<void> => {
+  try {
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+  } catch {
+    // Font loading failure must not block reading-position restoration.
+  }
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+};
+
 const renderSearchHighlights = (text: string, query: string): React.ReactNode => {
   const needle = query.trim().toLocaleLowerCase();
   if (!needle) return text;
@@ -284,7 +301,9 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     if (!hasRestoredChapterRef.current[chapterSessionKey]) {
       hasRestoredChapterRef.current[chapterSessionKey] = true;
       if (savedPosition > 2) {
-        const timer = setTimeout(() => {
+        let cancelled = false;
+        void waitForReaderResources().then(() => {
+          if (cancelled) return;
           const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
           if (totalScroll > 50) {
             const targetY = (totalScroll * savedPosition) / 100;
@@ -292,8 +311,8 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             setShowRestoredNotice(true);
             setTimeout(() => setShowRestoredNotice(false), 3000);
           }
-        }, 150);
-        return () => clearTimeout(timer);
+        });
+        return () => { cancelled = true; };
       }
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
