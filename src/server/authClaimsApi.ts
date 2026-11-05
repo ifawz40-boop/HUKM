@@ -531,6 +531,96 @@ authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async
 });
 
 /**
+ * One-time legacy catalogue cleanup.
+ * Only the original founder can invoke it, and the exact confirmation phrase is mandatory.
+ * This deletes only top-level legacy book, draft-chapter and category documents.
+ * User profiles, reading progress, bookmarks, annotations, notifications, subscribers,
+ * admin records and bootstrap state are deliberately preserved.
+ */
+authClaimsRouter.post('/purge-legacy-library', authenticateToken, requireFounderOwner, async (req: Request, res: Response) => {
+  const actor = (req as any).user;
+  if (req.body?.confirmation !== 'DELETE_ALL_LEGACY_LIBRARY_DATA') {
+    return res.status(400).json({
+      success: false,
+      message: 'يلزم تأكيد العملية بعبارة DELETE_ALL_LEGACY_LIBRARY_DATA حرفيًا.',
+    });
+  }
+
+  const lockRef = adminDb.collection('_system').doc('legacyLibraryPurge');
+  const startedAt = new Date().toISOString();
+  const reservation = await adminDb.runTransaction(async (transaction) => {
+    const existing = await transaction.get(lockRef);
+    const status = existing.data()?.status;
+    if (status === 'completed') return { accepted: false, status: 'completed' };
+    if (status === 'running') return { accepted: false, status: 'running' };
+    transaction.set(lockRef, {
+      status: 'running',
+      startedAt,
+      startedBy: actor.uid,
+      scope: ['books', 'bookDraftChapters', 'categories'],
+      attempt: Number(existing.data()?.attempt || 0) + 1,
+    }, { merge: true });
+    return { accepted: true, status: 'running' };
+  });
+
+  if (!reservation.accepted) {
+    return res.status(409).json({
+      success: false,
+      code: 'LEGACY_LIBRARY_PURGE_' + reservation.status.toUpperCase(),
+      message: reservation.status === 'completed'
+        ? 'تم تنظيف بيانات المكتبة القديمة بالفعل. لن تُكرر العملية.'
+        : 'عملية تنظيف المكتبة جارية بالفعل.',
+    });
+  }
+
+  const deleted = { books: 0, bookDraftChapters: 0, categories: 0 };
+  try {
+    for (const collectionName of ['books', 'bookDraftChapters', 'categories'] as const) {
+      while (true) {
+        const snapshot = await adminDb.collection(collectionName).limit(400).get();
+        if (snapshot.empty) break;
+        const batch = adminDb.batch();
+        snapshot.docs.forEach((document) => batch.delete(document.ref));
+        await batch.commit();
+        deleted[collectionName] += snapshot.size;
+      }
+    }
+
+    const completedAt = new Date().toISOString();
+    await lockRef.set({
+      status: 'completed',
+      completedAt,
+      completedBy: actor.uid,
+      deleted,
+    }, { merge: true });
+
+    return res.status(200).json({
+      success: true,
+      message: 'تم حذف سجلات المكتبة القديمة من Firestore بنجاح.',
+      deleted,
+      preserved: ['users', 'readingProgress', 'readerAnnotations', 'notifications', 'subscribers', 'admins', '_system/bootstrap'],
+      completedAt,
+    });
+  } catch (error: any) {
+    console.error('Legacy library purge failed:', error);
+    await lockRef.set({
+      status: 'failed',
+      failedAt: new Date().toISOString(),
+      failedBy: actor.uid,
+      deleted,
+      errorCode: typeof error?.code === 'string' ? error.code : 'UNKNOWN',
+    }, { merge: true }).catch((lockError) => {
+      console.error('Could not persist legacy library purge failure state:', lockError);
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'توقفت عملية التنظيف قبل اكتمالها. تم تسجيل ما حُذف ويمكن للمؤسس إعادة المحاولة بعد مراجعة الحالة.',
+      deleted,
+    });
+  }
+});
+
+/**
  * 7. Current User Claims Info
  */
 authClaimsRouter.get('/my-claims', authenticateToken, async (req: Request, res: Response) => {
