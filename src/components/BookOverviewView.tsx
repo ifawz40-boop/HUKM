@@ -95,7 +95,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
   const publicQuotes = Array.isArray(book.quotes)
     ? book.quotes.filter((item) => isResearchRecord(item) && item.managedBy === 'hukm-research-panel' && item.visibility === 'public')
     : [];
-  const authorName = book.author || 'حُكم | HUKM MEDIA';
+  const authorName = book.author || 'غير منسوب';
 
   const completedCount = progress.completedChapterIds.length;
   const totalChapters = book.chapters.length;
@@ -258,7 +258,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
                     : 'bg-emerald-600 text-white'
                 }`}
               >
-                {book.status === 'completed' ? 'رواية مكتملة ✓' : 'رواية مستمرة ⚡'}
+                {book.status === 'completed' ? 'نص مكتمل ✓' : 'رواية مستمرة ⚡'}
               </span>
             </div>
 
@@ -370,7 +370,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
         <section className="rounded-2xl border border-white/10 bg-[#0a1329] p-6 sm:p-8 space-y-3">
           <h2 className="text-lg font-black text-white font-cairo flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[#d4af37]" />
-            <span>نبذة عن العمل والرواية</span>
+            <span>نبذة عن الكتاب</span>
           </h2>
           <p className="text-sm sm:text-base text-[#cbd5e1] font-amiri leading-loose text-justify">
             {book.summary || 'لا توجد نبذة مدخلة حالياً لهذا العمل.'}
