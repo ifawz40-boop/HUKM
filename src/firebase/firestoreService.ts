@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   doc,
   getDoc,
   getDocs,
@@ -9,6 +10,7 @@ import {
   onSnapshot,
   query,
   where,
+  limit,
   serverTimestamp,
   writeBatch,
 } from 'firebase/firestore';
@@ -722,7 +724,7 @@ function isSafeAnnotationSegment(value: string): boolean {
 }
 
 function getReaderAnnotationCollection(userId: string, bookId: string, chapterId: string) {
-  return collection(db, 'users', userId, 'readerAnnotations', bookId, 'chapters', chapterId, 'items');
+  return collection(db, 'users', userId, 'readerAnnotations', bookId, 'chapters', chapterId, 'readerAnnotationEntries');
 }
 
 export async function fetchReaderAnnotationsFromFirestore(
@@ -781,7 +783,7 @@ export async function saveReaderAnnotationToFirestore(
       'users', userId,
       'readerAnnotations', annotation.bookId,
       'chapters', annotation.chapterId,
-      'items', annotation.id
+      'readerAnnotationEntries', annotation.id
     );
     await setDoc(annotationRef, {
       id: annotation.id,
@@ -823,12 +825,38 @@ export async function deleteReaderAnnotationFromFirestore(
       'users', userId,
       'readerAnnotations', annotation.bookId,
       'chapters', annotation.chapterId,
-      'items', annotation.id
+      'readerAnnotationEntries', annotation.id
     );
     await deleteDoc(annotationRef);
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
     return false;
+  }
+}
+
+
+/**
+ * Fetch a bounded, user-scoped notebook for the profile's cross-book notes view.
+ * The collection-group query is constrained by userId and avoids a composite index.
+ */
+export async function fetchAllReaderAnnotationsFromFirestore(
+  userId: string
+): Promise<ReaderAnnotation[] | null> {
+  if (!userId || auth.currentUser?.uid !== userId) return null;
+
+  try {
+    const annotationsQuery = query(
+      collectionGroup(db, 'readerAnnotationEntries'),
+      where('userId', '==', userId),
+      limit(300)
+    );
+    const snapshot = await getDocs(annotationsQuery);
+    return snapshot.docs
+      .map((item) => ({ ...item.data(), syncStatus: 'synced' } as ReaderAnnotation))
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `collectionGroup/readerAnnotationEntries userId=${userId}`);
+    return null;
   }
 }
