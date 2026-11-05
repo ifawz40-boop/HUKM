@@ -16,9 +16,15 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
   const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
 
   describe('Invariant 0: Draft ID collision protection', () => {
-    it('must verify an existing draft document belongs to the exact book and chapter before overwrite', () => {
-      assert.match(firestoreServiceContent, /getDoc\(draftRef\)/);
-      assert.match(firestoreServiceContent, /existingData\.bookId !== book\.id \|\| existingData\.chapterId !== draft\.id/);
+    it('must rely on Firestore rules to keep draft identity immutable at commit time', () => {
+      assert.match(rulesContent, /data\.bookId == previous\.bookId/);
+      assert.match(rulesContent, /data\.chapterId == previous\.chapterId/);
+      const saveBlock = firestoreServiceContent.slice(
+        firestoreServiceContent.indexOf('export async function saveBookToFirestore'),
+        firestoreServiceContent.indexOf('export async function deleteBookFromFirestore')
+      );
+      assert.equal(saveBlock.includes('getDoc(draftRef)'), false, 'Avoid one additional document read per draft');
+      assert.match(saveBlock, /batch\.set\(draftRef, draftPayload/);
     });
 
     it('must detect draft ID collisions globally across the migration plan before writes', () => {
