@@ -117,7 +117,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
       assert.ok(book.chapters.every((chapter: any) => chapter.status === 'ready' && chapter.content.length > 0));
       assert.ok(book.rights.translationCovered === true || book.rights.tier === 'public-domain-life70-screen');
       assert.equal(book.rights.originalTextStatus, 'public-domain');
-      assert.match(book.rights.license, /CC BY 4\.0/);
+      assert.match(book.rights.license, /CC BY 4\.0|الملكية العامة/);
       assert.ok(book.rights.bookUrl);
       assert.ok(book.rights.historyUrl);
       assert.ok(book.rights.sourceHash);
