@@ -15,6 +15,14 @@ import {
   Coffee,
   Check,
   RotateCcw,
+  Volume2,
+  Play,
+  Pause,
+  Square,
+  Search,
+  X,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { BookProject, BookChapter } from '../types/hukm';
 import { UserProfile } from '../types/auth';
@@ -92,6 +100,15 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [scrollProgress, setScrollProgress] = useState(0);
   const [copiedShare, setCopiedShare] = useState(false);
   const [showRestoredNotice, setShowRestoredNotice] = useState(false);
+  const [isChapterSearchOpen, setIsChapterSearchOpen] = useState(false);
+  const [chapterSearchQuery, setChapterSearchQuery] = useState('');
+  const [activeSearchMatch, setActiveSearchMatch] = useState(0);
+  const [speechStatus, setSpeechStatus] = useState<'idle' | 'speaking' | 'paused'>('idle');
+  const [speechRate, setSpeechRate] = useState(1);
+  const [activeSpeechParagraph, setActiveSpeechParagraph] = useState<number | null>(null);
+  const speechSessionRef = useRef(0);
+  const speechParagraphRef = useRef<(index: number) => void>(() => {});
+
 
   // Sync index
   const currentChapterIndex = book.chapters.findIndex((c) => c.id === selectedChapterId);
@@ -103,12 +120,36 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       ? book.chapters[currentChapterIndex + 1]
       : null;
 
+  const searchMatchIndexes = React.useMemo(() => {
+    const query = chapterSearchQuery.trim().toLocaleLowerCase();
+    if (!query || !currentChapter) return [];
+    return currentChapter.content.reduce<number[]>((matches, paragraph, index) => {
+      if (paragraph.toLocaleLowerCase().includes(query)) matches.push(index);
+      return matches;
+    }, []);
+  }, [chapterSearchQuery, currentChapter?.id, currentChapter?.content]);
+
+  useEffect(() => {
+    setActiveSearchMatch(0);
+  }, [chapterSearchQuery, currentChapter?.id]);
+
+  const jumpToSearchMatch = (direction: -1 | 1) => {
+    if (searchMatchIndexes.length === 0) return;
+    const nextIndex = (activeSearchMatch + direction + searchMatchIndexes.length) % searchMatchIndexes.length;
+    setActiveSearchMatch(nextIndex);
+    const paragraphIndex = searchMatchIndexes[nextIndex];
+    document.getElementById(`reader-paragraph-${paragraphIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+
   // Progress state is local-first. Cloud writes are rate-limited to avoid a write on every scroll.
   const scrollDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredChapterRef = useRef<Record<string, boolean>>({});
   const scrollProgressRef = useRef(0);
   const lastCloudSyncRef = useRef<Record<string, { percent: number; timestamp: number }>>({});
   const cloudSyncInFlightRef = useRef<Set<string>>(new Set());
+  const onChapterViewedRef = useRef(onChapterViewed);
+  useEffect(() => { onChapterViewedRef.current = onChapterViewed; }, [onChapterViewed]);
 
   const persistProgress = useCallback((progressPercent: number, forceCloudSync = false) => {
     if (!currentChapter?.id) return;
@@ -204,7 +245,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   useEffect(() => {
     if (!currentChapter?.id) return;
 
-    onChapterViewed?.(currentChapter.id);
+    onChapterViewedRef.current?.(currentChapter.id);
     recordChapterOpened(book.id, currentChapter.id, currentUser?.id);
 
     const chapterSessionKey = `${book.id}:${currentUser?.id || 'guest'}:${currentChapter.id}`;
@@ -229,12 +270,23 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       }
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
-  }, [currentChapter?.id, book.id, currentUser?.id, persistProgress, onChapterViewed]);
+  }, [currentChapter?.id, book.id, currentUser?.id, persistProgress]);
 
   // Keyboard navigation: Left = Prev, Right = Next
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setIsChapterSearchOpen(true);
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        setIsChapterSearchOpen(false);
+        setIsSettingsOpen(false);
+      }
 
       if (e.key === 'ArrowLeft' && prevChapter) {
         setSelectedChapterId(prevChapter.id);
@@ -281,6 +333,93 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     }
     onShowToast?.('تم تحديث حالة القراءة على هذا الجهاز ✓');
   };
+
+  const speakParagraph = useCallback((paragraphIndex: number) => {
+    if (!currentChapter || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      onShowToast?.('القراءة الصوتية غير مدعومة في هذا المتصفح.');
+      setSpeechStatus('idle');
+      return;
+    }
+
+    const paragraph = currentChapter.content[paragraphIndex];
+    if (!paragraph) {
+      setSpeechStatus('idle');
+      setActiveSpeechParagraph(null);
+      return;
+    }
+
+    const sessionId = speechSessionRef.current;
+    const utterance = new SpeechSynthesisUtterance(paragraph);
+    utterance.lang = 'ar';
+    utterance.rate = speechRate;
+    const arabicVoice = window.speechSynthesis.getVoices().find((voice) => voice.lang.toLowerCase().startsWith('ar'));
+    if (arabicVoice) utterance.voice = arabicVoice;
+
+    utterance.onstart = () => {
+      if (speechSessionRef.current === sessionId) {
+        setSpeechStatus('speaking');
+        setActiveSpeechParagraph(paragraphIndex);
+      }
+    };
+    utterance.onend = () => {
+      if (speechSessionRef.current !== sessionId) return;
+      if (paragraphIndex + 1 < currentChapter.content.length) {
+        speechParagraphRef.current(paragraphIndex + 1);
+      } else {
+        setSpeechStatus('idle');
+        setActiveSpeechParagraph(null);
+      }
+    };
+    utterance.onerror = () => {
+      if (speechSessionRef.current !== sessionId) return;
+      setSpeechStatus('idle');
+      setActiveSpeechParagraph(null);
+      onShowToast?.('توقفت القراءة الصوتية بسبب خطأ من محرك النطق في الجهاز.');
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, [currentChapter?.id, currentChapter?.content, speechRate, onShowToast]);
+
+  useEffect(() => {
+    speechParagraphRef.current = speakParagraph;
+  }, [speakParagraph]);
+
+  const startSpeech = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      onShowToast?.('متصفحك لا يدعم القراءة الصوتية.');
+      return;
+    }
+    if (speechStatus === 'paused') {
+      window.speechSynthesis.resume();
+      setSpeechStatus('speaking');
+      return;
+    }
+    speechSessionRef.current += 1;
+    window.speechSynthesis.cancel();
+    setActiveSpeechParagraph(0);
+    setSpeechStatus('speaking');
+    speechParagraphRef.current(0);
+  };
+
+  const pauseSpeech = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.pause();
+    setSpeechStatus('paused');
+  };
+
+  const stopSpeech = () => {
+    speechSessionRef.current += 1;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    setSpeechStatus('idle');
+    setActiveSpeechParagraph(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      speechSessionRef.current += 1;
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    };
+  }, [currentChapter?.id]);
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -421,6 +560,15 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             )}
 
             <button
+              onClick={() => setIsChapterSearchOpen((open) => !open)}
+              className={`p-2 rounded-xl transition-colors hover:bg-black/10 ${isChapterSearchOpen ? 'bg-[#c59b27]/20 text-[#d4af37]' : ''}`}
+              title="البحث داخل الفصل (Ctrl+F)"
+              aria-label="البحث داخل الفصل"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+
+            <button
               onClick={handleShare}
               className="p-2 rounded-xl transition-colors hover:bg-black/10"
               title="مشاركة رابط الفصل"
@@ -450,6 +598,38 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             )}
           </div>
         </div>
+
+        {isChapterSearchOpen && (
+          <div className="mx-auto max-w-4xl mt-3 pt-3 border-t border-current/15 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
+              <input
+                autoFocus
+                value={chapterSearchQuery}
+                onChange={(e) => setChapterSearchQuery(e.target.value)}
+                placeholder="ابحث عن كلمة أو عبارة داخل هذا الفصل..."
+                className="w-full rounded-xl border border-current/20 bg-black/5 py-2.5 pr-9 pl-9 text-xs outline-none focus:border-[#c59b27]"
+                aria-label="البحث داخل الفصل الحالي"
+              />
+              {chapterSearchQuery && (
+                <button type="button" onClick={() => setChapterSearchQuery('')} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-lg p-1 hover:bg-black/10" aria-label="مسح البحث">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="min-w-[88px] text-center opacity-75">
+                {searchMatchIndexes.length ? `${activeSearchMatch + 1} من ${searchMatchIndexes.length} فقرة` : 'لا توجد نتائج'}
+              </span>
+              <button type="button" onClick={() => jumpToSearchMatch(-1)} disabled={!searchMatchIndexes.length} className="rounded-lg border border-current/20 p-2 disabled:opacity-30" aria-label="النتيجة السابقة">
+                <ChevronUp className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => jumpToSearchMatch(1)} disabled={!searchMatchIndexes.length} className="rounded-lg border border-current/20 p-2 disabled:opacity-30" aria-label="النتيجة التالية">
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Reader Customization Settings Drawer */}
         {isSettingsOpen && (
@@ -573,6 +753,41 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           </div>
         </div>
 
+        {/* Native, no-API Arabic text-to-speech controls */}
+        <section className={`rounded-2xl border p-4 sm:p-5 ${themeClasses.cardBg} flex flex-col sm:flex-row sm:items-center justify-between gap-4`} aria-label="القراءة الصوتية">
+          <div className="flex items-start gap-3">
+            <span className="rounded-xl bg-[#c59b27]/15 p-2.5 text-[#d4af37]"><Volume2 className="h-5 w-5" /></span>
+            <div>
+              <h3 className="text-sm font-bold">استمع إلى الفصل</h3>
+              <p className="mt-1 text-[11px] opacity-65 leading-relaxed">يستخدم أصوات النطق المثبتة على جهازك؛ لا يحتاج إلى اشتراك أو مفتاح API. جودة الصوت وتوفر العربية يعتمدان على النظام والمتصفح.</p>
+              {activeSpeechParagraph !== null && (
+                <p className="mt-1 text-[10px] text-[#d4af37]">الفقرة {activeSpeechParagraph + 1} من {currentChapter?.content.length || 0}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={startSpeech} disabled={!currentChapter?.content.length} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-3.5 py-2 text-xs font-bold text-[#070d1e] disabled:opacity-40">
+              {speechStatus === 'paused' ? <Play className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+              {speechStatus === 'paused' ? 'استئناف' : speechStatus === 'speaking' ? 'إعادة من البداية' : 'تشغيل'}
+            </button>
+            <button type="button" onClick={pauseSpeech} disabled={speechStatus !== 'speaking'} className="rounded-xl border border-current/20 p-2 disabled:opacity-30" aria-label="إيقاف مؤقت">
+              <Pause className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={stopSpeech} disabled={speechStatus === 'idle'} className="rounded-xl border border-current/20 p-2 disabled:opacity-30" aria-label="إيقاف القراءة الصوتية">
+              <Square className="h-4 w-4" />
+            </button>
+            <label className="flex items-center gap-2 rounded-xl border border-current/15 px-2.5 py-1.5 text-[11px]">
+              <span>السرعة</span>
+              <select value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} className="bg-transparent font-bold outline-none">
+                <option value={0.75}>0.75×</option>
+                <option value={1}>1×</option>
+                <option value={1.25}>1.25×</option>
+                <option value={1.5}>1.5×</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
         {/* Chapter Body Content */}
         <article
           className={`space-y-6 ${fontClasses} leading-loose`}
@@ -581,10 +796,22 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           {currentChapter ? (
             currentChapter.content.map((paragraph, idx) => (
               <p
+                id={`reader-paragraph-${idx}`}
+                key={idx}
+                className={`text-justify leading-[2.1] tracking-wide rounded-lg transition-colors ${activeSpeechParagraph === idx ? 'bg-[#c59b27]/10 ring-1 ring-[#c59b27]/30 px-3 py-2' : ''}`}
+              >
+                {chapterSearchQuery.trim()
+                  ? paragraph.split(new RegExp(`(${chapterSearchQuery.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\              <p
                 key={idx}
                 className="text-justify leading-[2.1] tracking-wide"
               >
                 {paragraph}
+              </p>')})`, 'gi')).map((part, partIndex) =>
+                      part.toLocaleLowerCase() === chapterSearchQuery.trim().toLocaleLowerCase()
+                        ? <mark key={partIndex} className="rounded bg-amber-300/70 text-[#1f2937] px-0.5">{part}</mark>
+                        : <React.Fragment key={partIndex}>{part}</React.Fragment>
+                    )
+                  : paragraph}
               </p>
             ))
           ) : (
