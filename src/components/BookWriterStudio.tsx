@@ -414,7 +414,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
           </div>
 
           {/* Studio Navigation Pills */}
-          <div className="flex items-center gap-1.5 bg-[#050a16] p-1 rounded-2xl border border-white/5">
+          <div className="flex flex-wrap items-center gap-1.5 bg-[#050a16] p-1 rounded-2xl border border-white/5">
             <button
               onClick={() => setActiveTab('novels')}
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
