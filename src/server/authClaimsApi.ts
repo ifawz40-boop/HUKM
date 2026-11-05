@@ -191,7 +191,7 @@ authClaimsRouter.get('/admin-requests/mine', authenticateToken, async (req: Requ
 
 authClaimsRouter.get('/admin-requests', authenticateToken, requireOwnerRole, async (_req: Request, res: Response) => {
   try {
-    const snapshot = await adminDb.collection('adminRequests').where('status', 'in', ['pending', 'processing']).get();
+    const snapshot = await adminDb.collection('adminRequests').where('status', 'in', ['pending', 'processing', 'needs_attention']).get();
     const requests = snapshot.docs
       .map((doc) => doc.data())
       .sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')));
@@ -218,20 +218,20 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
   try {
     const lock = await adminDb.runTransaction(async (transaction) => {
       const snap = await transaction.get(requestRef);
-      if (!snap.exists) return { acquired: false, reason: 'NOT_FOUND' };
+      if (!snap.exists) return { acquired: false as const, reason: 'NOT_FOUND' };
       const data = snap.data()!;
       const staleProcessing = data.status === 'processing' &&
         Number.isFinite(Date.parse(data.processingAt || '')) &&
         Date.parse(data.processingAt) < Date.now() - 5 * 60 * 1000;
       if (data.status !== 'pending' && !staleProcessing) {
-        return { acquired: false, reason: data.status || 'INVALID_STATE' };
+        return { acquired: false as const, reason: data.status || 'INVALID_STATE' };
       }
       transaction.update(requestRef, {
         status: 'processing',
         processingAt: now,
         reviewedBy: reviewer.uid,
       });
-      return { acquired: true, data };
+      return { acquired: true as const, data };
     });
 
     if (!lock.acquired) {
@@ -297,13 +297,28 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
       return res.json({ success: true, message: 'تمت الموافقة على الطلب ومنح صلاحيات المدير بنجاح. سيحتاج المستخدم إلى تحديث جلسة الدخول.' });
     } catch (approvalError: any) {
       let rollbackSucceeded = true;
-      try {
-        if (claimsWritten) await adminAuth.setCustomUserClaims(targetUid, existingClaims);
-        if (adminDocWritten) await adminDb.collection('admins').doc(targetUid).delete();
-        if (claimsWritten) await adminAuth.revokeRefreshTokens(targetUid);
-      } catch (rollbackError) {
-        rollbackSucceeded = false;
-        console.error('Admin approval rollback failed:', rollbackError);
+      // Remove the registry document first so Firestore rules deny admin access immediately.
+      if (adminDocWritten) {
+        try {
+          await adminDb.collection('admins').doc(targetUid).delete();
+        } catch (rollbackError) {
+          rollbackSucceeded = false;
+          console.error('Admin document rollback failed:', rollbackError);
+        }
+      }
+      if (claimsWritten) {
+        try {
+          await adminAuth.setCustomUserClaims(targetUid, existingClaims);
+        } catch (rollbackError) {
+          rollbackSucceeded = false;
+          console.error('Admin claims rollback failed:', rollbackError);
+        }
+        try {
+          await adminAuth.revokeRefreshTokens(targetUid);
+        } catch (rollbackError) {
+          rollbackSucceeded = false;
+          console.error('Admin token rollback failed:', rollbackError);
+        }
       }
       try {
         await requestRef.update({
