@@ -329,7 +329,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                   }`}
                 >
                   <Compass className="h-3.5 w-3.5 text-[#d4af37]" />
-                  <span>المكتبة الاستقصائية</span>
+                  <span>المكتبة التراثية</span>
                 </button>
               </>
             )}
@@ -444,7 +444,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <Compass className="h-3.5 w-3.5" />
-                        <span>كافة المشاريع والكتب</span>
+                        <span>كل الكتب</span>
                       </div>
                       {selectedCategoryId === 'all' && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                     </button>
