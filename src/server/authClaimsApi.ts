@@ -530,6 +530,22 @@ authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async
   }
 });
 
+authClaimsRouter.get('/legacy-library-purge-status', authenticateToken, requireFounderOwner, async (_req: Request, res: Response) => {
+  try {
+    const snapshot = await adminDb.collection('_system').doc('legacyLibraryPurge').get();
+    const data = snapshot.data() || {};
+    return res.json({
+      success: true,
+      status: data.status || 'not_started',
+      deleted: data.deleted || null,
+      completedAt: data.completedAt || null,
+    });
+  } catch (error) {
+    console.error('Read legacy library purge status failed:', error);
+    return res.status(500).json({ success: false, message: 'تعذر قراءة حالة تنظيف المكتبة القديمة.' });
+  }
+});
+
 /**
  * One-time legacy catalogue cleanup.
  * Only the original founder can invoke it, and the exact confirmation phrase is mandatory.
