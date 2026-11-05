@@ -12,6 +12,7 @@ import {
   canModerate,
   canAccessWriterStudio,
   isEffectiveOwner,
+  resolveVerifiedUserRole,
   getUserPermissions,
 } from '../src/services/permissionService.ts';
 import type { UserProfile } from '../src/types/auth.ts';
@@ -23,6 +24,24 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
   const firestoreServiceContent = fs.readFileSync(path.resolve(process.cwd(), 'src/firebase/firestoreService.ts'), 'utf-8');
   const adminModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/AdminManagementModal.tsx'), 'utf-8');
   const bootstrapOwnerContent = fs.readFileSync(path.resolve(process.cwd(), 'scripts/bootstrap-owner.ts'), 'utf-8');
+
+  describe('Elevated role registry verification', () => {
+    it('requires a verified claim and an exact matching active registry role', () => {
+      assert.equal(resolveVerifiedUserRole('owner', true, 'owner'), 'owner');
+      assert.equal(resolveVerifiedUserRole('admin', true, 'admin'), 'admin');
+      assert.equal(resolveVerifiedUserRole('owner', true, 'admin'), 'reader');
+      assert.equal(resolveVerifiedUserRole('admin', true, 'owner'), 'reader');
+      assert.equal(resolveVerifiedUserRole('owner', true, null), 'reader');
+      assert.equal(resolveVerifiedUserRole('owner', false, 'owner'), 'reader');
+      assert.equal(resolveVerifiedUserRole('reader', true, 'admin'), 'reader');
+    });
+
+    it('checks the active admin registry before returning an elevated UI role', () => {
+      const authServiceContent = fs.readFileSync(path.resolve(process.cwd(), 'src/firebase/authService.ts'), 'utf-8');
+      assert.ok(authServiceContent.includes("getDoc(doc(db, 'admins', firebaseUser.uid))"));
+      assert.ok(authServiceContent.includes('resolveVerifiedUserRole(roleClaim, isVerified, registryRole)'));
+    });
+  });
 
   describe('Owner-only authorization boundaries', () => {
     const verifiedAdmin: UserProfile = {

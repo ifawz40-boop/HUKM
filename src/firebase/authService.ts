@@ -14,6 +14,7 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from './config';
 import { UserProfile, UserRole } from '../types/auth';
+import { resolveVerifiedUserRole } from '../services/permissionService';
 
 /**
  * Maps Firebase Auth error codes to user-friendly Arabic error messages
@@ -55,25 +56,25 @@ export function formatAuthError(error: unknown): string {
  */
 export async function determineUserRole(firebaseUser: FirebaseUser): Promise<UserRole> {
   try {
-    // Read authoritative token claims
+    // Elevated claims are necessary but not sufficient: the active Firestore registry
+    // must independently confirm the same role before the UI exposes admin controls.
     const tokenResult = await firebaseUser.getIdTokenResult();
-    const roleClaim = tokenResult.claims.role as string | undefined;
-
-    // CRITICAL: Strictly check emailVerified without any provider shortcuts
+    const roleClaim = tokenResult.claims.role;
     const isVerified = Boolean(firebaseUser.emailVerified);
 
-    // Administrative roles require verified identity and EXCLUSIVE Custom Claims
-    if (roleClaim === 'owner' && isVerified) {
-      return 'owner';
+    if (!isVerified || (roleClaim !== 'owner' && roleClaim !== 'admin')) {
+      return 'reader';
     }
-    if (roleClaim === 'admin' && isVerified) {
-      return 'admin';
-    }
-  } catch (err) {
-    console.warn('Could not read custom token claims:', err);
-  }
 
-  return 'reader';
+    const adminSnapshot = await getDoc(doc(db, 'admins', firebaseUser.uid));
+    const registryRole = adminSnapshot.exists() ? adminSnapshot.data()?.role : null;
+
+    return resolveVerifiedUserRole(roleClaim, isVerified, registryRole);
+  } catch (err) {
+    // Fail closed if claims or the live admin registry cannot be verified.
+    console.warn('Could not verify active administrative identity:', err);
+    return 'reader';
+  }
 }
 
 /**

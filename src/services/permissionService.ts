@@ -4,7 +4,7 @@ import { UserProfile, UserRole } from '../types/auth';
  * Centralized Role and Permission Service for HUKM MEDIA
  * 
  * Rules:
- * 1. Roles are authoritative from Firebase Custom Claims (`user.role`).
+ * 1. Elevated Custom Claims must match the active `/admins/{uid}` registry role.
  * 2. No role assignment or permission check is ever based on an email address.
  * 3. Administrative privileges require verified accounts (`user.emailVerified === true`).
  * 4. OWNER and ADMIN roles have strictly segregated permissions:
@@ -24,6 +24,22 @@ export interface UserPermissions {
   canBroadcastAnnouncement: boolean;
   canAccessWriterStudio: boolean;
   canSwitchViewMode: boolean;
+}
+
+/**
+ * Resolve an elevated UI role only when the verified token claim matches the
+ * active Firestore admin registry. A missing, mismatched, or unverified record
+ * always fails closed to the ordinary reader role.
+ */
+export function resolveVerifiedUserRole(
+  roleClaim: unknown,
+  emailVerified: boolean,
+  registryRole: unknown
+): UserRole {
+  if (!emailVerified) return 'reader';
+  if (roleClaim === 'owner' && registryRole === 'owner') return 'owner';
+  if (roleClaim === 'admin' && registryRole === 'admin') return 'admin';
+  return 'reader';
 }
 
 /**
