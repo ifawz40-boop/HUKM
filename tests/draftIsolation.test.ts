@@ -510,7 +510,7 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(researchPanelContent, /setHasRemoteResearchChanges\(!localMatchesRemote\)/);
       assert.match(researchPanelContent, /if \(hasRemoteResearchChanges\)/);
       assert.match(researchPanelContent, /setSources\(remoteSources\)/);
-      assert.match(researchPanelContent, /لا نستبدلها تلقائياً/);
+      assert.match(researchPanelContent, /لم نستبدلها تلقائياً/);
     });
 
     it('persists dirty chapter content before navigation, chapter creation, book creation, or deletion', () => {
