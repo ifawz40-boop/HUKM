@@ -46,6 +46,9 @@ export async function loginWithFirebaseGoogle(): Promise<{ email: string; name: 
  * are rejected instead of being normalized into a potentially colliding ID.
  */
 export function formatDraftChapterId(bookId: string, chapterId: string): string {
+  if (!bookId || !chapterId) {
+    throw new Error('Draft bookId and chapterId must both be non-empty.');
+  }
   const raw = `draft_${bookId}_${chapterId}`;
   if (!/^[a-zA-Z0-9_-]+$/.test(raw)) {
     throw new Error('Draft IDs may contain only letters, numbers, underscores, and hyphens. Refusing lossy ID normalization.');
