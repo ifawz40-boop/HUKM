@@ -172,15 +172,17 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     };
 
     const flushProgress = () => persistProgress(scrollProgressRef.current, true);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushProgress();
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('pagehide', flushProgress);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') flushProgress();
-    });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('pagehide', flushProgress);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (scrollDebounceTimerRef.current) {
         clearTimeout(scrollDebounceTimerRef.current);
         scrollDebounceTimerRef.current = null;
