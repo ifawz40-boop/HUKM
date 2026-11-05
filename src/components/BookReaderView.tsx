@@ -242,6 +242,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [isAnnotationEditorOpen, setIsAnnotationEditorOpen] = useState(false);
   const [isLoadingAnnotations, setIsLoadingAnnotations] = useState(false);
   const [isSavingAnnotation, setIsSavingAnnotation] = useState(false);
+  const isSavingAnnotationRef = useRef(false);
   const [selectedTextDraft, setSelectedTextDraft] = useState('');
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
   const [selectedAnnotationChapterId, setSelectedAnnotationChapterId] = useState<string | null>(null);
@@ -753,64 +754,76 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   };
 
   const handleSaveAnnotation = async () => {
-    if (!currentChapter || selectedAnnotationChapterId !== currentChapter.id || selectedAnnotationOwnerId !== (currentUser?.id || null) || selectedParagraphIndex === null || !selectedTextDraft) return;
+    if (
+      isSavingAnnotationRef.current ||
+      !currentChapter ||
+      selectedAnnotationChapterId !== currentChapter.id ||
+      selectedAnnotationOwnerId !== (currentUser?.id || null) ||
+      selectedParagraphIndex === null ||
+      !selectedTextDraft
+    ) return;
+
+    isSavingAnnotationRef.current = true;
     setIsSavingAnnotation(true);
-    if (visibleReaderAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
-      setIsSavingAnnotation(false);
-      onShowToast?.(`وصلت إلى الحد الأقصى وهو ${MAX_READER_ANNOTATIONS_PER_CHAPTER} مقتطفاً لهذا الفصل.`);
-      return;
-    }
-
-    const now = new Date().toISOString();
-    const annotation: ReaderAnnotation = {
-      id: createReaderAnnotationId(),
-      userId: currentUser?.id,
-      bookId: book.id,
-      chapterId: currentChapter.id,
-      paragraphIndex: selectedParagraphIndex,
-      startOffset: selectedStartOffset,
-      endOffset: selectedEndOffset,
-      selectedText: selectedTextDraft,
-      note: annotationNoteDraft.trim(),
-      color: annotationColor,
-      createdAt: now,
-      updatedAt: now,
-      syncStatus: currentUser?.id ? 'pending' : 'local',
-    };
-
-    const allLocal = getAllReaderAnnotations(currentUser?.id);
-    const nextLocal = [...allLocal, annotation];
-    if (!saveAllReaderAnnotations(nextLocal, currentUser?.id)) {
-      setIsSavingAnnotation(false);
-      onShowToast?.('تعذر حفظ المقتطف على هذا الجهاز. قد تكون مساحة التخزين ممتلئة.');
-      return;
-    }
-
-    setReaderAnnotations((current) => [...current, annotation]);
-    setIsAnnotationEditorOpen(false);
-    window.getSelection()?.removeAllRanges();
-
-    if (currentUser?.id) {
-      setIsSavingAnnotation(true);
-      const saved = await syncAnnotationToCloud(annotation);
-      setIsSavingAnnotation(false);
-      if (saved) {
-        const synced = { ...annotation, syncStatus: 'synced' as const };
-        upsertReaderAnnotationLocal(synced, currentUser.id);
-        setReaderAnnotations((current) => current.map((item) => item.id === synced.id ? synced : item));
-        onShowToast?.('تم حفظ المقتطف ومزامنته مع حسابك ✓');
-      } else {
-        onShowToast?.('تم حفظ المقتطف على هذا الجهاز، وستتم محاولة مزامنته عند عودة الاتصال.');
+    try {
+      if (visibleReaderAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
+        onShowToast?.(`وصلت إلى الحد الأقصى وهو ${MAX_READER_ANNOTATIONS_PER_CHAPTER} مقتطفاً لهذا الفصل.`);
+        return;
       }
-      return;
-    }
 
-    setIsSavingAnnotation(false);
-    onShowToast?.('تم حفظ المقتطف على هذا الجهاز فقط.');
+      const now = new Date().toISOString();
+      const annotation: ReaderAnnotation = {
+        id: createReaderAnnotationId(),
+        userId: currentUser?.id,
+        bookId: book.id,
+        chapterId: currentChapter.id,
+        paragraphIndex: selectedParagraphIndex,
+        startOffset: selectedStartOffset,
+        endOffset: selectedEndOffset,
+        selectedText: selectedTextDraft,
+        note: annotationNoteDraft.trim(),
+        color: annotationColor,
+        createdAt: now,
+        updatedAt: now,
+        syncStatus: currentUser?.id ? 'pending' : 'local',
+      };
+
+      const allLocal = getAllReaderAnnotations(currentUser?.id);
+      const nextLocal = [...allLocal, annotation];
+      if (!saveAllReaderAnnotations(nextLocal, currentUser?.id)) {
+        onShowToast?.('تعذر حفظ المقتطف على هذا الجهاز. قد تكون مساحة التخزين ممتلئة.');
+        return;
+      }
+
+      setReaderAnnotations((current) => [...current, annotation]);
+      setIsAnnotationEditorOpen(false);
+      window.getSelection()?.removeAllRanges();
+
+      if (currentUser?.id) {
+        const saved = await syncAnnotationToCloud(annotation);
+        if (saved) {
+          const synced = { ...annotation, syncStatus: 'synced' as const };
+          upsertReaderAnnotationLocal(synced, currentUser.id);
+          setReaderAnnotations((current) => current.map((item) => item.id === synced.id ? synced : item));
+          onShowToast?.('تم حفظ المقتطف ومزامنته مع حسابك ✓');
+        } else {
+          onShowToast?.('تم حفظ المقتطف على هذا الجهاز، وستتم محاولة مزامنته عند عودة الاتصال.');
+        }
+        return;
+      }
+
+      onShowToast?.('تم حفظ المقتطف على هذا الجهاز فقط.');
+    } catch {
+      onShowToast?.('تعذر إكمال مزامنة المقتطف. إن كان قد حُفظ محلياً فسيظل في دفتر هذا الجهاز.');
+    } finally {
+      isSavingAnnotationRef.current = false;
+      setIsSavingAnnotation(false);
+    }
   };
 
   const handleDeleteAnnotation = async (annotation: ReaderAnnotation) => {
-    if (currentUser?.id && annotation.syncStatus === 'synced') {
+    if (currentUser?.id) {
+      // A pending local edit can still have an older cloud document; delete both copies.
       const deleted = await deleteReaderAnnotationFromFirestore(currentUser.id, annotation);
       if (!deleted) {
         onShowToast?.('تعذر حذف المقتطف من السحابة؛ لم نحذفه من جهازك.');
