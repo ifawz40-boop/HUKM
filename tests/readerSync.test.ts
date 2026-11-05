@@ -47,6 +47,15 @@ import {
   LEGACY_STORAGE_KEY_PROGRESS,
 } from '../src/utils/readingTracker.ts';
 
+import {
+  getAllReaderAnnotations,
+  getReaderAnnotationsForChapter,
+  saveAllReaderAnnotations,
+  upsertReaderAnnotationLocal,
+  removeReaderAnnotationLocal,
+  mergeReaderAnnotations,
+  createReaderAnnotationId,
+} from '../src/utils/readerAnnotations.ts';
 import { formatReadingProgressId } from '../src/firebase/firestoreService.ts';
 import type { UserProfile } from '../src/types/auth.ts';
 
@@ -228,6 +237,75 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
 
       clearGuestReadingProgress();
       assert.notEqual(localStorage.getItem(LEGACY_STORAGE_KEY_PROGRESS), null, 'Legacy data must be preserved for explicit recovery');
+    });
+  });
+
+  describe('Reader annotations — local privacy and cloud merge behavior', () => {
+    const annotation = (overrides: Record<string, unknown> = {}) => ({
+      id: 'ann_test_1',
+      bookId: 'book-annotations',
+      chapterId: 'chapter-1',
+      paragraphIndex: 2,
+      startOffset: 4,
+      endOffset: 10,
+      selectedText: 'مقتطف',
+      note: 'ملاحظة شخصية',
+      color: 'gold' as const,
+      createdAt: '2026-11-01T10:00:00.000Z',
+      updatedAt: '2026-11-01T10:00:00.000Z',
+      syncStatus: 'local' as const,
+      ...overrides,
+    });
+
+    it('keeps guest annotations isolated from each authenticated account', () => {
+      saveAllReaderAnnotations([annotation()], undefined);
+      saveAllReaderAnnotations([annotation({ id: 'ann_user_a', userId: 'user-A' })], 'user-A');
+
+      assert.equal(getAllReaderAnnotations().length, 1);
+      assert.equal(getAllReaderAnnotations('user-A').length, 1);
+      assert.equal(getAllReaderAnnotations('user-B').length, 0);
+    });
+
+    it('filters annotations by book and chapter without mixing records', () => {
+      saveAllReaderAnnotations([
+        annotation(),
+        annotation({ id: 'ann_other_chapter', chapterId: 'chapter-2' }),
+        annotation({ id: 'ann_other_book', bookId: 'book-other' }),
+      ], 'user-filter');
+      const selected = getReaderAnnotationsForChapter('book-annotations', 'chapter-1', 'user-filter');
+      assert.deepEqual(selected.map((item) => item.id), ['ann_test_1']);
+    });
+
+    it('merges cloud records while preserving newer pending local edits', () => {
+      const local = annotation({
+        note: 'تعديل محلي أحدث',
+        updatedAt: '2026-11-03T10:00:00.000Z',
+        syncStatus: 'pending',
+      });
+      const cloud = annotation({
+        note: 'نسخة سحابية أقدم',
+        updatedAt: '2026-11-02T10:00:00.000Z',
+        syncStatus: 'synced',
+      });
+      const merged = mergeReaderAnnotations([local], [cloud]);
+      assert.equal(merged.length, 1);
+      assert.equal(merged[0].note, 'تعديل محلي أحدث');
+      assert.equal(merged[0].syncStatus, 'pending');
+    });
+
+    it('upserts and removes local annotations deterministically', () => {
+      upsertReaderAnnotationLocal(annotation(), 'user-upsert');
+      upsertReaderAnnotationLocal(annotation({ note: 'تم التعديل' }), 'user-upsert');
+      assert.equal(getAllReaderAnnotations('user-upsert').length, 1);
+      assert.equal(getAllReaderAnnotations('user-upsert')[0].note, 'تم التعديل');
+      removeReaderAnnotationLocal('ann_test_1', 'user-upsert');
+      assert.equal(getAllReaderAnnotations('user-upsert').length, 0);
+    });
+
+    it('creates Firestore-safe annotation IDs', () => {
+      const id = createReaderAnnotationId();
+      assert.match(id, /^ann_[a-zA-Z0-9]+$/);
+      assert.ok(id.length <= 128);
     });
   });
 
