@@ -80,6 +80,9 @@ export const FIRESTORE_DOCUMENT_SAFE_LIMIT_BYTES = 800 * 1024;
 
 export function assertFirestoreDocumentSize(payload: Record<string, unknown>, label: string): void {
   const serialized = JSON.stringify(payload);
+  if (typeof serialized !== 'string') {
+    throw new Error(`${label} could not be serialized safely for Firestore.`);
+  }
   const byteLength = new TextEncoder().encode(serialized).length;
   if (byteLength > FIRESTORE_DOCUMENT_SAFE_LIMIT_BYTES) {
     throw new Error(
