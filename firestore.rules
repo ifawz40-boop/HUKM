@@ -160,7 +160,7 @@ service cloud.firestore {
       allow delete: if isOwner();
 
       // Private reader notes are isolated by user, book, and chapter path.
-      match /readerAnnotations/{bookId}/chapters/{chapterId}/items/{annotationId} {
+      match /readerAnnotations/{bookId}/chapters/{chapterId}/readerAnnotationEntries/{annotationId} {
         allow read: if isSignedIn() && request.auth.uid == userId;
         allow create: if isValidReaderAnnotationCreate(userId, bookId, chapterId, annotationId);
         allow update: if isValidReaderAnnotationUpdate(userId, bookId, chapterId, annotationId);
@@ -170,6 +170,11 @@ service cloud.firestore {
                          resource.data.bookId == bookId &&
                          resource.data.chapterId == chapterId;
       }
+    }
+
+    // Collection-group reads for the signed-in user's private reading notebook only.
+    match /{path=**}/readerAnnotationEntries/{annotationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     // 2. Books Collection
