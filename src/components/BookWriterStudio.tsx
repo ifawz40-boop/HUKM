@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BookResearchPanel } from './BookResearchPanel';
 import {
   PenTool,
   BookOpen,
@@ -76,7 +77,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   onDeleteCategory,
   onOpenAdminModal,
 }) => {
-  const [activeTab, setActiveTab] = useState<'novels' | 'editor' | 'categories'>('novels');
+  const [activeTab, setActiveTab] = useState<'novels' | 'editor' | 'research' | 'categories'>('novels');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
@@ -441,6 +442,22 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
             >
               <Edit3 className="h-3.5 w-3.5" />
               <span>محرر الفصول</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (!currentBook && books.length > 0) onSelectBook(books[0].id);
+                setActiveTab('research');
+              }}
+              disabled={books.length === 0}
+              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                activeTab === 'research'
+                  ? 'bg-[#c59b27] text-[#070d1e] shadow'
+                  : 'text-[#94a3b8] hover:text-white'
+              }`}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>المراجع والاقتباسات</span>
             </button>
 
             <button
@@ -870,7 +887,18 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: CATEGORIES MANAGER (إدارة الأقسام) */}
+        {/* TAB 3: RESEARCH SOURCES & QUOTES — adapted research workflow pattern */}
+        {/* ========================================================================= */}
+        {activeTab === 'research' && (
+          <BookResearchPanel
+            book={currentBook}
+            onUpdateBook={onUpdateBook}
+            onShowToast={showNotification}
+          />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4: CATEGORIES MANAGER (إدارة الأقسام) */}
         {/* ========================================================================= */}
         {activeTab === 'categories' && (
           <div className="space-y-6 max-w-4xl mx-auto">
