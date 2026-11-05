@@ -34,8 +34,8 @@ $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\secure\firebase-admin.json"
 $env:OWNER_EMAIL = "the-verified-account@example.com"
 $env:BOOTSTRAP_CONFIRMATION = "HUKM_INITIAL_OWNER"
 
-npm ci
-npm run owner:bootstrap
+bun install --frozen-lockfile
+bun run owner:bootstrap
 ```
 
 If dependencies are already installed from the lockfile, `npm ci` may be skipped. The credential must belong to the intended Firebase project and have only the IAM permissions required to read/update Firebase Authentication users and read/write the HUKM Firestore database. Do not grant broad project Owner access just for this script.
