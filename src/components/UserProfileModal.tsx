@@ -198,7 +198,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       onShowToast?.('تعذر حفظ التعديل محلياً. لم نغيّر النسخة الحالية.');
       return;
     }
-    setReaderNotes(nextLocal);
+    setReaderNotes([...nextLocal].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))));
     setEditingReaderNote(null);
 
     const saved = await saveReaderAnnotationToFirestore(updated);
@@ -206,7 +206,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     if (saved) {
       const synced = { ...updated, syncStatus: 'synced' as const };
       upsertReaderAnnotationLocal(synced, user.id);
-      setReaderNotes(getAllReaderAnnotations(user.id));
+      setReaderNotes(getAllReaderAnnotations(user.id).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))));
       onShowToast?.('تم تحديث الملاحظة ومزامنتها مع حسابك ✓');
     } else {
       onShowToast?.('حُفظ التعديل على هذا الجهاز، وستتم مزامنته عند عودة الاتصال.');
@@ -245,7 +245,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const handleOpenReaderNote = (note: ReaderAnnotation) => {
@@ -706,7 +706,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               />
             </div>
 
-            {isLoadingReaderNotes ? (
+            {isLoadingReaderNotes && visibleReaderNotes.length === 0 ? (
               <div className="py-8 text-center text-xs text-[#94a3b8]">جاري تحميل دفتر الملاحظات...</div>
             ) : visibleReaderNotes.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 bg-[#070d1e]/50 p-7 text-center text-xs text-[#94a3b8] space-y-2">
@@ -718,6 +718,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-xs text-[#94a3b8]">لا توجد مقتطفات تطابق بحثك.</div>
             ) : (
               <>
+                {isLoadingReaderNotes && <p className="text-[10px] text-[#64748b]">الملاحظات المحلية ظاهرة الآن؛ جاري تحديث النسخة السحابية...</p>}
                 <div className="max-h-[48vh] overflow-y-auto space-y-2 no-scrollbar pr-1">
                   {filteredReaderNotes.map((note) => {
                     const book = books.find((item) => item.id === note.bookId);
