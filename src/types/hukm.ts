@@ -75,6 +75,26 @@ export interface ReadingProgress {
   chapterScrollPositions?: Record<string, number>; // chapterId -> scrollPercent (0 to 100)
 }
 
+export type ReaderAnnotationColor = 'gold' | 'green' | 'blue' | 'rose';
+export type ReaderAnnotationSyncStatus = 'local' | 'pending' | 'synced';
+
+export interface ReaderAnnotation {
+  id: string;
+  userId?: string;
+  bookId: string;
+  chapterId: string;
+  paragraphIndex: number;
+  startOffset: number;
+  endOffset: number;
+  selectedText: string;
+  note: string;
+  color: ReaderAnnotationColor;
+  createdAt: string;
+  updatedAt: string;
+  /** Client-only state; never sent to Firestore. */
+  syncStatus?: ReaderAnnotationSyncStatus;
+}
+
 export interface ReadingProgressRecord {
   id: string; // Matches isValidId in firestore.rules
   userId: string;
