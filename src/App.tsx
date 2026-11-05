@@ -290,6 +290,12 @@ export default function App() {
   };
 
   const handleQuickResumeChapter = (bookId: string, chapterId: string) => {
+    const targetBook = books.find((book) => book.id === bookId);
+    const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
+    if (!targetBook || (!isOwner && !isPublicBook)) {
+      showToast('هذا العمل غير متاح للقراءة بهذا الحساب.');
+      return;
+    }
     setSelectedBookId(bookId);
     setSelectedChapterId(chapterId);
     setCurrentView('reader');
@@ -362,16 +368,36 @@ export default function App() {
     }
   }, []);
 
-  const currentBook = (selectedBookId ? books.find((b) => b.id === selectedBookId) : books[0]) || null;
+  // Never expose locally cached drafts to guests/readers while Firestore is loading.
+  // Firestore applies the same published-status filter; this is the client-side privacy boundary.
+  const accessibleBooks = isOwner
+    ? books
+    : books.filter((book) => ['published', 'completed', 'ongoing', 'ready'].includes(book.status));
+
+  const currentBook = (selectedBookId
+    ? accessibleBooks.find((book) => book.id === selectedBookId)
+    : accessibleBooks[0]) || null;
 
   // Actions
   const handleOpenBookOverview = (bookId: string) => {
+    const targetBook = books.find((book) => book.id === bookId);
+    const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
+    if (!targetBook || (!isOwner && !isPublicBook)) {
+      showToast('هذا العمل غير متاح للقراءة بهذا الحساب.');
+      return;
+    }
     setSelectedBookId(bookId);
     setCurrentView('overview');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
   const handleOpenReader = (bookId: string, chapterId?: string) => {
+    const targetBook = books.find((book) => book.id === bookId);
+    const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
+    if (!targetBook || (!isOwner && !isPublicBook)) {
+      showToast('هذا العمل غير متاح للقراءة بهذا الحساب.');
+      return;
+    }
     setSelectedBookId(bookId);
     if (chapterId) setSelectedChapterId(chapterId);
     setCurrentView('reader');
@@ -598,17 +624,17 @@ export default function App() {
   };
 
 
-  // Metrics
-  const totalChapters = books.reduce((acc, b) => acc + b.chapters.length, 0);
-  const totalWords = books.reduce(
-    (acc, b) => acc + calculateBookStats(b.chapters).totalWords,
+  // Public metrics and search must never include locally cached private drafts.
+  const totalChapters = accessibleBooks.reduce((acc, book) => acc + book.chapters.length, 0);
+  const totalWords = accessibleBooks.reduce(
+    (acc, book) => acc + calculateBookStats(book.chapters).totalWords,
     0
   );
 
   const displayedBooks =
     selectedCategoryId === 'all'
-      ? books
-      : books.filter((b) => b.category === selectedCategoryId);
+      ? accessibleBooks
+      : accessibleBooks.filter((book) => book.category === selectedCategoryId);
 
   return (
     <div className="min-h-screen bg-[#070d1e] text-[#f4efe6] flex flex-col font-cairo selection:bg-[#c59b27] selection:text-[#070d1e]" dir="rtl">
@@ -710,7 +736,7 @@ export default function App() {
                 const el = document.getElementById('books-catalog');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              totalBooksCount={books.length}
+              totalBooksCount={accessibleBooks.length}
               totalChaptersCount={totalChapters}
               totalWordsCount={totalWords}
               isOwner={isOwner}
@@ -888,7 +914,7 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 shrink-0">
-                  {books.length > 0 && books.some((b) => b.id === 'investigation-01') ? (
+                  {accessibleBooks.length > 0 && accessibleBooks.some((b) => b.id === 'investigation-01') ? (
                     <button
                       onClick={() => handleOpenBookOverview('investigation-01')}
                       className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95"
@@ -1038,7 +1064,7 @@ export default function App() {
       <HukmSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-        books={books}
+        books={accessibleBooks}
         onSelectBook={(bookId) => handleOpenBookOverview(bookId)}
         onSelectChapter={(bookId, chId) => handleOpenReader(bookId, chId)}
       />
