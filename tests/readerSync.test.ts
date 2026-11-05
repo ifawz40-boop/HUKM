@@ -32,6 +32,7 @@ import {
 
 import {
   getAllReadingProgress,
+  getLegacyReadingProgressForRecovery,
   saveAllReadingProgress,
   getBookReadingProgress,
   recordChapterOpened,
@@ -170,8 +171,42 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
 
       assert.equal(progA.lastChapterId, 'ch-1');
       assert.equal(progB.lastChapterId, 'ch-2');
-      assert.deepEqual(progA.completedChapterIds, ['ch-1']);
-      assert.deepEqual(progB.completedChapterIds, ['ch-2']);
+      assert.deepEqual(progA.completedChapterIds, []);
+      assert.deepEqual(progB.completedChapterIds, []);
+    });
+  });
+
+  describe('Reading completion and legacy data isolation', () => {
+    it('does not mark a chapter complete merely because it was opened', () => {
+      const progress = recordChapterOpened('book-open', 'chapter-open', 'reader-open');
+      assert.equal(progress.lastChapterId, 'chapter-open');
+      assert.equal(isChapterCompleted('book-open', 'chapter-open', 'reader-open'), false);
+    });
+
+    it('preserves an explicit completion when the same chapter is opened again', () => {
+      toggleChapterReadStatus('book-explicit', 'chapter-1', 'reader-explicit');
+      const reopened = recordChapterOpened('book-explicit', 'chapter-1', 'reader-explicit');
+      assert.ok(reopened.completedChapterIds.includes('chapter-1'));
+    });
+
+    it('never assigns unowned legacy progress to a guest or another account', () => {
+      localStorage.setItem(LEGACY_STORAGE_KEY_PROGRESS, JSON.stringify({
+        'legacy-book': {
+          bookId: 'legacy-book',
+          lastChapterId: 'legacy-chapter',
+          completedChapterIds: ['legacy-chapter'],
+          lastReadAt: '2025-01-01T00:00:00.000Z',
+          chapterScrollPositions: { 'legacy-chapter': 80 },
+        },
+      }));
+
+      assert.deepEqual(getAllReadingProgress(), {});
+      assert.deepEqual(getAllReadingProgress('reader-A'), {});
+      assert.equal(hasGuestReadingProgress(), false);
+      assert.equal(getLegacyReadingProgressForRecovery()['legacy-book'].lastChapterId, 'legacy-chapter');
+
+      clearGuestReadingProgress();
+      assert.notEqual(localStorage.getItem(LEGACY_STORAGE_KEY_PROGRESS), null, 'Legacy data must be preserved for explicit recovery');
     });
   });
 
@@ -198,7 +233,7 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
     it('records chapter opened and updates scroll position correctly', () => {
       const prog = recordChapterOpened('book-99', 'ch-5', 'user-sync', 72.5);
       assert.equal(prog.lastChapterId, 'ch-5');
-      assert.ok(prog.completedChapterIds.includes('ch-5'));
+      assert.deepEqual(prog.completedChapterIds, [], 'Opening a chapter must not mark it as completed');
       assert.equal(prog.chapterScrollPositions?.['ch-5'], 72.5);
 
       // Verify retrieval
