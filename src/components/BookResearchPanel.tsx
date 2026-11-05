@@ -171,7 +171,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
             <BookOpen className="h-5 w-5 text-[#d4af37]" />
             ملف البحث والمراجع
           </h2>
-          <p className="mt-1 text-xs text-[#94a3b8]">«{book.title}» — اجمع المصادر والاقتباسات في مكان واحد قبل النشر</p>
+          <p className="mt-1 text-xs text-[#94a3b8]">«{book.title}» — جهز قائمة المصادر والاقتباسات التي تريد إرفاقها بالكتاب المنشور</p>
         </div>
         <button
           type="button"
@@ -199,7 +199,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
             <input value={sourcePublisher} onChange={(e) => setSourcePublisher(e.target.value)} maxLength={150} placeholder="الناشر / الدورية / الأرشيف" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
             <input value={sourceYear} onChange={(e) => setSourceYear(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} inputMode="numeric" placeholder="سنة النشر" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
             <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} type="url" maxLength={1024} placeholder="رابط المصدر (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
-            <textarea value={sourceNote} onChange={(e) => setSourceNote(e.target.value)} maxLength={500} rows={2} placeholder="ملاحظات حول موثوقية المصدر أو موضع الاستفادة منه" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
+            <textarea value={sourceNote} onChange={(e) => setSourceNote(e.target.value)} maxLength={500} rows={2} placeholder="تعليق توضيحي للقراء حول هذا المصدر (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
           </div>
 
           <button type="button" onClick={handleAddSource} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c59b27]/40 bg-[#c59b27]/10 px-3 py-2 text-xs font-bold text-[#f0cb69] hover:bg-[#c59b27]/20">
@@ -258,7 +258,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
               {selectableSources.map((source) => <option key={source.id} value={source.id}>{source.title}</option>)}
             </select>
             <input value={quotePage} onChange={(e) => setQuotePage(e.target.value)} maxLength={40} placeholder="رقم الصفحة / الموضع" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27]" />
-            <input value={quoteNote} onChange={(e) => setQuoteNote(e.target.value)} maxLength={300} placeholder="ملاحظة تحليلية قصيرة (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
+            <input value={quoteNote} onChange={(e) => setQuoteNote(e.target.value)} maxLength={300} placeholder="سياق أو تعليق توضيحي للقارئ (اختياري)" className="rounded-xl border border-white/10 bg-[#050a16] px-3 py-2.5 text-xs text-white outline-none focus:border-[#c59b27] sm:col-span-2" />
           </div>
 
           <button type="button" onClick={handleAddQuote} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c59b27]/40 bg-[#c59b27]/10 px-3 py-2 text-xs font-bold text-[#f0cb69] hover:bg-[#c59b27]/20">
@@ -294,7 +294,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
           </div>
         </section>
       </div>
-      <p className="text-[10px] leading-relaxed text-[#64748b]">تُحفظ هذه البيانات ضمن ملف الكتاب نفسه. لا تضع نصوصًا محمية طويلة؛ سجّل الاقتباس بالقدر الضروري مع بيانات المصدر والصفحة.</p>
+      <p className="text-[10px] leading-relaxed text-[#64748b]">تُحفظ المراجع والاقتباسات مع بيانات الكتاب وتكون متاحة للقراء عند نشره. لا تضع ملاحظات داخلية أو اقتباسات محمية طويلة.</p>
     </div>
   );
 };
