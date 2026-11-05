@@ -55,12 +55,18 @@ export const BookCard: React.FC<BookCardProps> = ({
           <div className="absolute top-2.5 right-2.5">
             <span
               className={`rounded-md px-2 py-0.5 text-[10px] font-black shadow-md ${
-                book.status === 'completed'
-                  ? 'bg-amber-500 text-[#070d1e]'
-                  : 'bg-emerald-600 text-white'
+                book.status === 'draft' || book.status === 'in_progress'
+                  ? 'bg-slate-600 text-white'
+                  : book.status === 'completed'
+                    ? 'bg-amber-500 text-[#070d1e]'
+                    : 'bg-emerald-600 text-white'
               }`}
             >
-              {book.status === 'completed' ? 'مكتملة' : 'مستمرة'}
+              {book.status === 'draft' || book.status === 'in_progress'
+                ? 'مسودة'
+                : book.status === 'completed'
+                  ? 'مكتملة'
+                  : 'مستمرة'}
             </span>
           </div>
 
