@@ -23,6 +23,7 @@ export interface AdminRequest {
   reason: string;
   status: AdminRequestStatus;
   submittedAt: string;
+  processingAt?: string | null;
   reviewedAt?: string | null;
   reviewedBy?: string | null;
   reviewNote?: string | null;
