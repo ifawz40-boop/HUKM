@@ -390,6 +390,17 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
               <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">شروط CC BY-SA 4.0</a>
               <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">بيانات المجموعة</a>
             </div>
+            {book.rights.licenseQuote && (
+              <details className="rounded-xl border border-white/10 bg-black/15 p-3">
+                <summary className="cursor-pointer text-xs font-bold text-[#f0cb69]">بيان الحقوق الأصلي للنسخة</summary>
+                <p className="mt-3 whitespace-pre-wrap text-[11px] leading-7 text-[#cbd5e1]">{book.rights.licenseQuote}</p>
+              </details>
+            )}
+            {book.rights.omissions && (book.rights.omissions.images > 0 || book.rights.omissions.svgs > 0 || book.rights.omissions.tables > 0) && (
+              <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] leading-6 text-amber-100/80">
+                ملاحظة اكتمال الوسائط: {book.rights.omissions.images} صورة، {book.rights.omissions.svgs} رسم SVG، {book.rights.omissions.tables} جدول غير مضمّن في النص.
+              </p>
+            )}
             {book.rights.sourcePages.length > 0 && (
               <details className="rounded-xl border border-white/10 bg-black/15 p-3">
                 <summary className="cursor-pointer text-xs font-bold text-[#f0cb69]">صفحات المصدر وسجل النسخ ({book.rights.sourcePages.length})</summary>
