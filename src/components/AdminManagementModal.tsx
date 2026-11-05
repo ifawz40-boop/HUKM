@@ -31,6 +31,7 @@ import {
   listPendingAdminRequests,
   reviewAdminRequest,
   revokeAdminRole,
+  grantOwnerRole,
 } from '../services/adminClaimsClient';
 
 interface AdminManagementModalProps {
@@ -58,6 +59,8 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
   const [pendingRequests, setPendingRequests] = useState<AdminRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [reviewingRequestUid, setReviewingRequestUid] = useState<string | null>(null);
+  const [additionalOwnerEmail, setAdditionalOwnerEmail] = useState('');
+  const [isGrantingOwner, setIsGrantingOwner] = useState(false);
 
   // Ban form state
   const [banEmail, setBanEmail] = useState('');
@@ -107,10 +110,32 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
 
   if (!isOpen || !currentUser || !isUserAdmin) return null;
 
+  const handleGrantOwner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = additionalOwnerEmail.trim().toLowerCase();
+    if (!email) {
+      onShowToast('أدخل البريد الإلكتروني للحساب المراد إضافته.');
+      return;
+    }
+    if (!confirm('هل تؤكد منح هذا الحساب صلاحيات Owner كاملة؟ يجب أن يكون الحساب مسجلًا وبريده موثقًا.')) return;
+
+    setIsGrantingOwner(true);
+    try {
+      const result = await grantOwnerRole(email);
+      onShowToast(result.message);
+      if (result.success) {
+        setAdditionalOwnerEmail('');
+        await loadAdmins();
+      }
+    } finally {
+      setIsGrantingOwner(false);
+    }
+  };
+
   // Revoke Admin Custom Claim and revoke tokens
   const handleRevokeAdmin = async (adminAccount: AdminAccount) => {
-    if (adminAccount.isFounder || adminAccount.role === 'owner') {
-      onShowToast('لا يمكن سحب صلاحيات المؤسس الرئيسي.');
+    if (adminAccount.isFounder) {
+      onShowToast('لا يمكن سحب صلاحيات المالك المؤسس الأساسي.');
       return;
     }
 
@@ -247,6 +272,34 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
           {activeTab === 'admins' && (
             isUserOwner ? (
               <div className="space-y-6">
+                {/* Additional owners can be granted only by the current verified Owner. */}
+                <section className="rounded-2xl border border-amber-500/30 bg-[#151326] p-4 sm:p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-amber-200">
+                    <Crown className="h-4 w-4" />
+                    <h3 className="text-sm font-bold">إضافة مالك آخر للمنصة</h3>
+                  </div>
+                  <p className="text-xs text-[#94a3b8] leading-relaxed">
+                    يمنح هذا الإجراء صلاحيات Owner كاملة لحساب موجود وموثق في Firebase. المالك المؤسس الأساسي محمي من السحب، ويمكن للمالك إدارة المالكين الإضافيين.
+                  </p>
+                  <form onSubmit={handleGrantOwner} className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      required
+                      value={additionalOwnerEmail}
+                      onChange={(e) => setAdditionalOwnerEmail(e.target.value)}
+                      placeholder="البريد الإلكتروني لحساب مسجل وموثق"
+                      className="min-w-0 flex-1 rounded-xl bg-[#070d1e] border border-amber-500/25 px-3 py-2.5 text-xs text-white focus:border-amber-400 focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isGrantingOwner}
+                      className="rounded-xl bg-amber-500/15 border border-amber-400/40 px-4 py-2.5 text-xs font-bold text-amber-200 disabled:opacity-50"
+                    >
+                      {isGrantingOwner ? 'جارٍ التحقق والمنح...' : 'منح صلاحية Owner'}
+                    </button>
+                  </form>
+                </section>
+
                 {/* Admin requests: approval is the only grant path */}
                 <section className="rounded-2xl border border-[#c59b27]/30 bg-[#0a142c] p-4 sm:p-5 space-y-4">
                   <div className="flex items-center justify-between gap-3">
@@ -366,8 +419,8 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
                               </td>
 
                               <td className="py-3.5 px-4 text-center">
-                                {admin.role === 'owner' || admin.isFounder ? (
-                                  <span className="text-[11px] text-[#64748b]">المؤسس (محمي)</span>
+                                {admin.isFounder ? (
+                                  <span className="text-[11px] text-[#64748b]">المالك المؤسس (محمي)</span>
                                 ) : (
                                   <button
                                     type="button"
