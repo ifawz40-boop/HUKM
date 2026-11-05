@@ -27,6 +27,9 @@ const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'gen-lang-client-049273263
 const DATABASE_ID = process.env.FIREBASE_DATABASE_ID || 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
 
 function formatDraftChapterId(bookId: string, chapterId: string): string {
+  if (!bookId || !chapterId) {
+    throw new Error('Draft bookId and chapterId must both be non-empty.');
+  }
   const raw = `draft_${bookId}_${chapterId}`;
   if (!/^[a-zA-Z0-9_-]+$/.test(raw)) {
     throw new Error(`Unsafe draft ID inputs for book "${bookId}" / chapter "${chapterId}". Refusing lossy ID normalization.`);
