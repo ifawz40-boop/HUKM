@@ -388,7 +388,7 @@ authClaimsRouter.post('/grant-owner', authenticateToken, requireOwnerRole, async
 
     const now = new Date().toISOString();
     let registryCreated = false;
-    let claimsChanged = false;
+    let claimsChangeAttempted = false;
     try {
       await targetRef.create({
         id: targetUser.uid,
@@ -405,11 +405,11 @@ authClaimsRouter.post('/grant-owner', authenticateToken, requireOwnerRole, async
       });
       registryCreated = true;
 
+      claimsChangeAttempted = true;
       await adminAuth.setCustomUserClaims(targetUser.uid, {
         ...previousClaims,
         role: 'owner',
       });
-      claimsChanged = true;
       await adminAuth.revokeRefreshTokens(targetUser.uid);
 
       return res.status(200).json({
@@ -427,7 +427,7 @@ authClaimsRouter.post('/grant-owner', authenticateToken, requireOwnerRole, async
           console.error('Additional owner registry rollback failed:', rollbackError);
         }
       }
-      if (claimsChanged) {
+      if (claimsChangeAttempted) {
         try {
           await adminAuth.setCustomUserClaims(targetUser.uid, previousClaims);
           await adminAuth.revokeRefreshTokens(targetUser.uid);
