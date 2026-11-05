@@ -152,16 +152,16 @@ async function bootstrapOwner(): Promise<void> {
 
   console.log(`Reservation secured: ${reservationDecision} for the verified target UID.`);
 
-  let ownerClaimWritten = false;
+  let ownerClaimAssignmentAttempted = false;
   try {
+    ownerClaimAssignmentAttempted = true;
     await auth.setCustomUserClaims(ownerUser.uid, {
       ...existingClaims,
       role: 'owner',
     });
-    ownerClaimWritten = true;
     await auth.revokeRefreshTokens(ownerUser.uid);
   } catch (error) {
-    if (ownerClaimWritten) {
+    if (ownerClaimAssignmentAttempted) {
       await restoreClaims(auth, ownerUser.uid, existingClaims);
     }
     throw error;
