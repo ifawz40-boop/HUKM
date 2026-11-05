@@ -285,7 +285,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
 
   describe('Reader annotation security invariants', () => {
     it('must scope annotation documents beneath the owning user and book/chapter path', () => {
-      assert.match(rulesContent, /match \/readerAnnotations\/\{bookId\}\/chapters\/\{chapterId\}\/items\/\{annotationId\}/);
+      assert.match(rulesContent, /match \/readerAnnotations\/\{bookId\}\/chapters\/\{chapterId\}\/readerAnnotationEntries\/\{annotationId\}/);
       assert.match(rulesContent, /request\.auth\.uid == userId/);
       assert.match(rulesContent, /data\.userId == userId/);
       assert.match(rulesContent, /data\.bookId == bookId/);
