@@ -687,7 +687,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <h4 className="text-sm font-black text-white">دفتر مقتطفاتك وملاحظاتك</h4>
                 <p className="mt-1 text-[10px] text-[#94a3b8]">مقتطفاتك الخاصة من جميع الكتب، محفوظة لحسابك.</p>
               </div>
-              <span className="rounded-lg border border-[#c59b27]/25 bg-[#c59b27]/10 px-2 py-1 text-[10px] font-bold text-[#f0cb69]">{readerNotes.length} مقتطف</span>
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg border border-[#c59b27]/25 bg-[#c59b27]/10 px-2 py-1 text-[10px] font-bold text-[#f0cb69]">{visibleReaderNotes.length} مقتطف</span>
+                <button type="button" onClick={handleExportReaderNotes} disabled={visibleReaderNotes.length === 0} className="rounded-lg border border-white/15 p-2 text-[#cbd5e1] hover:border-[#c59b27]/50 disabled:opacity-30" title="تصدير دفتر الملاحظات بصيغة Markdown" aria-label="تصدير الملاحظات">
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
 
             <div className="relative">
@@ -748,6 +753,15 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                           </button>
                           <button
                             type="button"
+                            onClick={() => handleStartEditReaderNote(note)}
+                            className="rounded-lg border border-white/15 p-1.5 text-[#cbd5e1] hover:border-[#c59b27]/50"
+                            aria-label="تعديل الملاحظة"
+                            title="تعديل الملاحظة"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleDeleteReaderNote(note)}
                             className="rounded-lg border border-rose-500/25 p-1.5 text-rose-400 hover:bg-rose-500/10"
                             aria-label="حذف المقتطف"
@@ -762,6 +776,49 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {editingReaderNote && editingReaderNote.userId === user.id && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="presentation">
+            <div role="dialog" aria-modal="true" aria-labelledby="edit-reader-note-title" className="w-full max-w-lg rounded-2xl border border-[#c59b27]/35 bg-[#0a1226] p-5 text-right text-white shadow-2xl space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 id="edit-reader-note-title" className="text-sm font-black text-[#f0cb69]">تعديل ملاحظتك</h3>
+                  <p className="mt-1 text-[10px] text-[#94a3b8]">النص المقتبس وموضعه ثابتان؛ يمكنك تعديل الملاحظة ولون التمييز.</p>
+                </div>
+                <button type="button" onClick={() => setEditingReaderNote(null)} className="rounded-lg p-2 text-[#94a3b8] hover:bg-white/5" aria-label="إغلاق">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <blockquote className="rounded-xl border-r-2 border-[#c59b27] bg-white/5 p-3 text-xs leading-relaxed text-[#e2e8f0]">
+                «{editingReaderNote.selectedText}»
+              </blockquote>
+              <label className="block space-y-2">
+                <span className="text-xs font-bold text-[#cbd5e1]">الملاحظة</span>
+                <textarea
+                  value={editReaderNoteText}
+                  onChange={(e) => setEditReaderNoteText(e.target.value.slice(0, 2000))}
+                  maxLength={2000}
+                  rows={4}
+                  className="w-full resize-y rounded-xl border border-white/15 bg-[#050a16] px-3 py-2.5 text-xs leading-relaxed text-white outline-none focus:border-[#c59b27]"
+                />
+                <span className="block text-left text-[10px] text-[#64748b]">{editReaderNoteText.length}/2000</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {(['gold', 'green', 'blue', 'rose'] as const).map((color) => (
+                  <button key={color} type="button" onClick={() => setEditReaderNoteColor(color)} className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold ${color === 'gold' ? 'bg-amber-300 text-[#1f2937]' : color === 'green' ? 'bg-emerald-300 text-[#123326]' : color === 'blue' ? 'bg-sky-300 text-[#102c46]' : 'bg-rose-300 text-[#451a2a]'} ${editReaderNoteColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0a1226]' : 'opacity-65'}`}>
+                    {color === 'gold' ? 'ذهبي' : color === 'green' ? 'أخضر' : color === 'blue' ? 'أزرق' : 'وردي'}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setEditingReaderNote(null)} className="rounded-xl border border-white/15 px-4 py-2 text-xs font-bold text-[#cbd5e1]">إلغاء</button>
+                <button type="button" onClick={handleSaveEditedReaderNote} disabled={isSavingReaderNoteEdit} className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-4 py-2 text-xs font-black text-[#070d1e] disabled:opacity-50">
+                  {isSavingReaderNoteEdit ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
