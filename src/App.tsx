@@ -445,7 +445,7 @@ export default function App() {
       showToast(`تم حفظ وتحديث كتاب «${updatedBook.title}» في السحابة بنجاح!`);
       return true;
     } else {
-      showToast(`فشل حفظ كتاب «${updatedBook.title}» في السحابة. تم الاحتفاظ بالتعديلات محلياً.`);
+      showToast(`فشل حفظ كتاب «${updatedBook.title}» في السحابة. لم نؤكد حفظ التعديلات محلياً؛ أبقِ النسخة الحالية مفتوحة وأعد المحاولة.`);
       return false;
     }
   };
