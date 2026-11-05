@@ -383,3 +383,14 @@ A stronger primary source was found after the first Wikisource sync attempt:
 7. Check Vercel again. It remains blocked by build-rate-limit; use Vercel integration once connected to inspect project/build details and avoid claiming deployment.
 8. For owner activation, use Firebase integration only after connection. Read actual project/database IDs and current Firestore rule release, verify Auth user `ifawz40@gmail.com`, then deploy only to the named database after confirming target. Execute bootstrap once only if all preconditions pass, then run read-only verifier. Preserve all user and subscriber data.
 9. If Firebase/Vercel integrations remain unconnected, report the precise blocker and preserve this checkpoint; never claim production rules or owner state changed.
+
+
+## Final continuation marker — 2026-11-05 20:10 UTC
+
+- Confirmed latest main at `6980573a35841f2d21e79aa52ab07f2afffe1d5b`; its GitHub verification run `42100644935` completed SUCCESS at 20:09:16 UTC (tests, typecheck, production build).
+- Last additional test assertion was corrected to accept both valid book license labels: explicit CC BY 4.0 translation or the declared public-domain life+70 screen.
+- Named database configuration is committed and included in successful CI. This verifies repository consistency only; it does not prove the production rules release was updated.
+- Open Arabic Books sync run `42099576786` remains in progress/stale since 20:03:05 UTC. Do not claim it succeeded; check whether it times out or finishes before deciding to cancel/re-run.
+- Vercel remains failed due the external build-rate-limit status.
+- Firebase and Vercel plugins were suggested but are not confirmed connected. Production Firestore rules deployment and owner bootstrap remain pending live Firebase access.
+- Current resume point: poll `42099576786`; inspect generated corpus and fix the remaining sync-script/NOTICE rights-description mismatch only after seeing its output; then check CI and Vercel. Next, use connected Firebase/Vercel integrations if available to inspect and complete the live operations safely.
