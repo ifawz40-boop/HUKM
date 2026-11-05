@@ -1,4 +1,5 @@
 import { auth } from '../firebase/config';
+import type { AdminRequest } from '../types/auth';
 
 /**
  * Client service to communicate with trusted backend Custom Claims API
@@ -15,55 +16,6 @@ async function getAuthHeaders(): Promise<HeadersInit> {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${idToken}`,
   };
-}
-
-/**
- * Searches for an existing user account in Firebase Auth by email.
- * Returns verified UID and verification status. Strictly for OWNER.
- */
-export async function lookupUserByEmail(email: string): Promise<{
-  success: boolean;
-  user?: {
-    uid: string;
-    email: string;
-    displayName: string;
-    emailVerified: boolean;
-    currentRole: string;
-    photoURL?: string | null;
-  };
-  message?: string;
-}> {
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch('/api/auth/lookup-user', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ email }),
-    });
-    return await res.json();
-  } catch (err: any) {
-    return { success: false, message: err.message || 'فشل الاتصال بالخادم للبحث عن المستخدم.' };
-  }
-}
-
-/**
- * Assigns Custom Claim `role: 'admin'` to the target UID. Strictly for OWNER.
- */
-export async function assignAdminRole(
-  targetUid: string,
-  title?: string
-): Promise<{ success: boolean; message: string }> {
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch('/api/auth/set-role', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ targetUid, role: 'admin', title }),
-    });
-    return await res.json();
-  } catch (err: any) {
-    return { success: false, message: err.message || 'فشل تعيين رتبة المدير.' };
-  }
 }
 
 /**
@@ -87,8 +39,6 @@ export async function revokeAdminRole(
 
 
 
-
-import type { AdminRequest } from '../types/auth';
 
 export async function createAdminRequest(reason: string): Promise<{ success: boolean; request?: AdminRequest; message: string }> {
   try {
