@@ -1,0 +1,48 @@
+name: Sync curated Arabic public-domain library
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/data/library/manifest.json'
+      - 'scripts/sync-public-library.mjs'
+      - '.github/workflows/sync-public-library.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hukm-library-sync-main
+  cancel-in-progress: false
+
+jobs:
+  sync-library:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download, validate and bundle selected works
+        run: node scripts/sync-public-library.mjs
+
+      - name: Commit bundled full texts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/library/books src/data/library/NOTICE.md
+          if git diff --cached --quiet; then
+            echo "No generated library changes."
+            exit 0
+          fi
+          git commit -m "data: bundle curated Arabic public-domain books"
+          git push origin HEAD:main
