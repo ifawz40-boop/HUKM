@@ -70,7 +70,7 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
   const loadAdmins = async () => {
     setIsLoadingAdmins(true);
     const remote = await fetchAdminsFromFirestore();
-    if (remote && remote.length > 0) {
+    if (remote !== null) {
       setAdminsList(remote);
     }
     setIsLoadingAdmins(false);
@@ -87,7 +87,7 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
 
   const loadBans = async () => {
     const remote = await fetchBansFromFirestore();
-    if (remote && remote.length > 0) {
+    if (remote !== null) {
       setBansList(remote);
     } else {
       setBansList(getStoredBans());
