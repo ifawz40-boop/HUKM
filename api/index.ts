@@ -3,6 +3,7 @@ import { authClaimsRouter } from '../src/server/authClaimsApi.ts';
 import { emailApiRouter } from '../src/server/emailApi.ts';
 import { applySecurityHeaders } from '../src/server/httpSecurity.ts';
 import { createRateLimiter } from '../src/server/requestProtection.ts';
+import { apiErrorHandler } from '../src/server/apiErrorHandler.ts';
 
 const app = express();
 
@@ -38,5 +39,7 @@ app.get('/api/health', (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+app.use(apiErrorHandler);
 
 export default app;

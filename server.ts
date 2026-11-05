@@ -6,6 +6,7 @@ import { authClaimsRouter } from './src/server/authClaimsApi.ts';
 import { emailApiRouter } from './src/server/emailApi.ts';
 import { applySecurityHeaders } from './src/server/httpSecurity.ts';
 import { createRateLimiter } from './src/server/requestProtection.ts';
+import { apiErrorHandler } from './src/server/apiErrorHandler.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,6 +70,9 @@ async function startServer() {
       timestamp: new Date().toISOString(),
     });
   });
+
+  // Keep malformed JSON and unexpected API failures in a safe, consistent JSON format.
+  app.use(apiErrorHandler);
 
   if (!isProd) {
     // Development mode: Mount Vite dev server with middlewares
