@@ -204,8 +204,8 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
                   <Crown className="h-5 w-5" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-[#94a3b8] block">المؤسس والمشرف العام:</span>
-                  <span className="text-xs sm:text-sm font-black text-white">Dr/ Islam Mohamed</span>
+                  <span className="text-[11px] font-bold text-[#94a3b8] block">الهوية التحريرية:</span>
+                  <span className="text-xs sm:text-sm font-black text-white">حُكم | HUKM MEDIA</span>
                 </div>
               </div>
 
@@ -214,8 +214,8 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-[#94a3b8] block">المدير التنفيذي والناشر:</span>
-                  <span className="text-xs sm:text-sm font-black text-white">إبراهيم فوزي</span>
+                  <span className="text-[11px] font-bold text-[#94a3b8] block">جهة النشر:</span>
+                  <span className="text-xs sm:text-sm font-black text-white">حُكم | HUKM MEDIA</span>
                 </div>
               </div>
             </div>
