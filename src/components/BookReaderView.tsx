@@ -246,6 +246,11 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   // Sync index
   const currentChapterIndex = book.chapters.findIndex((c) => c.id === selectedChapterId);
   const currentChapter = book.chapters[currentChapterIndex] || book.chapters[0];
+  const visibleReaderAnnotations = readerAnnotations.filter((annotation) =>
+    annotation.bookId === book.id &&
+    annotation.chapterId === currentChapter?.id &&
+    (currentUser?.id ? annotation.userId === currentUser.id : !annotation.userId)
+  );
   // Load chapter annotations from the current account's private local/cloud partitions.
   useEffect(() => {
     if (!currentChapter?.id) {
@@ -254,6 +259,10 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     }
 
     let cancelled = false;
+    setIsAnnotationEditorOpen(false);
+    setIsAnnotationsOpen(false);
+    setSelectedTextDraft('');
+    setSelectedParagraphIndex(null);
     const userId = currentUser?.id;
     const localForChapter = getReaderAnnotationsForChapter(book.id, currentChapter.id, userId);
     setReaderAnnotations(localForChapter);
@@ -907,9 +916,9 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
               aria-label="عرض المقتطفات والملاحظات"
             >
               <StickyNote className="h-4 w-4" />
-              {readerAnnotations.length > 0 && (
+              {visibleReaderAnnotations.length > 0 && (
                 <span className="absolute -top-1 -left-1 min-w-4 h-4 rounded-full bg-[#c59b27] px-1 text-[9px] font-black text-[#070d1e] flex items-center justify-center">
-                  {readerAnnotations.length}
+                  {visibleReaderAnnotations.length}
                 </span>
               )}
             </button>
@@ -1225,7 +1234,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
             {isLoadingAnnotations ? (
               <p className="py-4 text-center text-xs opacity-60">جاري تحميل المقتطفات...</p>
-            ) : readerAnnotations.length === 0 ? (
+            ) : visibleReaderAnnotations.length === 0 ? (
               <div className="rounded-xl border border-dashed border-current/20 p-6 text-center">
                 <Highlighter className="mx-auto h-6 w-6 opacity-40" />
                 <p className="mt-2 text-xs font-bold">لا توجد مقتطفات محفوظة في هذا الفصل بعد.</p>
@@ -1233,7 +1242,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
               </div>
             ) : (
               <div className="space-y-3">
-                {readerAnnotations.map((annotation) => (
+                {visibleReaderAnnotations.map((annotation) => (
                   <article key={annotation.id} className="rounded-xl border border-current/10 bg-black/5 p-3 space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <blockquote className={`border-r-2 pr-3 text-sm font-bold leading-relaxed ${annotationMarkClasses[annotation.color] || annotationMarkClasses.gold}`}>
