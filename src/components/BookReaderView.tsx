@@ -1318,6 +1318,29 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           )}
         </article>
 
+        {currentChapter?.footnotes && currentChapter.footnotes.length > 0 && (
+          <section className={`mt-8 rounded-2xl border p-4 sm:p-5 space-y-3 ${themeClasses.cardBg}`} aria-label="حواشي الفصل">
+            <h3 className="text-sm font-black">الحواشي والتعليقات</h3>
+            <ol className="list-decimal list-inside space-y-3">
+              {currentChapter.footnotes.map((note, index) => (
+                <li key={`${note.marker}-${index}`} className="text-xs leading-7 opacity-85">
+                  {note.marker && <strong className="ml-2">{note.marker}</strong>}
+                  {note.text}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {currentChapter?.omittedMedia && (currentChapter.omittedMedia.images > 0 || currentChapter.omittedMedia.svgs > 0 || currentChapter.omittedMedia.tables > 0) && (
+          <p className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] leading-6 text-amber-100/80">
+            تنبيه مصدر: النسخة الرقمية الأصلية تشير إلى عناصر غير نصية لم تُضمّن هنا:
+            {currentChapter.omittedMedia.images > 0 ? ` ${currentChapter.omittedMedia.images} صورة` : ''}
+            {currentChapter.omittedMedia.svgs > 0 ? `، ${currentChapter.omittedMedia.svgs} رسمًا` : ''}
+            {currentChapter.omittedMedia.tables > 0 ? `، ${currentChapter.omittedMedia.tables} جدولًا` : ''}.
+          </p>
+        )}
+
         {isAnnotationsOpen && (
           <section className={`rounded-2xl border p-4 sm:p-5 space-y-4 ${themeClasses.cardBg}`} aria-label="المقتطفات والملاحظات">
             <div className="flex items-center justify-between gap-3">
