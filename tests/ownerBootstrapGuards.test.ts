@@ -120,6 +120,8 @@ describe('owner bootstrap integration invariants', () => {
     assert.ok(api.includes("adminSnap.data()?.isFounder"));
     assert.ok(modal.includes('if (adminAccount.isFounder)'));
     assert.ok(modal.includes('admin.isFounder ?'));
+    assert.ok(modal.includes('{isFounder ? ('));
+    assert.ok(modal.includes('إضافة مالكين جدد مقتصرة على المالك المؤسس الأساسي'));
     assert.ok(modal.includes('grantOwnerRole(email)'));
   });
 });
