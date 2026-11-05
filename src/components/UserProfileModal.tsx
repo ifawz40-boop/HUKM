@@ -83,6 +83,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   }, [isOpen, initialTab]);
 
   React.useEffect(() => {
+    setEditingReaderNote(null);
+    setReaderNotesSearch('');
+  }, [isOpen, user?.id]);
+
+  React.useEffect(() => {
     let active = true;
     if (!isOpen || !user || user.role !== 'reader') return () => { active = false; };
     setIsLoadingAdminRequest(true);
