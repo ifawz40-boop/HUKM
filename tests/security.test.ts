@@ -19,6 +19,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
   const rulesContent = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf-8');
   const firestoreServiceContent = fs.readFileSync(path.resolve(process.cwd(), 'src/firebase/firestoreService.ts'), 'utf-8');
   const adminModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/AdminManagementModal.tsx'), 'utf-8');
+  const bootstrapOwnerContent = fs.readFileSync(path.resolve(process.cwd(), 'scripts/bootstrap-owner.ts'), 'utf-8');
 
   // =========================================================================
   // SECTION 1: Static Rules Invariant Audit (firestore.rules)
@@ -661,6 +662,22 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(adminModalContent, /if \(remote !== null\) \{\s*setAdminsList\(remote\)/);
       assert.match(adminModalContent, /if \(remote !== null\) \{\s*setBansList\(remote\)/);
       assert.match(adminModalContent, /else \{\s*setBansList\(getStoredBans\(\)\)/);
+    });
+  });
+  describe('Audit: owner bootstrap claim compensation', () => {
+    it('marks claims as changed before token revocation', () => {
+      const ownerAssignment = bootstrapOwnerContent.slice(bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(ownerUser.uid'), bootstrapOwnerContent.indexOf('console.log(', bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(ownerUser.uid')));
+      const managerAssignment = bootstrapOwnerContent.slice(bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(managerUser.uid'), bootstrapOwnerContent.indexOf('console.log(', bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(managerUser.uid')));
+      assert.ok(ownerAssignment.indexOf('ownerClaimGranted = true') < ownerAssignment.indexOf('await auth.revokeRefreshTokens'));
+      assert.ok(managerAssignment.indexOf('managerClaimGranted = true') < managerAssignment.indexOf('await auth.revokeRefreshTokens'));
+    });
+
+    it('restores prior owner and manager claims after assignment and finalization failures', () => {
+      assert.ok(bootstrapOwnerContent.includes('async function restoreCustomClaims('));
+      assert.ok(bootstrapOwnerContent.includes('await auth.setCustomUserClaims(uid, claims)'));
+      assert.ok(bootstrapOwnerContent.includes("restoreCustomClaims(managerUser.uid, managerExistingClaims, 'MANAGER')"));
+      assert.ok(bootstrapOwnerContent.includes("restoreCustomClaims(ownerUser.uid, ownerExistingClaims, 'OWNER')"));
+      assert.ok(bootstrapOwnerContent.includes('await auth.revokeRefreshTokens(uid)'));
     });
   });
 
