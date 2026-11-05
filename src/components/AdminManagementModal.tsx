@@ -4,20 +4,17 @@ import {
   Shield,
   ShieldCheck,
   ShieldAlert,
-  UserPlus,
   Ban,
   Clock,
   CheckCircle,
   AlertTriangle,
-  Mail,
   User,
   Crown,
   Trash2,
-  Search,
   Loader2,
   Lock,
 } from 'lucide-react';
-import { AdminAccount, BannedAccount, UserProfile } from '../types/auth';
+import { AdminAccount, AdminRequest, BannedAccount, UserProfile } from '../types/auth';
 import {
   getStoredBans,
   banUser,
@@ -29,10 +26,10 @@ import {
   fetchBansFromFirestore,
   saveBanToFirestore,
 } from '../firebase/firestoreService';
-import { canManageAdmins, isOwner, isAdmin } from '../services/permissionService';
+import { isOwner, isAdmin } from '../services/permissionService';
 import {
-  lookupUserByEmail,
-  assignAdminRole,
+  listPendingAdminRequests,
+  reviewAdminRequest,
   revokeAdminRole,
 } from '../services/adminClaimsClient';
 
@@ -58,18 +55,9 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
   const [bansList, setBansList] = useState<BannedAccount[]>([]);
   const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
 
-  // User Lookup & Add Admin state
-  const [searchEmail, setSearchEmail] = useState('');
-  const [isSearchingUser, setIsSearchingUser] = useState(false);
-  const [foundUser, setFoundUser] = useState<{
-    uid: string;
-    email: string;
-    displayName: string;
-    emailVerified: boolean;
-    currentRole: string;
-  } | null>(null);
-  const [newAdminTitle, setNewAdminTitle] = useState('مدير تحرير معتمد');
-  const [isAssigningRole, setIsAssigningRole] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<AdminRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [reviewingRequestUid, setReviewingRequestUid] = useState<string | null>(null);
 
   // Ban form state
   const [banEmail, setBanEmail] = useState('');
@@ -88,6 +76,15 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
     setIsLoadingAdmins(false);
   };
 
+  const loadPendingRequests = async () => {
+    if (!isUserOwner) return;
+    setIsLoadingRequests(true);
+    const result = await listPendingAdminRequests();
+    setPendingRequests(result.success ? result.requests : []);
+    if (!result.success) onShowToast(result.message || 'تعذر تحميل طلبات الإدارة.');
+    setIsLoadingRequests(false);
+  };
+
   const loadBans = async () => {
     const remote = await fetchBansFromFirestore();
     if (remote && remote.length > 0) {
@@ -104,55 +101,11 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
       }
       loadAdmins();
       loadBans();
+      if (isUserOwner) loadPendingRequests();
     }
   }, [isOpen, isUserOwner]);
 
   if (!isOpen || !currentUser || !isUserAdmin) return null;
-
-  // Search User by Email in Firebase Auth
-  const handleLookupUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchEmail.trim() || !searchEmail.includes('@')) {
-      onShowToast('يرجى كتابة بريد إلكتروني صالح للبحث.');
-      return;
-    }
-
-    setIsSearchingUser(true);
-    setFoundUser(null);
-
-    const res = await lookupUserByEmail(searchEmail.trim());
-    setIsSearchingUser(false);
-
-    if (res.success && res.user) {
-      setFoundUser(res.user);
-      onShowToast(`تم العثور على الحساب: ${res.user.displayName}`);
-    } else {
-      onShowToast(res.message || 'لم يتم العثور على حساب مسجل بهذا البريد.');
-    }
-  };
-
-  // Assign Admin Custom Claim and UID identity
-  const handleConfirmAssignAdmin = async () => {
-    if (!foundUser) return;
-
-    if (!foundUser.emailVerified) {
-      onShowToast('عذراً، لا يمكن منح رتبة إدارية لحساب غير مؤكد بريدياً طبقاً لسياسة الأمان.');
-      return;
-    }
-
-    setIsAssigningRole(true);
-    const res = await assignAdminRole(foundUser.uid, newAdminTitle);
-    setIsAssigningRole(false);
-
-    if (res.success) {
-      onShowToast(res.message);
-      setFoundUser(null);
-      setSearchEmail('');
-      await loadAdmins();
-    } else {
-      onShowToast(res.message);
-    }
-  };
 
   // Revoke Admin Custom Claim and revoke tokens
   const handleRevokeAdmin = async (adminAccount: AdminAccount) => {
@@ -271,7 +224,7 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
             }`}
           >
             {isUserOwner ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-            <span>تعيين وإدارة المدراء ({adminsList.length})</span>
+            <span>إدارة المدراء ({adminsList.length})</span>
             {!isUserOwner && <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Owner فقط</span>}
           </button>
 
@@ -294,101 +247,60 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
           {activeTab === 'admins' && (
             isUserOwner ? (
               <div className="space-y-6">
-                {/* Search & Assign Admin Card */}
-                <div className="rounded-2xl border border-[#c59b27]/30 bg-[#0a142c] p-4 sm:p-5">
-                  <div className="flex items-center gap-2 mb-2 text-white font-cairo text-sm font-bold">
-                    <UserPlus className="h-4 w-4 text-[#d4af37]" />
-                    <span>تعيين مدير موثق عبر معرف Firebase UID الحقيقي</span>
-                  </div>
-                  <p className="text-xs text-[#94a3b8] mb-4 leading-relaxed">
-                    لحماية المنصة، يتم التحقق أولاً من وجود حساب المستخدم في Firebase وتأكيد بريده الإلكتروني قبل منح Custom Claims.
-                  </p>
-
-                  <form onSubmit={handleLookupUser} className="flex flex-col sm:flex-row gap-2.5 mb-4">
-                    <div className="relative flex-1">
-                      <Mail className="absolute right-3.5 top-3 h-4 w-4 text-[#64748b]" />
-                      <input
-                        type="email"
-                        required
-                        value={searchEmail}
-                        onChange={(e) => setSearchEmail(e.target.value)}
-                        placeholder="ابحث بالبريد الإلكتروني المسجل في المنصة..."
-                        className="w-full rounded-xl bg-[#050a16] border border-white/15 px-3.5 py-2.5 pr-10 text-xs text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none"
-                      />
+                {/* Admin requests: approval is the only grant path */}
+                <section className="rounded-2xl border border-[#c59b27]/30 bg-[#0a142c] p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">طلبات الانضمام إلى فريق الإدارة</h3>
+                      <p className="text-xs text-[#94a3b8] mt-1">لا تُمنح الصلاحيات إلا بعد موافقتك من الخادم.</p>
                     </div>
-                    <button
-                      type="submit"
-                      disabled={isSearchingUser}
-                      className="flex items-center justify-center gap-2 rounded-xl gold-gradient-btn px-5 py-2.5 text-xs font-bold text-[#070d1e] shadow-md hover:scale-102 transition-transform cursor-pointer shrink-0 disabled:opacity-50"
-                    >
-                      {isSearchingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      <span>فحص الحساب وتأكيده</span>
+                    <button type="button" onClick={loadPendingRequests} disabled={isLoadingRequests} className="rounded-lg border border-white/15 px-3 py-1.5 text-[11px] text-[#cbd5e1] disabled:opacity-50">
+                      {isLoadingRequests ? 'جاري التحديث...' : 'تحديث'}
                     </button>
-                  </form>
-
-                  {/* Found Account Preview Card */}
-                  {foundUser && (
-                    <div className="rounded-2xl bg-[#070d1e] border border-[#c59b27]/40 p-4 space-y-3 animate-in fade-in duration-200">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">{foundUser.displayName}</span>
-                            <span className="text-xs text-[#94a3b8]">({foundUser.email})</span>
+                  </div>
+                  {isLoadingRequests ? (
+                    <div className="py-5 text-center text-xs text-[#94a3b8]">جاري تحميل الطلبات...</div>
+                  ) : pendingRequests.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/10 p-5 text-center text-xs text-[#64748b]">لا توجد طلبات معلقة حالياً.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingRequests.map((request) => (
+                        <article key={request.uid} className="rounded-xl border border-white/10 bg-[#070d1e] p-3 sm:p-4 space-y-3">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-bold text-white">{request.displayName}</p>
+                              <p className="text-[11px] text-[#94a3b8]">{request.email}</p>
+                              <p className="text-[10px] text-[#64748b] mt-1">{new Date(request.submittedAt).toLocaleString('ar-EG')}</p>
+                            </div>
+                            <span className="rounded-md bg-amber-500/10 border border-amber-500/25 px-2 py-1 text-[10px] text-amber-200">قيد المراجعة</span>
                           </div>
-                          <span className="text-[11px] text-[#64748b] font-mono block">Firebase UID: {foundUser.uid}</span>
-                        </div>
-
-                        <div>
-                          {foundUser.emailVerified ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 text-xs font-bold">
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              البريد مؤكد وموثق
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 text-xs font-bold">
-                              <AlertTriangle className="h-3.5 w-3.5" />
-                              بريد غير مؤكد (لا يمكن ترقيته)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <div>
-                          <label className="block text-[11px] text-[#cbd5e1] mb-1 font-bold">المسمى الإداري:</label>
-                          <input
-                            type="text"
-                            value={newAdminTitle}
-                            onChange={(e) => setNewAdminTitle(e.target.value)}
-                            placeholder="مثلاً: مدير تحرير معتمد"
-                            className="w-full rounded-xl bg-[#050a16] border border-white/15 px-3 py-2 text-xs text-white focus:border-[#c59b27] focus:outline-none"
-                          />
-                        </div>
-
-                        <div className="flex items-end">
-                          <button
-                            type="button"
-                            onClick={handleConfirmAssignAdmin}
-                            disabled={!foundUser.emailVerified || isAssigningRole}
-                            className="w-full flex items-center justify-center gap-2 rounded-xl gold-gradient-btn py-2 text-xs font-bold text-[#070d1e] shadow-md hover:scale-101 transition-transform cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {isAssigningRole ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>جاري تعيين Custom Claims...</span>
-                              </>
-                            ) : (
-                              <>
-                                <ShieldCheck className="h-4 w-4" />
-                                <span>منح رتبة مدير وتفعيل Custom Claims</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
+                          <p className="rounded-lg bg-white/5 p-3 text-xs text-[#cbd5e1] leading-relaxed whitespace-pre-wrap">{request.reason}</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" disabled={reviewingRequestUid === request.uid} onClick={async () => {
+                              setReviewingRequestUid(request.uid);
+                              const result = await reviewAdminRequest(request.uid, 'approve');
+                              setReviewingRequestUid(null);
+                              onShowToast(result.message);
+                              if (result.success) await Promise.all([loadAdmins(), loadPendingRequests()]);
+                            }} className="rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-3 py-2 text-[11px] font-bold text-emerald-300 disabled:opacity-50">
+                              {reviewingRequestUid === request.uid ? 'جاري التنفيذ...' : 'موافقة ومنح صلاحية المدير'}
+                            </button>
+                            <button type="button" disabled={reviewingRequestUid === request.uid} onClick={async () => {
+                              if (!confirm('هل تريد رفض طلب الإدارة؟ لن تُمنح أي صلاحيات لهذا الحساب.')) return;
+                              setReviewingRequestUid(request.uid);
+                              const result = await reviewAdminRequest(request.uid, 'reject');
+                              setReviewingRequestUid(null);
+                              onShowToast(result.message);
+                              if (result.success) await loadPendingRequests();
+                            }} className="rounded-lg bg-rose-600/10 border border-rose-500/30 px-3 py-2 text-[11px] font-bold text-rose-300 disabled:opacity-50">
+                              رفض الطلب
+                            </button>
+                          </div>
+                        </article>
+                      ))}
                     </div>
                   )}
-                </div>
+                </section>
 
                 {/* Admins Table */}
                 <div className="space-y-3">
