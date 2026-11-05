@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BookResearchPanel } from './BookResearchPanel';
 import {
   PenTool,
@@ -95,9 +95,24 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const [selectedChapterId, setSelectedChapterId] = useState<string>(
     currentBook?.chapters[0]?.id || ''
   );
-  const currentChapter =
-    currentBook?.chapters.find((c) => c.id === selectedChapterId) ||
-    currentBook?.chapters[0];
+  const [isCreatingChapter, setIsCreatingChapter] = useState(false);
+  const currentChapter = isCreatingChapter
+    ? undefined
+    : currentBook?.chapters.find((c) => c.id === selectedChapterId) || currentBook?.chapters[0];
+
+  // Reset editor state when the selected book changes; never carry another book's chapter text over.
+  const previousBookIdRef = useRef(currentBook?.id);
+  useEffect(() => {
+    if (previousBookIdRef.current === currentBook?.id) return;
+    previousBookIdRef.current = currentBook?.id;
+    setIsCreatingChapter(false);
+    const firstChapter = currentBook?.chapters[0];
+    setSelectedChapterId(firstChapter?.id || '');
+    setChapterNumber(firstChapter?.chapterNumber || 1);
+    setChapterTitle(firstChapter?.title || '');
+    setChapterContent(firstChapter ? firstChapter.content.join('\\n\\n') : '');
+    setChapterStatus(firstChapter?.status || 'draft');
+  }, [currentBook?.id]);
 
   const [chapterNumber, setChapterNumber] = useState<number>(currentChapter?.chapterNumber || 1);
   const [chapterTitle, setChapterTitle] = useState(currentChapter?.title || '');
@@ -128,6 +143,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Sync state when current chapter changes
   const handleSelectChapter = (ch: BookChapter) => {
+    setIsCreatingChapter(false);
     setSelectedChapterId(ch.id);
     setChapterNumber(ch.chapterNumber);
     setChapterTitle(ch.title);
@@ -207,6 +223,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         updatedAt: new Date().toISOString(),
       };
       updatedChapters = [...currentBook.chapters, newCh];
+      setIsCreatingChapter(false);
       setSelectedChapterId(newCh.id);
     }
 
@@ -235,6 +252,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const handleCreateNewChapter = () => {
     if (!currentBook) return;
     const nextNumber = currentBook.chapters.length + 1;
+    setIsCreatingChapter(true);
     setSelectedChapterId('');
     setChapterNumber(nextNumber);
     setChapterTitle(`الفصل ${nextNumber}`);
@@ -265,7 +283,9 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         if (remaining.length > 0) {
           handleSelectChapter(remaining[0]);
         } else {
+          setIsCreatingChapter(false);
           setSelectedChapterId('');
+          setChapterNumber(1);
           setChapterTitle('');
           setChapterContent('');
         }
