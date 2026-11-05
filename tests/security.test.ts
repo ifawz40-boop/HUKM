@@ -473,73 +473,35 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
   // SECTION 3: Phase 1.3 In-Depth Security & Behavioral Invariants
   // =========================================================================
 
-  // Test 13: Bootstrap Claims Preservation & Immutability on Resumption
-  describe('Test 13: Bootstrap Claims Preservation & Manager Immutability', () => {
+  // Test 13: First-owner bootstrap invariants (single founder; no manager bootstrap)
+  describe('Test 13: First-owner bootstrap claim preservation and rollback', () => {
     const bootstrapScriptContent = fs.readFileSync(path.resolve(process.cwd(), 'scripts/bootstrap-owner.ts'), 'utf-8');
 
-    it('must preserve existing custom claims when granting OWNER or ADMIN claims', () => {
-      assert.match(bootstrapScriptContent, /\.\.\.ownerExistingClaims/);
-      assert.match(bootstrapScriptContent, /\.\.\.managerExistingClaims/);
+    it('must preserve unrelated custom claims when granting the founder role', () => {
+      assert.match(bootstrapScriptContent, /\.\.\.existingClaims/);
+      assert.match(bootstrapScriptContent, /role: 'owner'/);
     });
 
-    it('must reject resume if manager configuration does not match the pending reservation', () => {
-      assert.match(bootstrapScriptContent, /BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME/);
-      assert.match(bootstrapScriptContent, /existingManagerUid !== currentManagerUid/);
-      assert.match(bootstrapScriptContent, /existingManagerEmail !== currentManagerEmail/);
+    it('must reserve and resume bootstrap only for the same founder UID', () => {
+      assert.match(bootstrapScriptContent, /decideOwnerBootstrap\(/);
+      assert.match(bootstrapScriptContent, /assertOwnerClaimCanBeAssigned\(existingClaims\.role, reservationDecision === 'resume'\)/);
+      assert.match(bootstrapScriptContent, /BOOTSTRAP_RESERVED_BY_OTHER_USER/);
+      assert.match(bootstrapScriptContent, /managerUid: null/);
+      assert.match(bootstrapScriptContent, /managerEmail: null/);
     });
 
-    it('must restore pre-bootstrap owner and manager claims if assignment or finalization fails', () => {
-      assert.match(bootstrapScriptContent, /restoreCustomClaims\(managerUser\.uid, managerExistingClaims, 'MANAGER'\)/);
-      assert.match(bootstrapScriptContent, /restoreCustomClaims\(ownerUser\.uid, ownerExistingClaims, 'OWNER'\)/);
-      assert.match(bootstrapScriptContent, /managerClaimGranted = true;[\s\S]*?await auth\.revokeRefreshTokens\(managerUser\.uid\)/);
-      assert.match(bootstrapScriptContent, /ownerClaimGranted = true;[\s\S]*?await auth\.revokeRefreshTokens\(ownerUser\.uid\)/);
+    it('must roll back founder claims if assignment or finalization fails', () => {
+      assert.match(bootstrapScriptContent, /async function restoreClaims\(/);
+      assert.match(bootstrapScriptContent, /auth\.setCustomUserClaims\(uid, previousClaims\)/);
+      assert.match(bootstrapScriptContent, /restoreClaims\(auth, ownerUser\.uid, existingClaims\)/);
+      assert.match(bootstrapScriptContent, /ownerClaimAssignmentAttempted = true/);
+      assert.match(bootstrapScriptContent, /isFounder: true/);
+      assert.match(bootstrapScriptContent, /await auth\.revokeRefreshTokens\(uid\)/);
     });
 
-    function evaluatePendingResume(
-      existingPending: { ownerUid: string; managerUid: string | null; managerEmail: string | null },
-      incoming: { ownerUid: string; managerUid: string | null; managerEmail: string | null }
-    ): { allowed: boolean; errorCode?: string } {
-      if (existingPending.ownerUid !== incoming.ownerUid) {
-        return { allowed: false, errorCode: 'BOOTSTRAP_RESERVED_BY_OTHER_USER' };
-      }
-      if (
-        (existingPending.managerUid || null) !== (incoming.managerUid || null) ||
-        (existingPending.managerEmail || null) !== (incoming.managerEmail || null)
-      ) {
-        return { allowed: false, errorCode: 'BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME' };
-      }
-      return { allowed: true };
-    }
-
-    it('should allow resume when owner and manager match exactly', () => {
-      const res = evaluatePendingResume(
-        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'mgr@example.com' },
-        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'mgr@example.com' }
-      );
-      assert.equal(res.allowed, true);
-    });
-
-    it('should reject resume if attacker attempts to change manager email on pending reservation', () => {
-      const res = evaluatePendingResume(
-        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'mgr@example.com' },
-        { ownerUid: 'uid-owner-1', managerUid: 'uid-mgr-1', managerEmail: 'attacker-mgr@example.com' }
-      );
-      assert.equal(res.allowed, false);
-      assert.equal(res.errorCode, 'BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME');
-    });
-
-    it('should reject resume if attacker attempts to inject a manager into an owner-only pending reservation', () => {
-      const res = evaluatePendingResume(
-        { ownerUid: 'uid-owner-1', managerUid: null, managerEmail: null },
-        { ownerUid: 'uid-owner-1', managerUid: 'injected-uid', managerEmail: 'injected@example.com' }
-      );
-      assert.equal(res.allowed, false);
-      assert.equal(res.errorCode, 'BOOTSTRAP_MANAGER_MISMATCH_ON_RESUME');
-    });
-
-    it('should preserve other custom claims when merging roles', () => {
-      const existingUserClaims = { betaAccess: true, newsletterTier: 'gold', extraId: 999 };
-      const mergedClaims = { ...existingUserClaims, role: 'owner' };
+    it('must preserve unrelated claims when merging the founder role', () => {
+      const existingClaims = { betaAccess: true, newsletterTier: 'gold', extraId: 999 };
+      const mergedClaims = { ...existingClaims, role: 'owner' };
       assert.equal(mergedClaims.role, 'owner');
       assert.equal(mergedClaims.betaAccess, true);
       assert.equal(mergedClaims.newsletterTier, 'gold');
@@ -811,23 +773,23 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(requestReviewUi, /if \(result\.success\) await loadAdmins\(\)/);
     });
   });
-  describe('Audit: owner bootstrap claim compensation', () => {
-    it('marks claims as changed before token revocation', () => {
-      const ownerAssignment = bootstrapOwnerContent.slice(bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(ownerUser.uid'), bootstrapOwnerContent.indexOf('console.log(', bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(ownerUser.uid')));
-      const managerAssignment = bootstrapOwnerContent.slice(bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(managerUser.uid'), bootstrapOwnerContent.indexOf('console.log(', bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(managerUser.uid')));
-      assert.ok(ownerAssignment.indexOf('ownerClaimGranted = true') < ownerAssignment.indexOf('await auth.revokeRefreshTokens'));
-      assert.ok(managerAssignment.indexOf('managerClaimGranted = true') < managerAssignment.indexOf('await auth.revokeRefreshTokens'));
+  describe('Audit: first-owner bootstrap claim compensation', () => {
+    it('marks the owner claim assignment as attempted before changing claims and revoking tokens', () => {
+      const assignmentStart = bootstrapOwnerContent.indexOf('ownerClaimAssignmentAttempted = true');
+      const claimWrite = bootstrapOwnerContent.indexOf('await auth.setCustomUserClaims(ownerUser.uid');
+      const tokenRevocation = bootstrapOwnerContent.indexOf('await auth.revokeRefreshTokens(ownerUser.uid)');
+      assert.ok(assignmentStart >= 0);
+      assert.ok(claimWrite > assignmentStart);
+      assert.ok(tokenRevocation > claimWrite);
     });
 
-    it('restores prior owner and manager claims after assignment and finalization failures', () => {
-      assert.ok(bootstrapOwnerContent.includes('async function restoreCustomClaims('));
-      assert.ok(bootstrapOwnerContent.includes('await auth.setCustomUserClaims(uid, claims)'));
-      assert.ok(bootstrapOwnerContent.includes("restoreCustomClaims(managerUser.uid, managerExistingClaims, 'MANAGER')"));
-      assert.ok(bootstrapOwnerContent.includes("restoreCustomClaims(ownerUser.uid, ownerExistingClaims, 'OWNER')"));
+    it('restores prior owner claims after assignment and finalization failures', () => {
+      assert.ok(bootstrapOwnerContent.includes('async function restoreClaims('));
+      assert.ok(bootstrapOwnerContent.includes('await auth.setCustomUserClaims(uid, previousClaims)'));
+      assert.ok(bootstrapOwnerContent.includes('await restoreClaims(auth, ownerUser.uid, existingClaims)'));
       assert.ok(bootstrapOwnerContent.includes('await auth.revokeRefreshTokens(uid)'));
     });
   });
-
 });
 
 
