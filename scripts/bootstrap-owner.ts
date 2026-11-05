@@ -10,7 +10,7 @@
  *   $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\\secure\\firebase-admin.json"
  *   $env:OWNER_EMAIL = "the-verified-account@example.com"
  *   $env:BOOTSTRAP_CONFIRMATION = "HUKM_INITIAL_OWNER"
- *   npm run owner:bootstrap
+ *   bun run owner:bootstrap
  *
  * Use a Firebase Admin service identity with only the IAM permissions needed
  * to read/update Firebase Authentication users and read/write this Firestore
