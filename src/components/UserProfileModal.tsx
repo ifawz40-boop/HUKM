@@ -160,8 +160,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleOpenReaderNote = (note: ReaderAnnotation) => {
     const book = books.find((item) => item.id === note.bookId);
     const chapterExists = book?.chapters.some((chapter) => chapter.id === note.chapterId);
-    if (!book || !chapterExists || !onOpenReader) {
-      onShowToast?.('الكتاب أو الفصل المرتبط بهذا المقتطف لم يعد متاحاً.');
+    const chapter = book?.chapters.find((item) => item.id === note.chapterId);
+    const canReadPrivateDrafts = isUserAdmin && !isReaderPreviewMode;
+    const isPublic = Boolean(book && ['published', 'completed', 'ongoing', 'ready'].includes(book.status) && chapter?.status === 'ready');
+    if (!book || !chapterExists || !onOpenReader || (!canReadPrivateDrafts && !isPublic)) {
+      onShowToast?.('الكتاب أو الفصل المرتبط بهذا المقتطف لم يعد متاحاً لهذا الحساب.');
       return;
     }
     onOpenReader(note.bookId, note.chapterId);
