@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { authenticateToken, requireOwnerRole } from './authClaimsApi.ts';
+import { authenticateToken } from './authClaimsApi.ts';
 import { adminDb } from './firebaseAdmin.ts';
 import { createRateLimiter } from './requestProtection.ts';
+import { isValidEmailAddress, resolveEmailRecipientTarget } from './emailRecipients.ts';
 
 export const emailApiRouter = Router();
 
@@ -70,7 +71,8 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     });
   }
 
-  const { subject, htmlContent, recipientEmail, type, bookTitle } = req.body;
+  const payload = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+  const { subject, htmlContent, type, bookTitle } = payload;
 
   if (!subject || typeof subject !== 'string' || !subject.trim()) {
     return res.status(400).json({ success: false, message: 'عنوان الرسالة مطلوب.' });
@@ -78,6 +80,16 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
 
   if (!htmlContent || typeof htmlContent !== 'string' || !htmlContent.trim()) {
     return res.status(400).json({ success: false, message: 'محتوى الرسالة مطلوب.' });
+  }
+
+  // An omitted recipientEmail explicitly means broadcast. A supplied but empty,
+  // malformed, or non-string value must never fall through to a mass email.
+  const recipientTarget = resolveEmailRecipientTarget(payload);
+  if (recipientTarget.kind === 'invalid') {
+    return res.status(400).json({
+      success: false,
+      message: 'عنوان البريد الفردي غير صالح. اترك الحقل غير موجود فقط عند اختيار الإرسال الجماعي.',
+    });
   }
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -92,17 +104,21 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
   }
 
   try {
-    // 2. Determine recipients list
+    // 2. Determine recipients list. Normalize and deduplicate broadcast addresses.
     let recipients: string[] = [];
-    if (recipientEmail && typeof recipientEmail === 'string') {
-      recipients = [recipientEmail.trim().toLowerCase()];
+    if (recipientTarget.kind === 'individual') {
+      recipients = [recipientTarget.email];
     } else {
-      // Broadcast to ALL active subscribers in Firestore (no truncation)
+      const uniqueRecipients = new Set<string>();
       const subscribersSnap = await adminDb.collection('subscribers').where('active', '==', true).get();
       subscribersSnap.forEach((doc) => {
-        const data = doc.data();
-        if (data.email) recipients.push(data.email.toLowerCase().trim());
+        const email = doc.data().email;
+        if (typeof email === 'string') {
+          const normalized = email.trim().toLowerCase();
+          if (isValidEmailAddress(normalized)) uniqueRecipients.add(normalized);
+        }
       });
+      recipients = Array.from(uniqueRecipients);
     }
 
     if (recipients.length === 0) {
@@ -159,7 +175,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
       subject: subject.trim(),
       recipientCount: actualDispatchedCount,
       totalRequested: recipients.length,
-      recipientEmail: recipientEmail || null,
+      recipientEmail: recipientTarget.kind === 'individual' ? recipientTarget.email : null,
       timestamp: new Date().toISOString(),
       type: type || 'announcement',
       bookTitle: bookTitle || null,
