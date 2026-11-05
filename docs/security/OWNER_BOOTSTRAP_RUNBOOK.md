@@ -93,3 +93,27 @@ Only the founder record (`isFounder: true`) is protected from the ordinary owner
 ## Explicitly out of scope
 
 This runbook does not store credentials, execute a production bootstrap, alter Firebase production data from GitHub, or prove Vercel deployment / Google AI Studio synchronization. Those require separate observable confirmation.
+
+
+## Legacy library cleanup after static catalogue migration
+
+The public-domain book catalogue is now intended to be bundled from repository files and must not be fetched from Firestore. After the updated application is deployed, sign in using the original founder account and open the library page.
+
+1. The founder-only control **تنظيف بيانات المكتبة القديمة** appears while the one-time cleanup marker is not completed.
+2. Review the listed collections carefully.
+3. Type exactly `DELETE_ALL_LEGACY_LIBRARY_DATA` and submit.
+4. The server independently verifies the Firebase ID token, verified owner role, and `admins/{uid}.isFounder === true` before deleting anything.
+5. The server deletes only top-level documents in `books`, `bookDraftChapters`, and `categories`, in bounded batches. It writes an audit marker to `_system/legacyLibraryPurge` and reports exact deletion counts.
+6. The operation is one-time and idempotent. A completed marker blocks a second run. A failed run records partial counts and can be retried by the founder after checking the response.
+
+**Preserved deliberately:** user profiles, Firebase Auth accounts, admin/founder registry, bootstrap state, user bookmarks, reading progress, reader annotations, notifications, subscriber records and email logs. Old bookmark/progress references to removed book IDs may no longer resolve; the static catalogue does not migrate or erase user reading history.
+
+This cleanup endpoint is an Admin SDK server action and is unaffected by client Firestore rules. Do not run a manual collection delete or delete the `_system/legacyLibraryPurge` marker.
+
+## Static Arabic library source and licensing
+
+The selected text corpus is assembled at build/maintenance time from [Bayanat Labs — Arabic Wikisource Public-Domain Works](https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd), v0.1.0, using only `works-pd-core`. The site imports the committed JSON files under `src/data/library/books/`; no Hugging Face or Firebase book-content request occurs in the deployed reader.
+
+The included transcriptions are attributed to Arabic Wikisource contributors and distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Each book JSON retains source pages, revision history, author/source metadata and license information. See `src/data/library/NOTICE.md` for the exact generated inventory and quality limitations.
+
+To refresh the curated corpus, edit `src/data/library/manifest.json` and push to `main`. The workflow `.github/workflows/sync-public-library.yml` fetches only listed works, rejects non-core/incorrect-license/short/poetry/incomplete records, and commits the validated full text files. Inspect its logs and generated notice before treating the sync as successful. The workflow needs repository Actions permission to push with `GITHUB_TOKEN`.
