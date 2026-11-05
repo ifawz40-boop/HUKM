@@ -31,7 +31,7 @@ import {
   toggleChapterReadStatus,
   getChapterScrollPosition,
 } from '../utils/readingTracker';
-import { saveReadingProgressToFirestore, formatReadingProgressId } from '../firebase/firestoreService';
+import { saveReadingProgressToFirestore } from '../firebase/firestoreService';
 
 interface BookOverviewViewProps {
   book: BookProject;
@@ -139,7 +139,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
 
     if (currentUser?.id) {
       const saved = await saveReadingProgressToFirestore({
-        id: formatReadingProgressId(currentUser.id, book.id, chapterId),
+        id: '',
         userId: currentUser.id,
         bookId: book.id,
         chapterId,
