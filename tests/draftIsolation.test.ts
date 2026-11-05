@@ -384,49 +384,40 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
     });
   });
 
-  // Test 12: Network/cloud failure retains state without false success toasts
-  describe('Scenario 12: Cloud failure on save/delete retains state and shows error', () => {
-    it('verifies App.tsx checks boolean return value and preserves state on failure', () => {
-      assert.match(appContent, /const handleUpdateBook = async \(updatedBook: BookProject\): Promise<boolean>/);
-      assert.match(appContent, /const handleCreateBook = async \(newBook: BookProject\): Promise<boolean>/);
-      assert.match(appContent, /const handleDeleteBook = async \(bookId: string\): Promise<boolean>/);
-      assert.match(appContent, /if \(!success\) \{\s*showToast\(`فشل حفظ كتاب/);
+  // Test 12: The public catalogue is immutable source data, not a Firestore book collection.
+  describe('Scenario 12: Static catalogue never performs cloud book CRUD', () => {
+    it('verifies App.tsx does not call any Firestore book or category CRUD function', () => {
+      for (const forbidden of [
+        'fetchBooksFromFirestore',
+        'saveBookToFirestore',
+        'deleteBookFromFirestore',
+        'fetchCategoriesFromFirestore',
+        'saveCategoryToFirestore',
+        'deleteCategoryFromFirestore',
+      ]) {
+        assert.equal(appContent.includes(forbidden), false, `App must not call ${forbidden}`);
+      }
     });
 
-    it('verifies NewBookModal does not close when onCreateBook returns false', () => {
-      assert.match(newBookModalContent, /if \(result === false\)/);
-      assert.match(newBookModalContent, /setError\('فشل حفظ الكتاب/);
+    it('verifies legacy browser book caches are removed rather than restored', () => {
+      assert.equal(appContent.includes("localStorage.getItem('hukm_books_v1')"), false);
+      assert.equal(appContent.includes("localStorage.getItem('hukm_books_v2')"), false);
+      assert.equal(appContent.includes("localStorage.getItem('hukm_books_v3')"), false);
+      assert.match(appContent, /localStorage\.removeItem\(key\)/);
     });
   });
 
-  // Test 13: Release email & notification only triggered for published books with ready chapters
-  describe('Scenario 13: Notification and email integrity on book creation', () => {
-    function evaluateReleaseDispatch(status: string, chapters: BookChapter[]): boolean {
-      const isPublished = ['published', 'completed', 'ongoing', 'ready'].includes(status);
-      const readyChapters = chapters.filter((c) => c.status === 'ready');
-      return isPublished && readyChapters.length > 0;
-    }
-
-    it('does NOT trigger notification or email for draft books', () => {
-      const draftBookChapters: BookChapter[] = [
-        { id: 'ch-1', bookId: 'b-1', chapterNumber: 1, title: 'مسودة', content: ['نص'], status: 'draft', wordCount: 1, readingTimeMinutes: 1, viewsCount: 0, updatedAt: '' },
-      ];
-      assert.equal(evaluateReleaseDispatch('draft', draftBookChapters), false);
+  // Test 13: No automatic publishing side effects for immutable source catalogue files.
+  describe('Scenario 13: Static catalogue has no book-creation notification side effects', () => {
+    it('does not create release notifications from catalogue mutations', () => {
+      assert.equal(appContent.includes("type: 'new_book'"), false);
+      assert.equal(appContent.includes('getStoredSubscribers'), false);
+      assert.equal(appContent.includes('generateNewReleaseEmailHtml'), false);
     });
 
-    it('does NOT trigger notification or email for published books with 0 ready chapters', () => {
-      assert.equal(evaluateReleaseDispatch('published', []), false);
-    });
-
-    it('triggers notification and email only when published AND has ready chapters', () => {
-      const readyBookChapters: BookChapter[] = [
-        { id: 'ch-1', bookId: 'b-1', chapterNumber: 1, title: 'فصل جاهز', content: ['نص'], status: 'ready', wordCount: 10, readingTimeMinutes: 1, viewsCount: 0, updatedAt: '' },
-      ];
-      assert.equal(evaluateReleaseDispatch('published', readyBookChapters), true);
-    });
-
-    it('verifies App.tsx records delivered: false honestly in email log', () => {
-      assert.match(appContent, /delivered:\s*false/);
+    it('keeps user notifications and email features separate from book catalogue loading', () => {
+      assert.match(appContent, /getStoredNotifications/);
+      assert.match(appContent, /SendAnnouncementModal/);
     });
   });
 
