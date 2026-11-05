@@ -65,7 +65,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
 
   const stats = calculateBookStats(book.chapters, book.viewsCount);
   const categoryLabel = getCategoryName(categories, book.category);
-  const authorName = book.author || 'Dr/ Islam Mohamed';
+  const authorName = book.author || 'حُكم | HUKM MEDIA';
 
   const completedCount = progress.completedChapterIds.length;
   const totalChapters = book.chapters.length;
