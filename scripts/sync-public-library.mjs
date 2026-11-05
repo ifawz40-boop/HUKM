@@ -111,6 +111,19 @@ function getRoleNames(credits, matcher) {
   return credits.filter((credit) => matcher.test(credit.role)).map((credit) => credit.name);
 }
 
+function isPublicDomainByLife70(row) {
+  const latestDeathYear = Number(row.latest_death_year);
+  if (Number.isFinite(latestDeathYear) && latestDeathYear > 0 && latestDeathYear <= 1955) return true;
+  const credits = getCredits(row);
+  return credits.length > 0 && credits.every((credit) => credit.deathYear !== null && credit.deathYear <= 1955);
+}
+
+function getRightsKind(row) {
+  if (isTranslationExplicitlyLicensed(row)) return 'cc-by-4-translation';
+  if (row.original_text_status === 'public-domain' && isPublicDomainByLife70(row)) return 'public-domain-life70-screen';
+  return null;
+}
+
 function categoryLabel(category) {
   const labels = {
     history: 'التاريخ',
@@ -134,7 +147,7 @@ function selectBooks(metadata, manifest) {
     const words = Number(row.n_words || 0);
     const chapters = Number(row.n_chapters || 0);
     return (
-      isTranslationExplicitlyLicensed(row) &&
+      getRightsKind(row) !== null &&
       Boolean(row.book_id && row.title && row.book_url && row.attribution && /^[a-f0-9]{64}$/i.test(safeText(row.source_file_sha256))) &&
       words >= manifest.minimumWords &&
       words <= manifest.maximumWordsPerBook &&
@@ -255,7 +268,14 @@ function buildBook(metadata, sourceChapters, manifest) {
   const datasetRevisionUrl = revisionUrl(manifest.datasetRevision);
   const attribution = safeText(metadata.attribution);
   const licenseQuote = safeText(metadata.license_quote);
-  const licenseLabel = 'CC BY 4.0 — الترجمة العربية؛ النص الأصلي في الملكية العامة';
+  const rightsKind = getRightsKind(metadata);
+  const translationCovered = metadata.translation_covered === true || metadata.translation_covered === 'true' || metadata.translation_covered === 1;
+  const licenseLabel = rightsKind === 'cc-by-4-translation'
+    ? 'CC BY 4.0 — الترجمة العربية؛ النص الأصلي في الملكية العامة'
+    : 'الملكية العامة — فحص مدة 70 سنة لحقوق المؤلفين والمساهمين';
+  const bookLicenseUrl = rightsKind === 'cc-by-4-translation'
+    ? licenseUrl
+    : 'https://creativecommons.org/publicdomain/mark/1.0/';
   const book = {
     id: metadata.book_id,
     title: safeText(metadata.title),
@@ -276,26 +296,28 @@ function buildBook(metadata, sourceChapters, manifest) {
     socialLinks: {},
     rights: {
       license: licenseLabel,
-      licenseUrl,
+      licenseUrl: bookLicenseUrl,
       attribution,
       datasetName: DATASET,
       datasetVersion: manifest.version,
       datasetUrl,
       dumpDate: manifest.snapshotDate,
-      tier: 'translation-covered-CC-BY-4.0',
-      publicDomainRule: 'translation_covered=true; original_text_status=public-domain; the publisher colophon explicitly licenses the Arabic translation and book design under CC BY 4.0.',
-      authorDeathYear: null,
-      latestDeathYear: credits.reduce((latest, credit) => credit.deathYear === null ? latest : Math.max(latest, credit.deathYear), 0) || null,
+      tier: rightsKind,
+      publicDomainRule: rightsKind === 'cc-by-4-translation'
+        ? 'translation_covered=true; original_text_status=public-domain; the publisher colophon explicitly licenses the Arabic translation and book design under CC BY 4.0.'
+        : 'original_text_status=public-domain; all credited rights-relevant persons have recorded death years no later than 1955 (life+70 public-domain screen as of 2026).',
+      authorDeathYear: credits.filter((credit) => /author|مؤلف|كاتب|شاعر/i.test(credit.role) && credit.deathYear !== null).reduce((latest, credit) => Math.max(latest, credit.deathYear), 0) || null,
+      latestDeathYear: Number(metadata.latest_death_year) || (credits.reduce((latest, credit) => credit.deathYear === null ? latest : Math.max(latest, credit.deathYear), 0) || null),
       sourceUrl: safeText(metadata.book_url),
       historyUrl: datasetRevisionUrl,
       sourcePages: [],
-      sourceLicense: 'CC BY 4.0 (Arabic translation); original work public domain',
+      sourceLicense: rightsKind === 'cc-by-4-translation' ? 'CC BY 4.0 (Arabic translation); original work public domain' : 'Public-domain original text (life+70 screen); dataset metadata CC BY 4.0',
       sourceLicenseUrl: licenseUrl,
       datasetCitation: 'Hallberg, A. (2024). The Arabic E-Book Corpus (Version 1), University of Gothenburg, https://doi.org/10.5878/7rbh-gy93; Bayanat Labs (2026). Open Arabic Books, v0.1.0, https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books.',
       licenseQuote,
       publisher: 'Hindawi Foundation',
       originalTextStatus: safeText(metadata.original_text_status),
-      translationCovered: true,
+      translationCovered,
       credits,
       translators,
       editors,
@@ -371,8 +393,8 @@ async function main() {
     `- Version: ${manifest.version}; pinned revision: [${manifest.datasetRevision}](${datasetRevisionUrl})`,
     '- Source corpus: Andreas Hallberg, The Arabic E-Book Corpus, version 1, University of Gothenburg, 2024, https://doi.org/10.5878/7rbh-gy93.',
     '- Publisher: Hindawi Foundation.',
-    '- Selected only books with `translation_covered=true`, `original_text_status=public-domain`, and an explicit CC BY 4.0 colophon for the Arabic translation. Other records are excluded.',
-    '- License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) for the Arabic translation; the original text is marked public domain in the source colophon.',
+    '- Selected books follow one of two rights paths: (1) explicit CC BY 4.0 colophon for the Arabic translation plus public-domain original; or (2) public-domain original with all credited rights-relevant persons recorded as deceased by 1955 (life+70 screen as of 2026).',
+    '- CC BY 4.0 translations retain their attribution and share-alike-compatible source terms; public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.',
     '- Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.',
     '- The underlying source dataset contains 1,545 books, but this repository includes only the rights-screened curated subset listed below.',
     '',
