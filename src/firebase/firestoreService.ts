@@ -126,7 +126,8 @@ export async function fetchBooksFromFirestore(isAdminUser: boolean = false): Pro
           );
         }
       } catch (draftErr) {
-        console.warn('Could not fetch book draft chapters (or permissions denied):', draftErr);
+        // Fail closed: never return a partial admin book list that could later overwrite unseen drafts.
+        throw draftErr;
       }
     } else {
       // Public / readers: strictly filter each book's chapters to ready only
@@ -157,6 +158,7 @@ export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
     const draftChapters = allChapters.filter((ch) => ch.status === 'draft');
 
     const batch = writeBatch(db);
+    let cleanupCount = 0;
 
     // 1. Fetch existing drafts for this book to clean up promoted/removed drafts
     try {
@@ -165,18 +167,27 @@ export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
         where('bookId', '==', book.id)
       );
       const existingDraftsSnap = await getDocs(existingDraftsQ);
-      const currentDraftIds = new Set(
-        draftChapters.map((d) => formatDraftChapterId(book.id, d.id))
-      );
+      const currentDraftIdList = draftChapters.map((d) => formatDraftChapterId(book.id, d.id));
+      const currentDraftIds = new Set(currentDraftIdList);
+      if (currentDraftIds.size !== currentDraftIdList.length) {
+        throw new Error('Draft chapter ID collision detected; refusing to overwrite another chapter.');
+      }
 
       existingDraftsSnap.forEach((docSnap) => {
         if (!currentDraftIds.has(docSnap.id)) {
           // Chapter was promoted to ready or deleted; remove from draft chapters collection
           batch.delete(docSnap.ref);
+          cleanupCount++;
         }
       });
     } catch (queryErr) {
-      console.warn('Could not query existing book drafts for cleanup:', queryErr);
+      // Fail closed: committing without a complete cleanup query can leave stale or exposed drafts.
+      throw queryErr;
+    }
+
+    // Firestore batches are limited to 500 writes. Abort before commit rather than partially saving.
+    if (cleanupCount + draftChapters.length + 1 > 500) {
+      throw new Error('This book requires more than 500 Firestore writes. Save was safely aborted; use a chunked server-side operation.');
     }
 
     // 2. Write all active draft chapters into /bookDraftChapters/{draftId}
@@ -229,7 +240,7 @@ export async function deleteBookFromFirestore(bookId: string): Promise<boolean> 
   try {
     const batch = writeBatch(db);
 
-    // 1. Delete main book document
+    // 1. Queue main book deletion; nothing is committed until all draft records are verified.
     batch.delete(doc(db, 'books', bookId));
 
     // 2. Find and delete all draft chapters belonging to this book
@@ -239,11 +250,15 @@ export async function deleteBookFromFirestore(bookId: string): Promise<boolean> 
         where('bookId', '==', bookId)
       );
       const existingDraftsSnap = await getDocs(existingDraftsQ);
+      if (existingDraftsSnap.size + 1 > 500) {
+        throw new Error('This book has more than 499 draft records. Deletion was safely aborted; use a chunked server-side cleanup.');
+      }
       existingDraftsSnap.forEach((docSnap) => {
         batch.delete(docSnap.ref);
       });
     } catch (queryErr) {
-      console.warn('Could not query drafts to delete for book:', bookId, queryErr);
+      // Fail closed: never delete the parent book if its draft records could not be enumerated.
+      throw queryErr;
     }
 
     // 3. Commit atomic deletion
