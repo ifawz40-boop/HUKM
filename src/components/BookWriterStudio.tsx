@@ -84,6 +84,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const [activeTab, setActiveTab] = useState<'novels' | 'editor' | 'research' | 'categories'>('novels');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
+  const [recoverySnapshot, setRecoverySnapshot] = useState<WriterDraftSnapshot | null>(null);
+  const [lastLocalAutosavedAt, setLastLocalAutosavedAt] = useState<string | null>(null);
 
   // Novel Creation / Editing Modal State
   const [isNovelModalOpen, setIsNovelModalOpen] = useState(false);
@@ -113,6 +115,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const [chapterStatus, setChapterStatus] = useState<'draft' | 'ready'>(
     currentChapter?.status || 'draft'
   );
+  const editorBaseUpdatedAtRef = useRef<string | null>(currentChapter?.updatedAt || null);
 
   // New Category State
   const [newCatName, setNewCatName] = useState('');
@@ -128,6 +131,9 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     previousBookIdRef.current = currentBook?.id;
     setIsCreatingChapter(false);
     const firstChapter = currentBook?.chapters[0];
+    editorBaseUpdatedAtRef.current = firstChapter?.updatedAt || null;
+    setRecoverySnapshot(null);
+    setLastLocalAutosavedAt(null);
     setSelectedChapterId(firstChapter?.id || '');
     setChapterNumber(firstChapter?.chapterNumber || 1);
     setChapterTitle(firstChapter?.title || '');
@@ -145,9 +151,147 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     }
   };
 
+  const isEditorDirty = isCreatingChapter
+    ? Boolean(chapterTitle.trim() || chapterContent.trim())
+    : Boolean(currentChapter && (
+        chapterTitle !== currentChapter.title ||
+        chapterContent !== currentChapter.content.join('\\n\\n') ||
+        chapterNumber !== currentChapter.chapterNumber ||
+        chapterStatus !== currentChapter.status
+      ));
+
+  // Offer recovery rather than overwriting a local snapshot automatically.
+  useEffect(() => {
+    if (!currentUserId || !currentBook) {
+      setRecoverySnapshot(null);
+      return;
+    }
+
+    const activeChapterId = isCreatingChapter ? null : currentChapter?.id || null;
+    let snapshot = getWriterDraftSnapshot(currentUserId, currentBook.id, activeChapterId);
+    if (!snapshot && !isCreatingChapter) {
+      snapshot = getWriterDraftSnapshot(currentUserId, currentBook.id, null);
+    }
+    if (!snapshot) {
+      setRecoverySnapshot(null);
+      return;
+    }
+
+    const cloudChapter = snapshot.chapterId
+      ? currentBook.chapters.find((chapter) => chapter.id === snapshot!.chapterId)
+      : null;
+    const snapshotMatchesCloud = Boolean(cloudChapter &&
+      snapshot.chapterNumber === cloudChapter.chapterNumber &&
+      snapshot.title === cloudChapter.title &&
+      snapshot.content === cloudChapter.content.join('\\n\\n') &&
+      snapshot.status === cloudChapter.status);
+
+    if (snapshotMatchesCloud) {
+      removeWriterDraftSnapshot(currentUserId, currentBook.id, snapshot.chapterId);
+      setRecoverySnapshot(null);
+      return;
+    }
+    setRecoverySnapshot(snapshot);
+  }, [currentUserId, currentBook?.id, currentChapter?.id, currentChapter?.updatedAt, selectedChapterId, isCreatingChapter]);
+
+  // Debounced local autosave only; this does not create Firestore writes.
+  useEffect(() => {
+    if (!currentUserId || !currentBook || recoverySnapshot) return;
+
+    const chapterId = isCreatingChapter ? null : currentChapter?.id || null;
+    if (!isEditorDirty) {
+      removeWriterDraftSnapshot(currentUserId, currentBook.id, chapterId);
+      setLastLocalAutosavedAt(null);
+      return;
+    }
+
+    const savedAt = new Date().toISOString();
+    const snapshot: WriterDraftSnapshot = {
+      id: `${currentBook.id}::${chapterId || 'new'}`,
+      userId: currentUserId,
+      bookId: currentBook.id,
+      chapterId,
+      chapterNumber: Math.max(1, Number(chapterNumber) || 1),
+      title: chapterTitle,
+      content: chapterContent,
+      status: chapterStatus,
+      baseUpdatedAt: editorBaseUpdatedAtRef.current,
+      savedAt,
+    };
+
+    const timer = window.setTimeout(() => {
+      const saved = saveWriterDraftSnapshot(snapshot);
+      if (saved) {
+        setLastLocalAutosavedAt(savedAt);
+      } else {
+        setSaveErrorMsg('تعذر حفظ نسخة الاسترداد المحلية. قد تكون مساحة تخزين المتصفح ممتلئة أو تجاوز النص الحد الآمن.');
+      }
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    currentUserId,
+    currentBook?.id,
+    currentChapter?.id,
+    currentChapter?.updatedAt,
+    isCreatingChapter,
+    chapterNumber,
+    chapterTitle,
+    chapterContent,
+    chapterStatus,
+    isEditorDirty,
+    recoverySnapshot,
+  ]);
+
+  const handleRestoreWriterDraft = () => {
+    if (!recoverySnapshot || !currentBook) return;
+    const existingChapter = recoverySnapshot.chapterId
+      ? currentBook.chapters.find((chapter) => chapter.id === recoverySnapshot.chapterId)
+      : null;
+    const restoreAsNew = !existingChapter;
+    setIsCreatingChapter(restoreAsNew);
+    setSelectedChapterId(existingChapter?.id || '');
+
+    const maxNumber = Math.max(0, ...currentBook.chapters.map((chapter) => chapter.chapterNumber || 0));
+    const proposedNumber = recoverySnapshot.chapterNumber;
+    const numberInUse = currentBook.chapters.some((chapter) => chapter.chapterNumber === proposedNumber && chapter.id !== existingChapter?.id);
+    setChapterNumber(restoreAsNew && numberInUse ? maxNumber + 1 : proposedNumber);
+    setChapterTitle(recoverySnapshot.title);
+    setChapterContent(recoverySnapshot.content);
+    setChapterStatus(recoverySnapshot.status);
+    editorBaseUpdatedAtRef.current = existingChapter ? recoverySnapshot.baseUpdatedAt : null;
+    setRecoverySnapshot(null);
+    showNotification(restoreAsNew
+      ? 'تم استعادة الفصل المحلي كمشروع جديد غير منشور.'
+      : 'تم استعادة النسخة المحلية. راجع التغييرات ثم احفظها يدوياً.');
+  };
+
+  const handleDiscardWriterDraft = () => {
+    if (!recoverySnapshot || !currentBook || !currentUserId) return;
+    removeWriterDraftSnapshot(currentUserId, currentBook.id, recoverySnapshot.chapterId);
+    const target = recoverySnapshot.chapterId
+      ? currentBook.chapters.find((chapter) => chapter.id === recoverySnapshot.chapterId)
+      : currentBook.chapters[0];
+    setRecoverySnapshot(null);
+    if (target) {
+      handleSelectChapter(target);
+    } else {
+      setIsCreatingChapter(false);
+      setSelectedChapterId('');
+      setChapterNumber(1);
+      setChapterTitle('');
+      setChapterContent('');
+      setChapterStatus('draft');
+      editorBaseUpdatedAtRef.current = null;
+    }
+    showNotification('تم تجاهل النسخة المحلية والعودة إلى النسخة الحالية.');
+  };
+
   // Sync state when current chapter changes
   const handleSelectChapter = (ch: BookChapter) => {
+    setRecoverySnapshot(null);
     setIsCreatingChapter(false);
+    editorBaseUpdatedAtRef.current = ch.updatedAt || null;
     setSelectedChapterId(ch.id);
     setChapterNumber(ch.chapterNumber);
     setChapterTitle(ch.title);
@@ -260,7 +404,9 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const handleCreateNewChapter = () => {
     if (!currentBook) return;
     const nextNumber = Math.max(0, ...currentBook.chapters.map((chapter) => chapter.chapterNumber || 0)) + 1;
+    setRecoverySnapshot(null);
     setIsCreatingChapter(true);
+    editorBaseUpdatedAtRef.current = null;
     setSelectedChapterId('');
     setChapterNumber(nextNumber);
     setChapterTitle(`الفصل ${nextNumber}`);
