@@ -528,7 +528,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             <span>•</span>
             <span>~{readTime} دقائق قراءة</span>
             <span>•</span>
-            <span>المؤلف: {book.author || 'Dr/ Islam Mohamed'}</span>
+            <span>المؤلف: {book.author || 'حُكم | HUKM MEDIA'}</span>
           </div>
         </div>
 
