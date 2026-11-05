@@ -404,6 +404,15 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         setIsCreatingChapter(false);
         setSelectedChapterId(createdChapterId);
       }
+      const savedChapterId = createdChapterId || currentChapter?.id || null;
+      const savedChapter = savedChapterId
+        ? updatedChapters.find((chapter) => chapter.id === savedChapterId)
+        : null;
+      editorBaseUpdatedAtRef.current = savedChapter?.updatedAt || null;
+      if (currentUserId) removeWriterDraftSnapshot(currentUserId, currentBook.id, createdChapterId ? null : savedChapterId);
+      dismissedRecoveryKeyRef.current = null;
+      setRecoverySnapshot(null);
+      setLastLocalAutosavedAt(null);
       showNotification('تم حفظ وتحديث الفصل بنجاح ومزامنته سحابياً ✓');
     } catch (err: any) {
       showNotification('حدث خطأ أثناء حفظ الفصل. تم الاحتفاظ بالبيانات محلياً.', true);
@@ -444,6 +453,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         showNotification('فشل حذف الفصل من السحابة.', true);
         return;
       }
+      if (currentUserId) removeWriterDraftSnapshot(currentUserId, currentBook.id, chId);
       if (selectedChapterId === chId) {
         if (remaining.length > 0) {
           handleSelectChapter(remaining[0]);
@@ -564,6 +574,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         return;
       }
     }
+    if (currentUserId) removeWriterDraftSnapshotsForBook(currentUserId, bookId);
     showNotification('تم حذف العمل بنجاح.');
   };
 
