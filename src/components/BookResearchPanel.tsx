@@ -51,7 +51,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
     setQuoteSourceId('');
     setQuotePage('');
     setQuoteNote('');
-  }, [book?.id]);
+  }, [book?.id, book?.updatedAt]);
 
   const selectableSources = useMemo(
     () =>
@@ -216,6 +216,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
               const publisher = readText(record.publisher);
               const year = readText(record.year);
               const url = readText(record.url);
+              const note = readText(record.note);
               const safeUrl = (() => {
                 try {
                   const parsed = new URL(url);
@@ -230,6 +231,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
                   <div className="min-w-0 space-y-1">
                     <p className="text-xs font-bold text-white">{title}</p>
                     <p className="text-[10px] text-[#94a3b8]">{[author, publisher, year].filter(Boolean).join(' • ') || 'بيانات وصفية غير متاحة'}</p>
+                    {note && <p className="text-[10px] leading-relaxed text-[#cbd5e1]">{note}</p>}
                     {safeUrl && <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 break-all text-[10px] text-[#f0cb69] hover:underline"><ExternalLink className="h-3 w-3 shrink-0" />{url}</a>}
                   </div>
                   <button type="button" onClick={() => setSources((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`حذف المصدر ${title}`} className="shrink-0 rounded-lg p-2 text-[#94a3b8] hover:bg-rose-500/10 hover:text-rose-300">
