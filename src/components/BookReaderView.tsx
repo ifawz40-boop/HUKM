@@ -240,6 +240,17 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [selectedEndOffset, setSelectedEndOffset] = useState(0);
   const [annotationNoteDraft, setAnnotationNoteDraft] = useState('');
   const [annotationColor, setAnnotationColor] = useState<ReaderAnnotationColor>('gold');
+  const annotationSyncInFlightRef = useRef<Set<string>>(new Set());
+  const syncAnnotationToCloud = useCallback(async (annotation: ReaderAnnotation): Promise<boolean> => {
+    if (!annotation.userId || annotationSyncInFlightRef.current.has(annotation.id)) return false;
+    annotationSyncInFlightRef.current.add(annotation.id);
+    try {
+      return await saveReaderAnnotationToFirestore(annotation);
+    } finally {
+      annotationSyncInFlightRef.current.delete(annotation.id);
+    }
+  }, []);
+
 
 
 
@@ -288,7 +299,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       if (!cancelled) setReaderAnnotations(mergedChapter);
 
       for (const pending of mergedChapter.filter((item) => item.syncStatus === 'pending')) {
-        const saved = await saveReaderAnnotationToFirestore(pending);
+        const saved = await syncAnnotationToCloud(pending);
         if (!saved || cancelled) continue;
         const synced = { ...pending, syncStatus: 'synced' as const };
         upsertReaderAnnotationLocal(synced, userId);
@@ -303,7 +314,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     });
 
     return () => { cancelled = true; };
-  }, [book.id, currentChapter?.id, currentUser?.id]);
+  }, [book.id, currentChapter?.id, currentUser?.id, syncAnnotationToCloud]);
 
 
 
@@ -622,6 +633,32 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     };
   }, [currentChapter?.id]);
 
+  // Retry local-first notes when the browser regains connectivity.
+  useEffect(() => {
+    if (!currentUser?.id || !currentChapter?.id) return;
+    let cancelled = false;
+
+    const retryPendingAnnotations = async () => {
+      const pending = getReaderAnnotationsForChapter(book.id, currentChapter.id, currentUser.id)
+        .filter((item) => item.syncStatus === 'pending');
+      for (const annotation of pending) {
+        const saved = await syncAnnotationToCloud(annotation);
+        if (!saved || cancelled) continue;
+        const synced = { ...annotation, syncStatus: 'synced' as const };
+        upsertReaderAnnotationLocal(synced, currentUser.id);
+        if (!cancelled) {
+          setReaderAnnotations((current) => current.map((item) => item.id === synced.id ? synced : item));
+        }
+      }
+    };
+
+    window.addEventListener('online', retryPendingAnnotations);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', retryPendingAnnotations);
+    };
+  }, [book.id, currentChapter?.id, currentUser?.id, syncAnnotationToCloud]);
+
   const handleCaptureSelection = () => {
     const selection = typeof window !== 'undefined' ? window.getSelection() : null;
     if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
@@ -720,7 +757,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
     if (currentUser?.id) {
       setIsSavingAnnotation(true);
-      const saved = await saveReaderAnnotationToFirestore(annotation);
+      const saved = await syncAnnotationToCloud(annotation);
       setIsSavingAnnotation(false);
       if (saved) {
         const synced = { ...annotation, syncStatus: 'synced' as const };
