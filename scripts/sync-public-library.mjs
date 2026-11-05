@@ -120,8 +120,11 @@ function getRoleNames(credits, matcher) {
 function isPublicDomainByLife70(row) {
   const latestDeathYear = Number(row.latest_death_year);
   if (Number.isFinite(latestDeathYear) && latestDeathYear > 0 && latestDeathYear <= 1955) return true;
+  const rawCredits = Array.isArray(row.credits) ? row.credits : [];
   const credits = getCredits(row);
-  return credits.length > 0 && credits.every((credit) => credit.deathYear !== null && credit.deathYear <= 1955);
+  return rawCredits.length > 0 &&
+    credits.length === rawCredits.length &&
+    credits.every((credit) => credit.deathYear !== null && credit.deathYear <= 1955);
 }
 
 function getRightsKind(row) {
