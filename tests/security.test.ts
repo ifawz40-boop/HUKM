@@ -170,6 +170,28 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     });
   });
 
+  // Test: Admin request collection and approval workflow are server-only.
+  describe('Admin request approval workflow', () => {
+    const authClaimsApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/authClaimsApi.ts'), 'utf-8');
+
+    it('must deny all direct client access to adminRequests documents', () => {
+      assert.match(rulesContent, /match \/adminRequests\/\{requestId\}\s*\{\s*allow read, write:\s*if false;/);
+    });
+
+    it('must disable direct role assignment and expose owner-reviewed requests', () => {
+      assert.match(authClaimsApiContent, /authClaimsRouter\.post\('\/set-role'[\s\S]*?return res\.status\(410\)/);
+      assert.match(authClaimsApiContent, /authClaimsRouter\.post\('\/admin-requests\/\:uid\/review', authenticateToken, requireOwnerRole/);
+      assert.match(authClaimsApiContent, /status:\s*'approved'/);
+      assert.match(authClaimsApiContent, /status:\s*rollbackSucceeded \? 'pending' : 'needs_attention'/);
+    });
+
+    it('must grant admin claims only in the approved request handler and preserve existing claims', () => {
+      const approvalBlock = authClaimsApiContent.slice(authClaimsApiContent.indexOf("authClaimsRouter.post('/admin-requests/:uid/review'"));
+      assert.match(approvalBlock, /\.\.\.existingClaims,\s*role:\s*'admin'/);
+      assert.match(approvalBlock, /await adminAuth\.revokeRefreshTokens\(targetUid\)/);
+    });
+  });
+
   // Test 7: Admin cannot access OWNER-only endpoints
   describe('Test 7: Admin cannot access OWNER-only endpoints', () => {
     function requireOwnerMiddleware(user: any) {
@@ -389,7 +411,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(authClaimsApiContent, /!adminDoc\.exists\s*\|\|\s*adminDoc\.data\(\)\?\.role\s*!==\s*'owner'/);
     });
 
-    it('must preserve other custom claims in set-role and revoke-role', () => {
+    it('must preserve other custom claims when approving requests and revoking roles', () => {
       assert.match(authClaimsApiContent, /\.\.\.existingClaims,\s*role:\s*'admin'/);
       assert.match(authClaimsApiContent, /\.\.\.existingClaims,\s*role:\s*'reader'/);
     });
