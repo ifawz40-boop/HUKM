@@ -196,6 +196,11 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     return snapshot;
   };
 
+  const handleSelectBookSafely = (bookId: string) => {
+    if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
+    onSelectBook(bookId);
+  };
+
   const handlePreviewBookSafely = (bookId: string, chapterId?: string) => {
     if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
     onPreviewBook(bookId, chapterId);
@@ -904,8 +909,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => {
-                              if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
-                              onSelectBook(book.id);
+                              handleSelectBookSafely(book.id);
                               setActiveTab('editor');
                             }}
                             className="flex items-center gap-1 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-3 py-1.5 text-xs font-bold text-[#070d1e] shadow hover:scale-102 transition-all cursor-pointer"
@@ -960,7 +964,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                 {books.length > 0 ? (
                   <select
                     value={currentBook?.id || ''}
-                    onChange={(e) => onSelectBook(e.target.value)}
+                    onChange={(e) => handleSelectBookSafely(e.target.value)}
                     className="rounded-xl bg-[#050a16] border border-[#c59b27]/40 px-3 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-[#c59b27]"
                   >
                     {books.map((b) => (
