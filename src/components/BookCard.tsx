@@ -44,11 +44,19 @@ export const BookCard: React.FC<BookCardProps> = ({
       <div>
         {/* Cover Poster (3:4 ratio like truthnovel.top) */}
         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/10 bg-[#050a16]">
-          <img
-            src={book.coverImage}
-            alt={book.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          {book.coverImage ? (
+            <img
+              src={book.coverImage}
+              alt={book.title}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-gradient-to-br from-[#1b2b49] via-[#0b152b] to-[#3b2b13] p-5 text-center">
+              <BookOpen className="h-12 w-12 text-[#d4af37]/80" />
+              <span className="line-clamp-4 text-lg font-black leading-relaxed text-[#f4e6c3]">{book.title}</span>
+              <span className="text-[10px] font-semibold tracking-widest text-[#d4af37]">حُكم • مكتبة التراث</span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a1329] via-transparent to-black/40 pointer-events-none" />
 
           {/* Status Badge (مستمرة / مكتملة) */}
@@ -117,7 +125,7 @@ export const BookCard: React.FC<BookCardProps> = ({
 
           <p className="text-xs text-[#94a3b8] flex items-center gap-1">
             <User className="h-3 w-3 text-[#d4af37]" />
-            <span>المؤلف: {book.author || 'حُكم | HUKM MEDIA'}</span>
+            <span>المؤلف: {book.author || 'غير منسوب'}</span>
           </p>
 
           <p className="text-xs text-[#cbd5e1]/70 line-clamp-2 leading-relaxed pt-1">
