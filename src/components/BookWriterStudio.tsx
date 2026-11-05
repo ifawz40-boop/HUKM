@@ -567,6 +567,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   // Save Novel (Create or Edit)
   const handleSaveNovel = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingNovelId && preserveCurrentEditorDraft() === false) return;
     if (!novelTitle.trim()) {
       alert('يرجى إدخال عنوان الرواية / العمل.');
       return;
