@@ -5,6 +5,7 @@ import path from 'node:path';
 
 // Mock localStorage for Node.js test environment
 const userProfileModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/UserProfileModal.tsx'), 'utf-8');
+const bookReaderContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/BookReaderView.tsx'), 'utf-8');
 
 const mockStorage: Record<string, string> = {};
 (globalThis as any).localStorage = {
@@ -377,6 +378,25 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
       );
       assert.match(deleteBlock, /if \(user\) \{[\s\S]*?deleteReaderAnnotationFromFirestore\(user\.id, note\)/);
       assert.equal(deleteBlock.includes("note.syncStatus === 'synced'"), false);
+    });
+
+    it('prevents duplicate annotation creation and always releases the save lock', () => {
+      const saveBlock = bookReaderContent.slice(
+        bookReaderContent.indexOf('const handleSaveAnnotation'),
+        bookReaderContent.indexOf('const handleDeleteAnnotation')
+      );
+      assert.match(saveBlock, /isSavingAnnotationRef\.current/);
+      assert.match(saveBlock, /finally \{[\s\S]*?isSavingAnnotationRef\.current = false/);
+      assert.match(saveBlock, /if \(visibleReaderAnnotations\.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER\)/);
+    });
+
+    it('deletes pending annotation cloud copies as well as synced ones', () => {
+      const deleteBlock = bookReaderContent.slice(
+        bookReaderContent.indexOf('const handleDeleteAnnotation'),
+        bookReaderContent.indexOf('const handleShare')
+      );
+      assert.match(deleteBlock, /if \(currentUser\?\.id\) \{[\s\S]*?deleteReaderAnnotationFromFirestore\(currentUser\.id, annotation\)/);
+      assert.equal(deleteBlock.includes("annotation.syncStatus === 'synced'"), false);
     });
 
     it('computes stable offsets for Arabic text and trims selected edge whitespace', () => {
