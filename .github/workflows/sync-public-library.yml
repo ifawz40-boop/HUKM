@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: hukm-library-sync-main
+  group: hukm-library-sync-open-arabic-books
   cancel-in-progress: false
 
 jobs:
