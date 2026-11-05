@@ -93,7 +93,7 @@ export function canEditBooks(user: UserProfile | null | undefined): boolean {
 }
 
 /**
- * ADMIN & OWNER: Create or delete book categories
+ * OWNER-only: Create or delete book categories
  */
 export function canManageCategories(user: UserProfile | null | undefined): boolean {
   return isOwner(user);
@@ -114,7 +114,7 @@ export function canBroadcastAnnouncement(user: UserProfile | null | undefined): 
 }
 
 /**
- * ADMIN & OWNER: Open writer studio
+ * OWNER-only: Open Writer Studio
  */
 export function canAccessWriterStudio(user: UserProfile | null | undefined): boolean {
   return isOwner(user);

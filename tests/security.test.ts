@@ -112,6 +112,11 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.ok(rulesContent.includes("get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin'"));
     });
 
+    it('must keep category mutations Owner-only at the Firestore boundary', () => {
+      assert.ok(rulesContent.includes("allow create, update, delete: if isOwner() && isValidId(categoryId);"));
+      assert.equal(rulesContent.includes("allow create, update, delete: if isAdmin() && isValidId(categoryId);"), false);
+    });
+
     it('must enforce strict field-level validation on users collection', () => {
       assert.match(rulesContent, /isValidUserProfileCreate\(\)/);
       assert.match(rulesContent, /isValidUserProfileUpdate\(\)/);
