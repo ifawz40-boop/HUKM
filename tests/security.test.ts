@@ -116,6 +116,10 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(rulesContent, /isValidUserProfileCreate\(\)/);
       assert.match(rulesContent, /isValidUserProfileUpdate\(\)/);
       assert.match(rulesContent, /affected\.hasOnly\(\['displayName',\s*'name'/);
+      assert.ok(rulesContent.includes('function matchesAuthenticatedEmail(data)'));
+      assert.ok(rulesContent.includes('matchesAuthenticatedEmail(data)'));
+      assert.ok(rulesContent.includes('matchesAuthenticatedEmail(incomingData)'));
+      assert.ok(rulesContent.includes("'displayName', 'name', 'email', 'photoURL'"));
     });
 
     it('must restrict public book reads to published statuses and hide drafts', () => {

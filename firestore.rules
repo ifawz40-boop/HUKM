@@ -128,11 +128,20 @@ service cloud.firestore {
     // 1. Users Collection
     // Strict field-level validation: Users may update only approved profile fields.
     // Users must NEVER set or change role, accountStatus, permissions, or administrative metadata.
+    // A profile may only store the email address asserted by the caller's verified Firebase session.
+    // Accounts without an email claim may store an empty string, never an arbitrary address.
+    function matchesAuthenticatedEmail(data) {
+      return !('email' in data) ||
+             (data.email is string &&
+              data.email.size() <= 256 &&
+              data.email == (request.auth.token.email == null ? '' : request.auth.token.email));
+    }
+
     function isValidUserProfileCreate() {
       let data = incoming();
       return data.keys().hasOnly(['uid', 'displayName', 'name', 'email', 'photoURL', 'avatar', 'bio', 'joinedDate', 'bookmarks', 'readHistory', 'updatedAt']) &&
              data.uid == request.auth.uid &&
-             (!('email' in data) || data.email is string) &&
+             matchesAuthenticatedEmail(data) &&
              (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
              (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
              (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000)) &&
@@ -144,7 +153,8 @@ service cloud.firestore {
       let incomingData = incoming();
       let existingData = existing();
       let affected = incomingData.diff(existingData).affectedKeys();
-      return affected.hasOnly(['displayName', 'name', 'photoURL', 'avatar', 'bio', 'bookmarks', 'readHistory', 'updatedAt']) &&
+      return affected.hasOnly(['displayName', 'name', 'email', 'photoURL', 'avatar', 'bio', 'bookmarks', 'readHistory', 'updatedAt']) &&
+             matchesAuthenticatedEmail(incomingData) &&
              (!('displayName' in incomingData) || (incomingData.displayName is string && incomingData.displayName.size() <= 100)) &&
              (!('name' in incomingData) || (incomingData.name is string && incomingData.name.size() <= 100)) &&
              (!('bio' in incomingData) || (incomingData.bio is string && incomingData.bio.size() <= 1000)) &&
