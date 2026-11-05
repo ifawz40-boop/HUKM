@@ -136,7 +136,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const isUserOwner = isOwner(user);
   const isUserAdmin = isAdmin(user);
   const bookmarkedBooks = books.filter((b) => (user.bookmarks || []).includes(b.id));
-  const filteredReaderNotes = readerNotes.filter((note) => {
+  const visibleReaderNotes = readerNotes.filter((note) => note.userId === user.id);
+  const filteredReaderNotes = visibleReaderNotes.filter((note) => {
     const query = readerNotesSearch.trim().toLocaleLowerCase();
     if (!query) return true;
     const bookTitle = books.find((book) => book.id === note.bookId)?.title || '';
@@ -298,7 +299,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <StickyNote className="h-3.5 w-3.5" />
             <span>ملاحظاتي</span>
             <span className={`rounded-full px-1.5 text-[10px] font-black ${activeTab === 'notes' ? 'bg-[#070d1e] text-[#f0cb69]' : 'bg-white/10 text-[#f0cb69]'}`}>
-              {readerNotes.length}
+              {visibleReaderNotes.length}
             </span>
           </button>
           <button
@@ -623,7 +624,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
             {isLoadingReaderNotes ? (
               <div className="py-8 text-center text-xs text-[#94a3b8]">جاري تحميل دفتر الملاحظات...</div>
-            ) : readerNotes.length === 0 ? (
+            ) : visibleReaderNotes.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 bg-[#070d1e]/50 p-7 text-center text-xs text-[#94a3b8] space-y-2">
                 <Highlighter className="mx-auto h-8 w-8 text-[#64748b]" />
                 <p className="font-bold text-white">دفترك ما زال فارغاً</p>
