@@ -37,6 +37,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
   const [quotePage, setQuotePage] = useState('');
   const [quoteNote, setQuoteNote] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
 
   useEffect(() => {
     setSources(Array.isArray(book?.sources) ? book.sources : []);
@@ -144,6 +145,8 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
   };
 
   const handleSave = async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
     setIsSaving(true);
     try {
       const result = await onUpdateBook({
@@ -160,6 +163,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
     } catch {
       onShowToast('حدث خطأ أثناء حفظ ملف البحث.');
     } finally {
+      isSavingRef.current = false;
       setIsSaving(false);
     }
   };
@@ -188,6 +192,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
         </button>
       </div>
 
+      <fieldset disabled={isSaving} className="min-w-0 space-y-5 disabled:opacity-80">
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <section className="space-y-4 rounded-2xl border border-white/10 bg-[#0a1329] p-4">
           <div className="flex items-center justify-between gap-2">
@@ -298,6 +303,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
           </div>
         </section>
       </div>
+      </fieldset>
       <p className="text-[10px] leading-relaxed text-[#64748b]">كل مصدر أو اقتباس تضيفه هنا مخصص للنشر وسيكون ظاهرًا للقراء عند نشر الكتاب. لا تضع ملاحظات داخلية أو اقتباسات محمية طويلة.</p>
     </div>
   );
