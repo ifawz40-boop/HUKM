@@ -14,7 +14,7 @@ const countWords = (value) => (value.match(/[\p{L}\p{N}]+/gu) || []).length;
 const safeText = (value) => typeof value === 'string' ? value.trim() : '';
 const sqlString = (value) => "'" + value.replace(/'/g, "''") + "'";
 
-async function fetchWork(title) {
+async function fetchWork(title, attempt = 1) {
   const params = new URLSearchParams({
     dataset: 'Bayanat-Labs/arabic-wikisource-pd',
     config: 'works-pd-core',
@@ -29,6 +29,12 @@ async function fetchWork(title) {
   });
   if (!response.ok) {
     const body = (await response.text()).slice(0, 500);
+    if (response.status === 500 && /index is loading|dataset index/i.test(body) && attempt < 12) {
+      const waitMs = 15000;
+      console.log(`Dataset index is still loading for "${title}" (attempt ${attempt}/12); retrying in 15s.`);
+      await sleep(waitMs);
+      return fetchWork(title, attempt + 1);
+    }
     throw new Error(`Dataset Viewer returned HTTP ${response.status} for "${title}": ${body}`);
   }
   const payload = await response.json();
