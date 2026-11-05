@@ -302,6 +302,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Sync state when current chapter changes
   const handleSelectChapter = (ch: BookChapter) => {
+    if (isSavingChapterRef.current) return;
     setRecoverySnapshot(null);
     setLastLocalAutosavedAt(null);
     dismissedRecoveryKeyRef.current = null;
@@ -431,7 +432,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Add new chapter trigger: defaults strictly to 'draft' and clean empty content
   const handleCreateNewChapter = () => {
-    if (!currentBook) return;
+    if (!currentBook || isSavingChapterRef.current) return;
     const nextNumber = Math.max(0, ...currentBook.chapters.map((chapter) => chapter.chapterNumber || 0)) + 1;
     setRecoverySnapshot(null);
     setLastLocalAutosavedAt(null);
@@ -448,7 +449,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   // Delete chapter
   const handleDeleteChapter = async (chId: string) => {
-    if (!currentBook) return;
+    if (!currentBook || isSavingChapterRef.current) return;
     if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الفصل؟')) return;
 
     const remaining = currentBook.chapters.filter((c) => c.id !== chId);
@@ -1011,7 +1012,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                     <input
                       type="number"
                       value={chapterNumber}
-                      onChange={(e) => setChapterNumber(parseInt(e.target.value) || 1)}
+                      disabled={isSavingChapter}
+                                            onChange={(e) => setChapterNumber(parseInt(e.target.value) || 1)}
                       className="w-16 rounded-lg bg-[#050a16] border border-white/15 px-2 py-1 text-xs text-center font-bold text-[#f0cb69] focus:outline-none focus:border-[#c59b27]"
                     />
                   </div>
@@ -1021,7 +1023,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                       <span>الحالة:</span>
                       <select
                         value={chapterStatus}
-                        onChange={(e) => setChapterStatus(e.target.value as 'draft' | 'ready')}
+                      disabled={isSavingChapter}
+                                                onChange={(e) => setChapterStatus(e.target.value as 'draft' | 'ready')}
                         className="rounded-lg bg-[#050a16] border border-white/15 px-2.5 py-1 text-xs text-white focus:outline-none"
                       >
                         <option value="ready">منشور (جاهز للقراءة)</option>
@@ -1081,7 +1084,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                   <input
                     type="text"
                     value={chapterTitle}
-                    onChange={(e) => setChapterTitle(e.target.value)}
+                      disabled={isSavingChapter}
+                                            onChange={(e) => setChapterTitle(e.target.value)}
                     placeholder="مثال: الفصل الأول: استيقاظ الحقيقة"
                     className="w-full rounded-xl bg-[#050a16] border border-white/15 px-4 py-2.5 text-sm font-bold text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none font-cairo"
                   />
@@ -1104,7 +1108,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                   <textarea
                     rows={16}
                     value={chapterContent}
-                    onChange={(e) => setChapterContent(e.target.value)}
+                      disabled={isSavingChapter}
+                                            onChange={(e) => setChapterContent(e.target.value)}
                     placeholder="اكتب أو الصق نص الفصل هنا... افصل بين الفقرات بسطر فارغ."
                     className="w-full rounded-xl bg-[#050a16] border border-white/15 p-4 text-sm text-[#f4efe6] placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none font-amiri leading-relaxed"
                   />
