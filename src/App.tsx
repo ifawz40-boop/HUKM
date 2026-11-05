@@ -29,8 +29,10 @@ import { SendAnnouncementModal } from './components/SendAnnouncementModal';
 import { AdminManagementModal } from './components/AdminManagementModal';
 import { HukmEmailModal } from './components/HukmEmailModal';
 import { BannedNoticeModal } from './components/BannedNoticeModal';
+import { LegacyLibraryPurgeModal } from './components/LegacyLibraryPurgeModal';
 import { HukmFooter } from './components/HukmFooter';
 import { getActiveBanDetails } from './utils/moderationTracker';
+import { auth } from './firebase/config';
 import {
   updateUserBookmarksInFirestore,
   fetchUserReadingProgress,
@@ -235,6 +237,34 @@ export default function App() {
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isAdminManagementOpen, setIsAdminManagementOpen] = useState(false);
+  const [isLegacyPurgeOpen, setIsLegacyPurgeOpen] = useState(false);
+  const [legacyLibraryPurgeCompleted, setLegacyLibraryPurgeCompleted] = useState(false);
+
+  // Read the one-time legacy purge marker only for the authenticated owner UI.
+  useEffect(() => {
+    if (!isOwner || !currentUser) {
+      setLegacyLibraryPurgeCompleted(false);
+      return;
+    }
+    let cancelled = false;
+    const readPurgeStatus = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) return;
+        const response = await fetch('/api/auth/legacy-library-purge-status', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const payload = await response.json();
+        if (!cancelled && response.ok && payload.success) {
+          setLegacyLibraryPurgeCompleted(payload.status === 'completed');
+        }
+      } catch (error) {
+        console.warn('Could not read legacy library purge status:', error);
+      }
+    };
+    void readPurgeStatus();
+    return () => { cancelled = true; };
+  }, [isOwner, currentUser?.id]);
 
   // Active Ban verification for current session
   const activeBan = currentUser?.email ? getActiveBanDetails(currentUser.email) : null;
@@ -560,6 +590,17 @@ remove Firestore catalog synchronization
                     ))}
                   </div>
 
+                  {isOwner && !legacyLibraryPurgeCompleted && (
+                    <button
+                      type="button"
+                      onClick={() => setIsLegacyPurgeOpen(true)}
+                      className="rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-[11px] font-bold text-red-200 hover:bg-red-500/10"
+                      title="تنظيف سجلات الكتب والتصنيفات القديمة من Firestore"
+                    >
+                      تنظيف بيانات المكتبة القديمة
+                    </button>
+                  )}
+
                   <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-[#0a1226] p-1" role="group" aria-label="طريقة عرض الكتب">
                     <button
                       type="button"
@@ -677,6 +718,18 @@ remove Firestore catalog synchronization
           )
         )}
       </div>
+
+      {isOwner && (
+        <LegacyLibraryPurgeModal
+          isOpen={isLegacyPurgeOpen}
+          onClose={() => setIsLegacyPurgeOpen(false)}
+          onPurged={(result) => {
+            setLegacyLibraryPurgeCompleted(true);
+            setIsLegacyPurgeOpen(false);
+            showToast(`تم حذف ${result.deleted.books} كتابًا و${result.deleted.bookDraftChapters} مسودة و${result.deleted.categories} تصنيفًا قديمًا من Firebase.`);
+          }}
+        />
+      )}
 
       {/* Instant Search Modal */}
       <HukmSearchModal
