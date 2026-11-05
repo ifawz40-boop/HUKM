@@ -29,7 +29,9 @@ import {
   getBookReadingProgress,
   recordChapterOpened,
   toggleChapterReadStatus,
+  getChapterScrollPosition,
 } from '../utils/readingTracker';
+import { saveReadingProgressToFirestore, formatReadingProgressId } from '../firebase/firestoreService';
 
 interface BookOverviewViewProps {
   book: BookProject;
@@ -129,11 +131,29 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
     onSelectChapter(chapterId);
   };
 
-  const handleToggleChapterStatus = (e: React.MouseEvent, chapterId: string) => {
+  const handleToggleChapterStatus = async (e: React.MouseEvent, chapterId: string) => {
     e.stopPropagation();
     const updated = toggleChapterReadStatus(book.id, chapterId, currentUser?.id);
     setProgress(updated);
     const isNowRead = updated.completedChapterIds.includes(chapterId);
+
+    if (currentUser?.id) {
+      const saved = await saveReadingProgressToFirestore({
+        id: formatReadingProgressId(currentUser.id, book.id, chapterId),
+        userId: currentUser.id,
+        bookId: book.id,
+        chapterId,
+        chapterIndex: Math.max(0, book.chapters.findIndex((chapter) => chapter.id === chapterId)),
+        scrollPercent: getChapterScrollPosition(book.id, chapterId, currentUser.id),
+        lastReadAt: new Date().toISOString(),
+        completed: isNowRead,
+      });
+      onShowToast(saved
+        ? (isNowRead ? 'تم تعليم الفصل كمقروء ومزامنته مع حسابك ✓' : 'تم إلغاء علامة القراءة ومزامنتها مع حسابك.')
+        : 'تم تحديث الحالة على هذا الجهاز، لكن تعذرت مزامنتها سحابياً.');
+      return;
+    }
+
     onShowToast(isNowRead ? 'تم تعليم الفصل كـ «مقروء» ✓' : 'تمت إزالة علامة القراءة عن الفصل.');
   };
 
