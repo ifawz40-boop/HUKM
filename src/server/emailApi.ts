@@ -57,7 +57,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
 
     const adminData = adminDoc.data();
     const adminRole = adminData?.role;
-    if (adminRole !== 'owner' && adminRole !== 'admin') {
+    if (adminRole !== user.role) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح: تم إلغاء أو تخفيض رتبتك الإدارية في قاعدة البيانات.',
@@ -283,7 +283,7 @@ emailApiRouter.get('/subscribers', authenticateToken, async (req: Request, res: 
 
     const adminData = adminDoc.data();
     const adminRole = adminData?.role;
-    if (adminRole !== 'owner' && adminRole !== 'admin') {
+    if (adminRole !== user.role) {
       return res.status(403).json({
         success: false,
         subscribers: [],
@@ -358,7 +358,7 @@ emailApiRouter.post('/subscribers/:id/toggle', authenticateToken, async (req: Re
 
   try {
     const adminDoc = await adminDb.collection('admins').doc(user.uid).get();
-    if (!adminDoc.exists || (adminDoc.data()?.role !== 'owner' && adminDoc.data()?.role !== 'admin')) {
+    if (!adminDoc.exists || adminDoc.data()?.role !== user.role) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح: السجل الإداري غير فعال.',

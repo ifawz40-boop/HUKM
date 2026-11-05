@@ -599,6 +599,12 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
   describe('Test 15: emailApi active admin verification, batch chunking & accurate logging', () => {
     const emailApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
 
+    it('must require the active admin registry role to exactly match the caller token role', () => {
+      assert.equal((emailApiContent.match(/adminRole !== user\.role/g) || []).length, 2);
+      assert.ok(emailApiContent.includes('adminDoc.data()?.role !== user.role'));
+      assert.equal(emailApiContent.includes("adminRole !== 'owner' && adminRole !== 'admin'"), false);
+    });
+
     it('must not claim the email provider is ready based only on a non-empty API key', () => {
       assert.ok(emailApiContent.includes('لم يتم التحقق من صلاحيته أو اعتماد نطاق المرسل'));
       assert.equal(emailApiContent.includes('مهيأ وجاهز للإرسال الفعلي'), false);
