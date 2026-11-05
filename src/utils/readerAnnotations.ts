@@ -2,6 +2,13 @@ import type { ReaderAnnotation } from '../types/hukm';
 
 export const MAX_READER_ANNOTATIONS_PER_CHAPTER = 100;
 
+export function notifyReaderAnnotationsChanged(userId?: string): void {
+  if (typeof window === 'undefined' || typeof CustomEvent === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('hukm:reader-annotations-updated', {
+    detail: { userId: userId || null },
+  }));
+}
+
 export function getReaderAnnotationStorageKey(userId?: string): string {
   return userId
     ? `hukm_user_${userId}_reader_annotations_v1`
@@ -93,7 +100,7 @@ export function upsertReaderAnnotationLocal(
 ): ReaderAnnotation[] {
   const all = getAllReaderAnnotations(userId);
   const next = [...all.filter((item) => item.id !== annotation.id), annotation];
-  saveAllReaderAnnotations(next, userId);
+  if (saveAllReaderAnnotations(next, userId)) notifyReaderAnnotationsChanged(userId);
   return next;
 }
 
@@ -102,7 +109,7 @@ export function removeReaderAnnotationLocal(
   userId?: string
 ): ReaderAnnotation[] {
   const next = getAllReaderAnnotations(userId).filter((item) => item.id !== annotationId);
-  saveAllReaderAnnotations(next, userId);
+  if (saveAllReaderAnnotations(next, userId)) notifyReaderAnnotationsChanged(userId);
   return next;
 }
 
