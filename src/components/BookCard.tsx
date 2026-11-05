@@ -111,7 +111,7 @@ export const BookCard: React.FC<BookCardProps> = ({
 
           <p className="text-xs text-[#94a3b8] flex items-center gap-1">
             <User className="h-3 w-3 text-[#d4af37]" />
-            <span>المؤلف: {book.author || 'Dr/ Islam Mohamed'}</span>
+            <span>المؤلف: {book.author || 'حُكم | HUKM MEDIA'}</span>
           </p>
 
           <p className="text-xs text-[#cbd5e1]/70 line-clamp-2 leading-relaxed pt-1">
