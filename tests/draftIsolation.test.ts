@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { formatDraftChapterId, partitionBookChapters } from '../src/firebase/firestoreService.ts';
+import { formatDraftChapterId, partitionBookChapters, assertFirestoreDocumentSize, FIRESTORE_DOCUMENT_SAFE_LIMIT_BYTES } from '../src/firebase/firestoreService.ts';
 import type { BookProject, BookChapter } from '../src/types/hukm.ts';
 
 describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation Suite', () => {
@@ -106,6 +106,19 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       const partition = partitionBookChapters(chapters);
       assert.deepEqual(partition.readyChapters.map((chapter) => chapter.id), ['ready-1']);
       assert.deepEqual(partition.draftChapters.map((chapter) => chapter.id), ['draft-1', 'legacy-1', 'missing-1']);
+    });
+  });
+
+  describe('Invariant 2B: Firestore document size budget', () => {
+    it('accepts documents within the conservative byte budget', () => {
+      assert.doesNotThrow(() => assertFirestoreDocumentSize({ content: 'small' }, 'test'));
+    });
+
+    it('rejects oversized book or chapter documents before batch commit', () => {
+      assert.throws(
+        () => assertFirestoreDocumentSize({ content: 'x'.repeat(FIRESTORE_DOCUMENT_SAFE_LIMIT_BYTES + 1) }, 'test'),
+        /safe Firestore document budget/
+      );
     });
   });
 
