@@ -22,6 +22,7 @@ import { HukmNavbar } from './components/HukmNavbar';
 import { HukmLandingView } from './components/HukmLandingView';
 import { HukmHero } from './components/HukmHero';
 import { BookCard } from './components/BookCard';
+import { BookSpineShelf } from './components/BookSpineShelf';
 import { BookWriterStudio } from './components/BookWriterStudio';
 import { BookReaderView } from './components/BookReaderView';
 import { BookOverviewView } from './components/BookOverviewView';
@@ -91,6 +92,7 @@ export default function App() {
   // Default entry view is landing: Platform Introduction & Sign-in Portal
   const [currentView, setCurrentView] = useState<string>('landing');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
+  const [libraryDisplayMode, setLibraryDisplayMode] = useState<'grid' | 'shelf'>('grid');
   const [selectedBookId, setSelectedBookId] = useState<string>('');
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
 
@@ -756,6 +758,25 @@ export default function App() {
                     ))}
                   </div>
 
+                  <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-[#0a1226] p-1" role="group" aria-label="طريقة عرض الكتب">
+                    <button
+                      type="button"
+                      aria-pressed={libraryDisplayMode === 'grid'}
+                      onClick={() => setLibraryDisplayMode('grid')}
+                      className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${libraryDisplayMode === 'grid' ? 'bg-[#c59b27] text-[#070d1e]' : 'text-[#94a3b8] hover:text-white'}`}
+                    >
+                      بطاقات
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={libraryDisplayMode === 'shelf'}
+                      onClick={() => setLibraryDisplayMode('shelf')}
+                      className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${libraryDisplayMode === 'shelf' ? 'bg-[#c59b27] text-[#070d1e]' : 'text-[#94a3b8] hover:text-white'}`}
+                    >
+                      أرفف الكتب
+                    </button>
+                  </div>
+
                   {/* Owner ONLY: Add / Manage Categories Quick Trigger */}
                   {isOwner && (
                     <button
@@ -821,6 +842,12 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+              ) : libraryDisplayMode === 'shelf' ? (
+                <BookSpineShelf
+                  books={displayedBooks}
+                  categories={categories}
+                  onRead={handleOpenBookOverview}
+                />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {displayedBooks.map((book) => (
