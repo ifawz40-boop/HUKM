@@ -1,3 +1,8 @@
+/** Conservative email shape validation shared by CLI and HTTP provisioning paths. */
+export function isValidOwnerEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export interface OwnerBootstrapState {
   bootstrapExists: boolean;
   bootstrapData?: Record<string, unknown> | null;
