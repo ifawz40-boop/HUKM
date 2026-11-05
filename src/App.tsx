@@ -456,10 +456,6 @@ remove Firestore catalog synchronization
               setSelectedCategoryId(catId);
               setCurrentView('home');
             } else {
-              if (view === 'writer' && !isOwner) {
-                showToast('عذراً، استوديو التأليف مخصص لصاحب المنصة والناشر الرسمي فقط.');
-                return;
-              }
               setCurrentView(view);
             }
             window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
@@ -516,23 +512,22 @@ remove Firestore catalog synchronization
               totalBooksCount={accessibleBooks.length}
               totalChaptersCount={totalChapters}
               totalWordsCount={totalWords}
-              isOwner={isOwner}
             />
 
-            {/* 2. Category Filter Pills with "إدارة الأقسام" button (Owner only) */}
+            {/* 2. Static library catalogue */}
             <div id="books-catalog" className="space-y-4 pt-4 border-t border-white/5">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="text-right">
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl sm:text-2xl font-black text-white font-cairo">
-                      مشاريع وكتب حُكم المفتوحة
+                      مكتبة حُكم للتراث العربي
                     </h2>
                     <span className="rounded-md bg-[#c59b27]/20 px-2 py-0.5 text-xs font-bold text-[#f0cb69] border border-[#c59b27]/30">
                       {displayedBooks.length} مؤلفات
                     </span>
                   </div>
                   <p className="text-xs text-[#94a3b8] mt-0.5">
-                    كتب معرفية استقصائية تخدم المحتوى المرئي والمسموع عبر مختلف وسائل التواصل
+                    نصوص عربية تراثية كاملة مضمّنة في ملفات الموقع، مع بيانات المصدر والترخيص لكل كتاب
                   </p>
                 </div>
 
@@ -584,70 +579,20 @@ remove Firestore catalog synchronization
                     </button>
                   </div>
 
-                  {/* Owner ONLY: Add / Manage Categories Quick Trigger */}
-                  {isOwner && (
-                    <button
-                      onClick={() => setIsManageCategoriesOpen(true)}
-                      className="flex items-center gap-1.5 rounded-2xl bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-3 py-2 text-xs font-bold text-[#f0cb69] transition-all shrink-0"
-                      title="إضافة أو حذف أقسام الكتب (صاحب المنصة)"
-                    >
-                      <Layers className="h-4 w-4" />
-                      <span className="hidden md:inline">+ إدارة الأقسام</span>
-                    </button>
-                  )}
                 </div>
               </div>
 
               {/* Books Grid or Elegant Empty Slate */}
               {displayedBooks.length === 0 ? (
-                <div className="rounded-3xl border border-[#c59b27]/30 bg-gradient-to-b from-[#0a142c] to-[#050a16] p-8 sm:p-12 text-center space-y-5 shadow-2xl" dir="rtl">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#c59b27]/10 border border-[#c59b27]/30 text-[#d4af37]">
-                    <BookOpen className="h-8 w-8" />
-                  </div>
-                  <div className="space-y-2 max-w-lg mx-auto">
-                    <h3 className="text-xl sm:text-2xl font-black text-white font-cairo">
-                      مكتبة حُكم جاهزة لاستقبال النشرات والكتب الرسمية
-                    </h3>
-                    <p className="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
-                      لم تُنشر كتب بعد. ستظهر هنا الإصدارات التي يعتمدها فريق حُكم للنشر.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    {isOwner ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            setCurrentView('writer');
-                            window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-                          }}
-                          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-6 py-3 text-xs sm:text-sm font-bold text-[#070d1e] shadow-lg hover:scale-105 transition-all cursor-pointer"
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                          <span>+ فتح استوديو التأليف والنشر</span>
-                        </button>
-
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setAuthModalMode('signup');
-                          setIsAuthModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#0e1935] border border-[#c59b27]/50 px-6 py-3 text-xs sm:text-sm font-bold text-[#f0cb69] hover:bg-[#15254d] transition-all cursor-pointer"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        <span>اشترك لتصلك أولى الإصدارات فور نشرها</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => setCurrentView('landing')}
-                      className="inline-flex items-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 text-xs sm:text-sm font-bold text-white transition-all cursor-pointer"
-                    >
-                      <span>التعريف برؤية المنصة</span>
-                    </button>
-                  </div>
+                <div className="rounded-3xl border border-[#c59b27]/30 bg-gradient-to-b from-[#0a142c] to-[#050a16] p-8 sm:p-12 text-center space-y-4 shadow-2xl" dir="rtl">
+                  <BookOpen className="mx-auto h-12 w-12 text-[#d4af37]" />
+                  <h3 className="text-xl font-black text-white">لم تُحمّل ملفات الكتب بعد</h3>
+                  <p className="mx-auto max-w-xl text-sm leading-7 text-[#94a3b8]">
+                    المكتبة تعتمد على ملفات نصية ثابتة داخل المشروع. عند اكتمال مزامنة النصوص الموثقة ستظهر الكتب هنا، دون قراءة محتوى الكتب من Firebase.
+                  </p>
+                  <a href="https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd" target="_blank" rel="noreferrer" className="text-xs font-bold text-[#f0cb69] underline underline-offset-4">
+                    مصدر مجموعة النصوص وتفاصيل الترخيص
+                  </a>
                 </div>
               ) : libraryDisplayMode === 'shelf' ? (
                 <BookSpineShelf
@@ -674,56 +619,6 @@ remove Firestore catalog synchronization
               )}
             </div>
 
-            {/* 3. Featured Spotlight: Investigations series «وعشان الموضوع مش زي ما إنت فاكر» */}
-            <div className="rounded-3xl border border-[#c59b27]/30 bg-gradient-to-r from-[#0d1730] to-[#070d1e] p-6 sm:p-8 space-y-4 shadow-xl">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="space-y-2 text-right">
-                  <span className="rounded-full bg-[#c59b27]/20 border border-[#c59b27]/40 px-3 py-1 text-xs font-bold text-[#f0cb69]">
-                    سلسلة حُكم الرئيسية
-                  </span>
-                  <h3 className="text-2xl font-black text-white font-cairo">
-                    «وعشان الموضوع مش زي ما إنت فاكر… تعالى نعرف.»
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#cbd5e1] max-w-2xl leading-relaxed">
-                    مشروعنا الرائد في تفكيك الخرافات والمعلومات الشائعة بالاستناد إلى وثائق الأرشيف والأبحاث المحكّمة، لإعادة كتابة القصة من جذورها الحقيقية.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 shrink-0">
-                  {accessibleBooks.length > 0 && accessibleBooks.some((b) => b.id === 'investigation-01') ? (
-                    <button
-                      onClick={() => handleOpenBookOverview('investigation-01')}
-                      className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95"
-                    >
-                      استعراض فصول السلسلة
-                    </button>
-                  ) : isOwner ? (
-                    <button
-                      onClick={() => setIsNewBookOpen(true)}
-                      className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                    >
-                      + بدء كتابة السلسلة في الاستوديو
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setCurrentView('landing')}
-                      className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-3 text-xs font-bold text-[#070d1e] shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                    >
-                      التعرف على رؤية السلسلة
-                    </button>
-                  )}
-
-                  {isOwner && books.length > 0 && (
-                    <button
-                      onClick={() => handleOpenWriter()}
-                      className="rounded-xl bg-[#0a1226] border border-[#c59b27]/40 px-4 py-3 text-xs font-bold text-[#f0cb69] hover:bg-[#122045] transition-colors"
-                    >
-                      استوديو التأليف
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
           </main>
         )}
 
