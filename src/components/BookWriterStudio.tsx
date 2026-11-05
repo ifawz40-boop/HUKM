@@ -104,7 +104,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const [isCreatingChapter, setIsCreatingChapter] = useState(false);
   const currentChapter = isCreatingChapter
     ? undefined
-    : currentBook?.chapters.find((c) => c.id === selectedChapterId) || currentBook?.chapters[0];
+    : currentBook?.chapters.find((c) => c.id === selectedChapterId) ||
+      (!selectedChapterId ? currentBook?.chapters[0] : undefined);
 
   const [chapterNumber, setChapterNumber] = useState<number>(currentChapter?.chapterNumber || 1);
   const [chapterTitle, setChapterTitle] = useState(currentChapter?.title || '');
@@ -155,12 +156,12 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
   const isEditorDirty = isCreatingChapter
     ? Boolean(chapterTitle.trim() || chapterContent.trim())
-    : Boolean(currentChapter && (
+    : Boolean(currentChapter ? (
         chapterTitle !== currentChapter.title ||
         chapterContent !== currentChapter.content.join('\n\n') ||
         chapterNumber !== currentChapter.chapterNumber ||
         chapterStatus !== currentChapter.status
-      ));
+      ) : Boolean(selectedChapterId && (chapterTitle.trim() || chapterContent.trim())));
 
   // Offer recovery rather than overwriting a local snapshot automatically.
   useEffect(() => {
@@ -169,7 +170,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       return;
     }
 
-    const activeChapterId = isCreatingChapter ? null : currentChapter?.id || null;
+    const activeChapterId = isCreatingChapter ? null : currentChapter?.id || selectedChapterId || null;
     let snapshot = getWriterDraftSnapshot(currentUserId, currentBook.id, activeChapterId);
     if (!snapshot && !isCreatingChapter) {
       snapshot = getWriterDraftSnapshot(currentUserId, currentBook.id, null);
@@ -205,7 +206,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   useEffect(() => {
     if (!currentUserId || !currentBook || recoverySnapshot) return;
 
-    const chapterId = isCreatingChapter ? null : currentChapter?.id || null;
+    const chapterId = isCreatingChapter ? null : currentChapter?.id || selectedChapterId || null;
     if (!isEditorDirty) {
       removeWriterDraftSnapshot(currentUserId, currentBook.id, chapterId);
       setLastLocalAutosavedAt(null);
