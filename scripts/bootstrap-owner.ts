@@ -24,6 +24,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import {
   assertOwnerClaimCanBeAssigned,
   decideOwnerBootstrap,
+  isValidOwnerEmail,
 } from '../src/server/ownerBootstrapGuards.ts';
 
 const PROJECT_ID = 'gen-lang-client-0492732633';
