@@ -242,11 +242,15 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
             {/* Book Poster Cover */}
             <div className="relative h-64 sm:h-80 w-48 sm:w-60 shrink-0 overflow-hidden rounded-2xl border-2 border-[#c59b27]/40 shadow-2xl bg-[#050a16]">
-              <img
-                src={book.coverImage}
-                alt={book.title}
-                className="h-full w-full object-cover"
-              />
+              {book.coverImage ? (
+                <img src={book.coverImage} alt={book.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-5 bg-gradient-to-br from-[#1b2b49] via-[#0b152b] to-[#3b2b13] p-5 text-center">
+                  <BookOpen className="h-14 w-14 text-[#d4af37]" />
+                  <span className="text-xl font-black leading-relaxed text-[#f4e6c3]">{book.title}</span>
+                  <span className="text-[10px] font-bold tracking-widest text-[#d4af37]">حُكم • مكتبة التراث</span>
+                </div>
+              )}
               <span
                 className={`absolute top-2.5 right-2.5 rounded-lg px-2.5 py-1 text-[11px] font-black shadow-md ${
                   book.status === 'completed'
