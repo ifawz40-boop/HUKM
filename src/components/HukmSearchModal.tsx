@@ -119,7 +119,7 @@ export const HukmSearchModal: React.FC<HukmSearchModalProps> = ({
                   </h4>
                   <p className="text-xs text-[#94a3b8] truncate">{book.subtitle}</p>
                   <span className="text-[10px] text-[#d4af37] mt-0.5 block">
-                    {getCategoryLabel(book.category)} · {book.chapters.length} فصول
+                    {getCategoryLabel(book.category)} · {book.chapterCount ?? book.chapters.length} فصول
                   </span>
                 </div>
               </div>
