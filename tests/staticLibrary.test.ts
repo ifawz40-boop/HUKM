@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const read = (relativePath: string) => fs.readFileSync(path.resolve(process.cwd(), relativePath), 'utf8');
 
-describe('HUKM — bundled heritage library architecture', () => {
+describe('HUKM — bundled Arabic library architecture', () => {
   const app = read('src/App.tsx');
   const data = read('src/data/hukmData.ts');
   const libraryIndex = read('src/data/library/index.ts');
@@ -24,6 +24,7 @@ describe('HUKM — bundled heritage library architecture', () => {
       assert.equal(app.includes(forbidden), false, `App must not call ${forbidden}`);
     }
     assert.match(libraryIndex, /import\.meta\.glob\('\.\/books\/\*\.json'/);
+    assert.match(libraryIndex, /loadPublicLibraryBook/);
     assert.equal(app.includes("localStorage.getItem('hukm_books_v1')"), false);
     assert.equal(app.includes("localStorage.getItem('hukm_books_v2')"), false);
     assert.equal(app.includes("localStorage.getItem('hukm_books_v3')"), false);
@@ -44,29 +45,37 @@ describe('HUKM — bundled heritage library architecture', () => {
     assert.match(libraryIndex, /PUBLIC_LIBRARY_BOOKS/);
   });
 
-  it('must validate source tier, license, book length, chapters, genre and completeness before bundling', () => {
+  it('must accept only explicit CC BY 4.0 Arabic translations of public-domain originals', () => {
     assert.match(syncScript, /Bayanat-Labs\/open-arabic-books/);
-    assert.match(syncScript, /CC BY-SA 4\.0/);
-    assert.match(syncScript, /row\.words/);
-    assert.match(syncScript, /row\.chapters/);
-    assert.match(syncScript, /row\.source_pages/);
-    assert.match(syncScript, /row\.genre === 'poetry'/);
-    assert.match(syncScript, /original_text_status/);
-    assert.match(syncScript, /minimumBooks/);
+    assert.match(syncScript, /translation_covered/);
+    assert.match(syncScript, /original_text_status === 'public-domain'/);
+    assert.match(syncScript, /CC BY 4\.0/);
+    assert.match(syncScript, /minimumWords/);
+    assert.match(syncScript, /minimumChapters/);
+    assert.match(syncScript, /maximumTotalWords/);
   });
 
-  it('must preserve attribution, revision history and share-alike license metadata in each bundled book', () => {
-    assert.match(syncScript, /sourcePages/);
-    assert.match(syncScript, /historyUrl/);
-    assert.match(syncScript, /licenseUrl/);
+  it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
+    assert.match(syncScript, /fetchChapters/);
+    assert.match(syncScript, /text_raw/);
+    assert.match(syncScript, /mapFootnotes/);
+    assert.match(syncScript, /licenseQuote/);
+    assert.match(syncScript, /sourceHash/);
     assert.match(syncScript, /datasetCitation/);
-    assert.match(syncScript, /CC BY-SA 4\.0/);
+    assert.match(syncScript, /historyUrl/);
   });
 
-  it('must gate legacy Firestore deletion behind founder verification and an exact confirmation phrase', () => {
+  it('must lazy-load full book files rather than putting all text in the initial catalogue bundle', () => {
+    assert.match(libraryIndex, /import\.meta\.glob\('\.\/books\/\*\.json'\)/);
+    assert.doesNotMatch(libraryIndex, /eager:\s*true[\s\S]*books/);
+    assert.match(libraryIndex, /import\.meta\.glob\('\.\/catalog\.json'/);
+  });
+
+  it('must gate legacy Firestore deletion behind founder verification and exact confirmation', () => {
     const routeStart = serverApi.indexOf("authClaimsRouter.post('/purge-legacy-library'");
     assert.ok(routeStart >= 0);
-    const route = serverApi.slice(routeStart, serverApi.indexOf("authClaimsRouter.get('/my-claims'", routeStart));
+    const routeEnd = serverApi.indexOf("authClaimsRouter.get('/my-claims'", routeStart);
+    const route = serverApi.slice(routeStart, routeEnd > 0 ? routeEnd : undefined);
     assert.match(route, /authenticateToken, requireFounderOwner/);
     assert.match(route, /DELETE_ALL_LEGACY_LIBRARY_DATA/);
     assert.match(route, /\['books', 'bookDraftChapters', 'categories'\]/);
@@ -74,28 +83,31 @@ describe('HUKM — bundled heritage library architecture', () => {
     assert.match(route, /status: 'failed'/);
   });
 
-  it('must retain source and license details for every generated full-text book', (t) => {
+  it('must retain source and rights details for every generated full-text book', (t) => {
     const directory = path.resolve(process.cwd(), 'src/data/library/books');
     const files = fs.existsSync(directory)
       ? fs.readdirSync(directory).filter((file) => file.endsWith('.json'))
       : [];
     if (files.length === 0) {
-      t.skip('The GitHub Actions dataset sync has not committed the generated book files yet.');
+      t.skip('The GitHub Actions dataset sync has not committed generated full-text books yet.');
       return;
     }
+    const catalog = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'src/data/library/catalog.json'), 'utf8'));
+    assert.equal(catalog.length, files.length);
     for (const file of files) {
       const book = JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
       assert.ok(book.id && book.title && book.author, `${file} must have grounded identity metadata`);
       assert.equal(book.status, 'completed');
-      assert.ok(book.chapters.length > 0, `${file} must include chapters`);
+      assert.ok(book.chapters.length >= 3, `${file} must include multiple sections`);
       assert.ok(book.chapters.every((chapter: any) => chapter.status === 'ready' && chapter.content.length > 0));
-      assert.equal(book.rights.license, 'CC BY-SA 4.0');
+      assert.equal(book.rights.translationCovered, true);
+      assert.equal(book.rights.originalTextStatus, 'public-domain');
+      assert.match(book.rights.license, /CC BY 4\.0/);
       assert.ok(book.rights.bookUrl);
       assert.ok(book.rights.historyUrl);
       assert.ok(book.rights.sourceHash);
       assert.ok(book.rights.licenseQuote);
-      assert.equal(book.rights.translationCovered, true);
-      assert.equal(book.rights.originalTextStatus, 'public-domain');
+      assert.ok(book.rights.attribution);
     }
   });
 });
