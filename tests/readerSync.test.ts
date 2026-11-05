@@ -189,6 +189,27 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
       assert.ok(reopened.completedChapterIds.includes('chapter-1'));
     });
 
+    it('keeps the newer scroll checkpoint when guest and account progress overlap', () => {
+      const merged = mergeGuestReadingProgressWithUser({
+        'book-overlap': {
+          bookId: 'book-overlap',
+          lastChapterId: 'chapter-1',
+          completedChapterIds: [],
+          lastReadAt: '2026-11-01T10:00:00.000Z',
+          chapterScrollPositions: { 'chapter-1': 15 },
+        },
+      }, {
+        'book-overlap': {
+          bookId: 'book-overlap',
+          lastChapterId: 'chapter-1',
+          completedChapterIds: [],
+          lastReadAt: '2026-11-02T10:00:00.000Z',
+          chapterScrollPositions: { 'chapter-1': 82 },
+        },
+      });
+      assert.equal(merged['book-overlap'].chapterScrollPositions?.['chapter-1'], 82);
+    });
+
     it('never assigns unowned legacy progress to a guest or another account', () => {
       localStorage.setItem(LEGACY_STORAGE_KEY_PROGRESS, JSON.stringify({
         'legacy-book': {
