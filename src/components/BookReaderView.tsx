@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { BookProject, BookChapter, ReaderAnnotation, ReaderAnnotationColor } from '../types/hukm';
 import { UserProfile } from '../types/auth';
-import { calculateReadingTimeMinutes, calculateWordsCount } from '../utils/hukmEngine';
+import { calculateWordsCount } from '../utils/hukmEngine';
 import {
   recordChapterOpened,
   toggleChapterReadStatus,
@@ -501,6 +501,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       if (e.key === 'Escape') {
         setIsChapterSearchOpen(false);
         setIsSettingsOpen(false);
+        setIsAnnotationEditorOpen(false);
         return;
       }
 
@@ -856,7 +857,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   }[contentWidth];
 
   const wordsCount = currentChapter ? calculateWordsCount(currentChapter.content) : 0;
-  const readTime = calculateReadingTimeMinutes(wordsCount);
+  const readTime = Math.ceil(wordsCount / readingSpeedWpm);
   const estimatedRemainingMinutes = Math.ceil((wordsCount * (1 - Math.min(100, Math.max(0, scrollProgress)) / 100)) / readingSpeedWpm);
 
   return (
