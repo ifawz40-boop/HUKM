@@ -47,8 +47,8 @@ import {
   createReaderAnnotationId,
   getReaderAnnotationOffsets,
   getAllReaderAnnotations,
-  notifyReaderAnnotationsChanged,
   getReaderAnnotationsForChapter,
+  getReaderAnnotationStorageKey,
   mergeReaderAnnotations,
   removeReaderAnnotationLocal,
   saveAllReaderAnnotations,
@@ -272,15 +272,25 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     annotation.chapterId === currentChapter?.id &&
     (currentUser?.id ? annotation.userId === currentUser.id : !annotation.userId)
   );
-  // Keep the open reader in sync when notes are edited or removed from the profile notebook or another tab.
+  // Keep the open reader in sync with the profile notebook and other browser tabs.
   useEffect(() => {
+    const refreshCurrentChapterNotes = () => {
+      setReaderAnnotations(getReaderAnnotationsForChapter(book.id, currentChapter?.id || '', currentUser?.id));
+    };
     const handleAnnotationUpdate = (event: Event) => {
       const detail = (event as CustomEvent<{ userId: string | null }>).detail;
       if ((detail?.userId || undefined) !== currentUser?.id) return;
-      setReaderAnnotations(getReaderAnnotationsForChapter(book.id, currentChapter?.id || '', currentUser?.id));
+      refreshCurrentChapterNotes();
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === getReaderAnnotationStorageKey(currentUser?.id)) refreshCurrentChapterNotes();
     };
     window.addEventListener('hukm:reader-annotations-updated', handleAnnotationUpdate);
-    return () => window.removeEventListener('hukm:reader-annotations-updated', handleAnnotationUpdate);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('hukm:reader-annotations-updated', handleAnnotationUpdate);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, [book.id, currentChapter?.id, currentUser?.id]);
 
   // Load chapter annotations from the current account's private local/cloud partitions.
