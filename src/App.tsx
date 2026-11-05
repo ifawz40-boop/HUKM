@@ -6,11 +6,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Compass,
-  PenTool,
   BookOpen,
   Sparkles,
-  Layers,
-  PlusCircle,
   Eye,
   ShieldCheck,
   CheckCircle,
@@ -23,11 +20,8 @@ import { HukmLandingView } from './components/HukmLandingView';
 import { HukmHero } from './components/HukmHero';
 import { BookCard } from './components/BookCard';
 import { BookSpineShelf } from './components/BookSpineShelf';
-import { BookWriterStudio } from './components/BookWriterStudio';
 import { BookReaderView } from './components/BookReaderView';
 import { BookOverviewView } from './components/BookOverviewView';
-import { NewBookModal } from './components/NewBookModal';
-import { ManageCategoriesModal } from './components/ManageCategoriesModal';
 import { HukmSearchModal } from './components/HukmSearchModal';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
@@ -37,32 +31,22 @@ import { HukmEmailModal } from './components/HukmEmailModal';
 import { BannedNoticeModal } from './components/BannedNoticeModal';
 import { HukmFooter } from './components/HukmFooter';
 import { getActiveBanDetails } from './utils/moderationTracker';
-import { testFirestoreConnection } from './firebase/config';
 import {
-  fetchBooksFromFirestore,
-  saveBookToFirestore,
-  deleteBookFromFirestore,
-  fetchCategoriesFromFirestore,
-  saveCategoryToFirestore,
-  deleteCategoryFromFirestore,
   updateUserBookmarksInFirestore,
   fetchUserReadingProgress,
   uploadGuestReadingProgressToFirestore,
 } from './firebase/firestoreService';
 import {
-  INITIAL_BOOKS,
-  INITIAL_CATEGORIES,
   HUKM_LOGO,
   HUKM_MOTTO,
   HUKM_DESCRIPTION,
 } from './data/hukmData';
-import { BookProject, CategoryItem } from './types/hukm';
+import { PUBLIC_LIBRARY_BOOKS, PUBLIC_LIBRARY_CATEGORIES } from './data/library';
+import { CategoryItem } from './types/hukm';
 import { UserProfile, AppNotification } from './types/auth';
 import {
   calculateBookStats,
   incrementBookViews,
-  addCategory,
-  deleteCategory,
 } from './utils/hukmEngine';
 import {
   getStoredNotifications,
@@ -74,8 +58,6 @@ import {
   hasGuestBookmarks,
   toggleUserBookmark,
   toggleGuestBookmark,
-  getStoredSubscribers,
-  addEmailLog,
 } from './utils/authStorage';
 import {
   getAllReadingProgress,
@@ -86,7 +68,6 @@ import {
 } from './utils/readingTracker';
 import { subscribeToAuthState, logoutUser } from './firebase/authService';
 import { isEffectiveOwner, isAdmin as checkIsAdmin } from './services/permissionService';
-import { generateNewReleaseEmailHtml } from './utils/emailTemplateGenerator';
 
 export default function App() {
   // Default entry view is landing: Platform Introduction & Sign-in Portal
@@ -233,40 +214,19 @@ export default function App() {
     getStoredNotifications()
   );
 
-  // Dynamic Categories with localStorage persistence
-  const [categories, setCategories] = useState<CategoryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('hukm_categories_v1');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_CATEGORIES;
-  });
+  // The public-domain catalogue and its categories are bundled with the application.
+  // They are immutable at runtime and never loaded from Firestore or localStorage.
+  const [categories] = useState<CategoryItem[]>(PUBLIC_LIBRARY_CATEGORIES);
+  const [books] = useState(PUBLIC_LIBRARY_BOOKS);
 
-  // Books data: safe migration from v1/v2 to v3 without destructive deletion
-  const [books, setBooks] = useState<BookProject[]>(() => {
-    try {
-      const savedV3 = localStorage.getItem('hukm_books_v3');
-      if (savedV3) return JSON.parse(savedV3);
-      // Non-destructive fallback migration
-      const savedV2 = localStorage.getItem('hukm_books_v2');
-      if (savedV2) {
-        const parsed = JSON.parse(savedV2);
-        localStorage.setItem('hukm_books_v3', JSON.stringify(parsed));
-        return parsed;
-      }
-      const savedV1 = localStorage.getItem('hukm_books_v1');
-      if (savedV1) {
-        const parsed = JSON.parse(savedV1);
-        localStorage.setItem('hukm_books_v3', JSON.stringify(parsed));
-        return parsed;
-      }
-    } catch {}
-    return INITIAL_BOOKS;
-  });
+  // Remove only obsolete catalogue caches. User reading progress, bookmarks and notes are preserved.
+  useEffect(() => {
+    for (const key of ['hukm_books_v1', 'hukm_books_v2', 'hukm_books_v3', 'hukm_categories_v1']) {
+      try { localStorage.removeItem(key); } catch {}
+    }
+  }, []);
 
   // Modals state
-  const [isNewBookOpen, setIsNewBookOpen] = useState(false);
-  const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
@@ -316,55 +276,7 @@ export default function App() {
     saveStoredNotifications(notifications);
   }, [notifications]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('hukm_books_v3', JSON.stringify(books));
-    } catch {}
-  }, [books]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('hukm_categories_v1', JSON.stringify(categories));
-    } catch {}
-  }, [categories]);
-
-  // After auth resolves, remove non-public cached data from this browser session for non-admins.
-  // This only changes local cache/state; it never deletes Firestore documents.
-  useEffect(() => {
-    if (authLoading || isActualAdminOrOwner) return;
-    setBooks((current) =>
-      current
-        .filter((book) => ['published', 'completed', 'ongoing', 'ready'].includes(book.status))
-        .map((book) => ({
-          ...book,
-          chapters: (book.chapters || []).filter((chapter) => chapter.status === 'ready'),
-        }))
-    );
-  }, [authLoading, isActualAdminOrOwner]);
-
-  // Initial Firestore Cloud Connection & Seed/Sync
-  useEffect(() => {
-    testFirestoreConnection();
-
-    // Pull or Seed Books (filtered to published for readers, unfiltered for admins)
-    fetchBooksFromFirestore(checkIsAdmin(currentUser)).then((remoteBooks) => {
-      if (remoteBooks !== null) {
-        const realBooks = remoteBooks.filter(
-          (b) => !['investigation-01', 'science-ai-01', 'history-01'].includes(b.id)
-        );
-        setBooks(realBooks);
-      }
-    });
-
-    // Pull or Seed Categories
-    fetchCategoriesFromFirestore().then((remoteCats) => {
-      if (remoteCats && remoteCats.length > 0) {
-        setCategories(remoteCats);
-      } else {
-        INITIAL_CATEGORIES.forEach((c) => saveCategoryToFirestore(c));
-      }
-    });
-  }, [currentUser]);
+remove Firestore catalog synchronization
 
   // Support direct deep link URL params (strictly for views/books, no role bypass)
   useEffect(() => {
@@ -385,15 +297,7 @@ export default function App() {
 
   // Client-side cache guard only; Firestore Rules remain the authoritative access control.
   // Do not render owner-cached drafts to readers while the public query is loading.
-  const accessibleBooks = isOwner
-    ? books
-    : books
-        .filter((book) => ['published', 'completed', 'ongoing', 'ready'].includes(book.status))
-        .map((book) => ({
-          ...book,
-          // Cached owner snapshots may contain embedded draft chapters; expose ready chapters only.
-          chapters: (book.chapters || []).filter((chapter) => chapter.status === 'ready'),
-        }));
+  const accessibleBooks = books;
 
   const currentBook = (selectedBookId
     ? accessibleBooks.find((book) => book.id === selectedBookId)
@@ -426,139 +330,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
-  const handleOpenWriter = (bookId?: string) => {
-    if (!isOwner) {
-      showToast('عذراً، استوديو التأليف مخصص للناشر الرسمي صاحب المنصة فقط.');
-      return;
-    }
-    if (bookId) setSelectedBookId(bookId);
-    setCurrentView('writer');
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  };
-
-  const handleUpdateBook = async (updatedBook: BookProject): Promise<boolean> => {
-    const success = await saveBookToFirestore(updatedBook);
-    if (success) {
-      setBooks((prev) =>
-        prev.map((b) => (b.id === updatedBook.id ? updatedBook : b))
-      );
-      showToast(`تم حفظ وتحديث كتاب «${updatedBook.title}» في السحابة بنجاح!`);
-      return true;
-    } else {
-      showToast(`فشل حفظ كتاب «${updatedBook.title}» في السحابة. لم نؤكد حفظ التعديلات محلياً؛ أبقِ النسخة الحالية مفتوحة وأعد المحاولة.`);
-      return false;
-    }
-  };
-
-  const handleCreateBook = async (newBook: BookProject): Promise<boolean> => {
-    const success = await saveBookToFirestore(newBook);
-    if (!success) {
-      showToast(`فشل حفظ كتاب «${newBook.title}» في السحابة. يرجى التحقق من الاتصال والمحاولة لاحقاً.`);
-      return false;
-    }
-
-    setBooks((prev) => [newBook, ...prev]);
-    setSelectedBookId(newBook.id);
-
-    const isPublished = ['published', 'completed', 'ongoing', 'ready'].includes(newBook.status);
-    const readyChapters = (newBook.chapters || []).filter((ch) => ch.status === 'ready');
-
-    // Only dispatch notification & email if book is actually published AND has at least one ready chapter!
-    if (isPublished && readyChapters.length > 0) {
-      // 1. Dispatch automatic notification for readers
-      const newNotif: AppNotification = {
-        id: `notif-${Date.now()}`,
-        title: `كتاب استقصائي جديد: ${newBook.title} 🏛️`,
-        message: newBook.subtitle || newBook.summary.slice(0, 90) + '...',
-        type: 'new_book',
-        timestamp: 'الآن',
-        read: false,
-        bookId: newBook.id,
-        targetRole: 'all',
-      };
-      setNotifications((prev) => [newNotif, ...prev]);
-
-      // 2. Dispatch royal branded email release to all active subscribers
-      const activeSubs = getStoredSubscribers().filter((s) => s.active);
-      if (activeSubs.length > 0) {
-        addEmailLog({
-          subject: `إصدار استقصائي جديد: ${newBook.title} | حُكم HUKM MEDIA`,
-          recipientCount: activeSubs.length,
-          timestamp: 'الآن',
-          type: 'new_release',
-          bookTitle: newBook.title,
-          previewHtml: generateNewReleaseEmailHtml(newBook, readyChapters[0]),
-          delivered: false, // Delivery status recorded honestly without false success claims
-        });
-      }
-    }
-
-    if (isPublished && readyChapters.length > 0) {
-      showToast(`تم نشر كتاب «${newBook.title}» ومزامنته سحابياً مع قاعدة البيانات! ☁️`);
-    } else {
-      showToast(`تم حفظ مسودة «${newBook.title}» في الاستوديو دون إتاحتها للقراء.`);
-    }
-    setCurrentView('writer');
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-    return true;
-  };
-
-  const handleDeleteBook = async (bookId: string): Promise<boolean> => {
-    const success = await deleteBookFromFirestore(bookId);
-    if (success) {
-      setBooks((prev) => prev.filter((b) => b.id !== bookId));
-      if (selectedBookId === bookId) {
-        setSelectedBookId('');
-      }
-      showToast('تم حذف العمل بنجاح.');
-      return true;
-    } else {
-      showToast('فشل حذف العمل من السحابة. لم يتم الحذف.');
-      return false;
-    }
-  };
-
-  // Views increment: when a real reader views a chapter, increment from the custom baseline!
+  // Catalogue view counters are session-only; book records are immutable source files.
   const handleChapterViewed = (chapterId: string) => {
     if (!currentBook) return;
-    setBooks((prev) =>
-      prev.map((b) => {
-        if (b.id === currentBook.id) {
-          const updated = incrementBookViews(b, chapterId);
-          saveBookToFirestore(updated);
-          return updated;
-        }
-        return b;
-      })
-    );
-  };
-
-  // Category management
-  const handleAddCategory = (newCat: { name: string; description?: string }) => {
-    setCategories((prev) => {
-      const updated = addCategory(prev, newCat);
-      const added = updated[updated.length - 1];
-      if (added) saveCategoryToFirestore(added);
-      return updated;
-    });
-    showToast(`تمت إضافة قسم «${newCat.name}» ومزامنته سحابياً!`);
-  };
-
-  const handleDeleteCategory = (categoryId: string) => {
-    const catName = categories.find((c) => c.id === categoryId)?.name;
-    setCategories((prev) => deleteCategory(prev, categoryId));
-    deleteCategoryFromFirestore(categoryId);
-    setBooks((prev) =>
-      prev.map((b) =>
-        b.category === categoryId
-          ? { ...b, category: categories.find((c) => c.id !== categoryId)?.id || 'general' }
-          : b
-      )
-    );
-    if (selectedCategoryId === categoryId) {
-      setSelectedCategoryId('all');
-    }
-    showToast(`تم حذف قسم «${catName || ''}» بنجاح.`);
+    setBooks((prev) => prev.map((book) =>
+      book.id === currentBook.id ? incrementBookViews(book, chapterId) : book
+    ));
   };
 
   // Helper to determine if a book is bookmarked (respects current user or guest)
@@ -626,9 +403,6 @@ export default function App() {
           ? 'تم تفعيل وضع معاينة القارئ 👁️ (تتصفح المنصة كما يراها الجمهور)'
           : 'تمت العودة إلى واجهة صاحب المنصة والناشر 👑 (صلاحيات كاملة)'
       );
-      if (next && currentView === 'writer') {
-        setCurrentView('home');
-      }
       return next;
     });
   };
@@ -639,9 +413,6 @@ export default function App() {
     setCurrentUser(null);
     setIsReaderPreviewMode(false);
     setGuestBookmarks(getStoredBookmarks());
-    if (currentView === 'writer') {
-      setCurrentView('home');
-    }
     showToast('تم تسجيل الخروج بنجاح.');
   };
 
@@ -693,21 +464,7 @@ export default function App() {
             }
             window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
           }}
-          onOpenNewBook={() => {
-            if (!isOwner) {
-              showToast('رفع الكتب مخصص لصاحب المنصة والناشر الرسمي.');
-              return;
-            }
-            setIsNewBookOpen(true);
-          }}
           onOpenSearch={() => setIsSearchOpen(true)}
-          onOpenManageCategories={() => {
-            if (!isOwner) {
-              showToast('إدارة الأقسام مخصصة لصاحب المنصة.');
-              return;
-            }
-            setIsManageCategoriesOpen(true);
-          }}
           onOpenAuthModal={(mode) => {
             setAuthModalMode(mode || 'login');
             setIsAuthModalOpen(true);
@@ -742,7 +499,6 @@ export default function App() {
               setCurrentView('home');
               window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
             }}
-            onOpenWriter={() => handleOpenWriter()}
             onShowToast={showToast}
             onLogout={handleLogout}
           />
@@ -753,7 +509,6 @@ export default function App() {
           <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-10">
             {/* 1. Hero Showcase */}
             <HukmHero
-              onOpenWriter={() => handleOpenWriter()}
               onExploreBooks={() => {
                 const el = document.getElementById('books-catalog');
                 el?.scrollIntoView({ behavior: 'smooth' });
@@ -912,7 +667,6 @@ export default function App() {
                       isBookmarked={checkIsBookmarked(book.id)}
                       onRead={() => handleOpenBookOverview(book.id)}
                       onQuickResume={(chapterId) => handleQuickResumeChapter(book.id, chapterId)}
-                      onEdit={isOwner ? () => handleOpenWriter(book.id) : undefined}
                       onToggleBookmark={() => handleToggleBookmark(book.id)}
                     />
                   ))}
@@ -973,36 +727,6 @@ export default function App() {
           </main>
         )}
 
-        {/* VIEW 2: BOOK WRITER STUDIO (Owner ONLY) */}
-        {currentView === 'writer' && (
-          isOwner ? (
-            <BookWriterStudio
-              books={books}
-              currentBook={currentBook}
-              currentUserId={currentUser?.id}
-              categories={categories}
-              onSelectBook={(bookId) => setSelectedBookId(bookId)}
-              onUpdateBook={handleUpdateBook}
-              onCreateBook={handleCreateBook}
-              onDeleteBook={handleDeleteBook}
-              onPreviewBook={(bookId, chId) => handleOpenReader(bookId, chId)}
-              onAddCategory={handleAddCategory}
-              onDeleteCategory={handleDeleteCategory}
-              onOpenAdminModal={() => setIsAdminManagementOpen(true)}
-            />
-          ) : (
-            <div className="p-12 text-center text-white" dir="rtl">
-              <p className="text-lg font-bold text-[#f0cb69]">عذراً، استوديو التأليف مخصص لصاحب المنصة والناشر الرسمي فقط.</p>
-              <button
-                onClick={() => setCurrentView('home')}
-                className="mt-4 rounded-xl bg-[#c59b27] px-4 py-2 text-xs font-bold text-[#070d1e]"
-              >
-                العودة إلى المعرض والمشاريع
-              </button>
-            </div>
-          )
-        )}
-
         {/* VIEW 2.5: BOOK OVERVIEW & CHAPTERS INDEX */}
         {currentView === 'overview' && (
           currentBook ? (
@@ -1014,7 +738,6 @@ export default function App() {
               isBookmarked={checkIsBookmarked(currentBook.id)}
               onBack={() => setCurrentView('home')}
               onSelectChapter={(chapterId) => handleOpenReader(currentBook.id, chapterId)}
-              onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
               onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
               onShowToast={showToast}
             />
@@ -1042,7 +765,6 @@ export default function App() {
               currentUser={currentUser}
               onBack={() => setCurrentView('home')}
               onOpenOverview={() => handleOpenBookOverview(currentBook.id)}
-              onOpenWriter={isOwner ? (bookId) => handleOpenWriter(bookId) : undefined}
               onChapterViewed={handleChapterViewed}
               onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
               onShowToast={showToast}
@@ -1060,28 +782,6 @@ export default function App() {
           )
         )}
       </div>
-
-      {/* New Book Modal (Owner only) */}
-      {isOwner && (
-        <NewBookModal
-          isOpen={isNewBookOpen}
-          onClose={() => setIsNewBookOpen(false)}
-          categories={categories}
-          onCreateBook={handleCreateBook}
-        />
-      )}
-
-      {/* Manage Categories Modal (Owner only) */}
-      {isOwner && (
-        <ManageCategoriesModal
-          isOpen={isManageCategoriesOpen}
-          onClose={() => setIsManageCategoriesOpen(false)}
-          categories={categories}
-          books={books}
-          onAddCategory={handleAddCategory}
-          onDeleteCategory={handleDeleteCategory}
-        />
-      )}
 
       {/* Instant Search Modal */}
       <HukmSearchModal
@@ -1160,11 +860,7 @@ export default function App() {
               setSelectedCategoryId(catId);
               setCurrentView('home');
             } else {
-              if (view === 'writer' && !isOwner) {
-                showToast('عذراً، استوديو التأليف مخصص لصاحب المنصة فقط.');
-                return;
-              }
-              setCurrentView(view);
+              setCurrentView(view === 'writer' ? 'home' : view);
             }
             window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
           }}
