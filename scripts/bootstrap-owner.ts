@@ -105,7 +105,7 @@ async function bootstrapOwner(): Promise<void> {
     throw new Error('Firebase Auth returned an unexpected email for the requested account. Refusing to continue.');
   }
 
-  const existingClaims = (ownerUser.customClaims || {}) as Record<string, unknown>;
+  let existingClaims = (ownerUser.customClaims || {}) as Record<string, unknown>;
   const bootstrapRef = db.collection('_system').doc('bootstrap');
   const ownerAdminRef = db.collection('admins').doc(ownerUser.uid);
   let reservationDecision: 'reserve' | 'resume' = 'reserve';
@@ -116,7 +116,11 @@ async function bootstrapOwner(): Promise<void> {
     const bootstrapSnap = await transaction.get(bootstrapRef);
     const ownerAdminSnap = await transaction.get(ownerAdminRef);
     const ownersSnap = await transaction.get(db.collection('admins').where('role', '==', 'owner'));
-    const registeredOwnerUids = ownersSnap.docs.map((doc) => String(doc.data().uid || doc.id));
+    const foundersSnap = await transaction.get(db.collection('admins').where('isFounder', '==', true));
+    const registeredOwnerUids = [...new Set([
+      ...ownersSnap.docs.map((doc) => String(doc.data().uid || doc.id)),
+      ...foundersSnap.docs.map((doc) => String(doc.data().uid || doc.id)),
+    ])];
 
     reservationDecision = decideOwnerBootstrap({
       bootstrapExists: bootstrapSnap.exists,
@@ -151,6 +155,14 @@ async function bootstrapOwner(): Promise<void> {
   });
 
   console.log(`Reservation secured: ${reservationDecision} for the verified target UID.`);
+
+  // Re-read Auth immediately before mutation to avoid acting on stale role claims.
+  const latestOwnerUser = await auth.getUser(ownerUser.uid);
+  if (!latestOwnerUser.emailVerified || latestOwnerUser.email?.trim().toLowerCase() !== ownerEmail) {
+    throw new Error('The target account changed or is no longer verified after reservation. Stop and inspect the pending lock.');
+  }
+  existingClaims = (latestOwnerUser.customClaims || {}) as Record<string, unknown>;
+  assertOwnerClaimCanBeAssigned(existingClaims.role, reservationDecision === 'resume');
 
   let ownerClaimAssignmentAttempted = false;
   try {
