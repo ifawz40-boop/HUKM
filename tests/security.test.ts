@@ -606,7 +606,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
         hasCatalogLink: true,
         hasAllCategoriesDropdown: true,
         hasBookmarksLink: isReader,
-        hasWriterStudioLink: isAdmin,
+        hasWriterStudioLink: isOwner,
         hasNewBookCTA: isAdmin,
         hasManageCategoriesCTA: isAdmin,
         hasAdminManagementCTA: isOwner,
@@ -635,10 +635,10 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(readerItems.hasAdminManagementCTA, false);
     });
 
-    it('Admin should see Catalog, Writer Studio, New Book, Manage Categories, but NOT Admin Management', () => {
+    it('Admin should see Catalog, New Book and Manage Categories, but NOT owner-only Writer Studio or Admin Management', () => {
       const adminItems = getNavbarItemsForRole('admin');
       assert.equal(adminItems.hasCatalogLink, true);
-      assert.equal(adminItems.hasWriterStudioLink, true);
+      assert.equal(adminItems.hasWriterStudioLink, false);
       assert.equal(adminItems.hasNewBookCTA, true);
       assert.equal(adminItems.hasManageCategoriesCTA, true);
       assert.equal(adminItems.hasAdminManagementCTA, false);
@@ -648,6 +648,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       const ownerItems = getNavbarItemsForRole('owner');
       assert.equal(ownerItems.hasCatalogLink, true);
       assert.equal(ownerItems.hasWriterStudioLink, true);
+      assert.match(navbarContent, /isEffectiveOwner && \([\s\S]*?onNavigate\('writer'\)/);
       assert.equal(ownerItems.hasNewBookCTA, true);
       assert.equal(ownerItems.hasManageCategoriesCTA, true);
       assert.equal(ownerItems.hasAdminManagementCTA, true);
