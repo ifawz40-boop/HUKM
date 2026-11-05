@@ -168,5 +168,13 @@ service cloud.firestore {
       allow update: if isSignedIn() && resource.data.userId == request.auth.uid && isValidReadingProgressUpdate();
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
+
+    // 9. Book Draft Chapters:
+    // Strictly confidential! Only verified Admins and Owner can read, create, update, or delete draft chapters.
+    // Public users have ZERO read or write access.
+    match /bookDraftChapters/{draftId} {
+      allow read, write: if isAdmin() && isValidId(draftId);
+    }
   }
 }
+

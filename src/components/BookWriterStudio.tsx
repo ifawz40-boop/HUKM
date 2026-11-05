@@ -54,9 +54,9 @@ interface BookWriterStudioProps {
   currentBook: BookProject | null;
   categories?: CategoryItem[];
   onSelectBook: (bookId: string) => void;
-  onUpdateBook: (updatedBook: BookProject) => void;
-  onCreateBook?: (newBook: BookProject) => void;
-  onDeleteBook?: (bookId: string) => void;
+  onUpdateBook: (updatedBook: BookProject) => void | Promise<boolean>;
+  onCreateBook?: (newBook: BookProject) => void | Promise<boolean>;
+  onDeleteBook?: (bookId: string) => void | Promise<boolean>;
   onPreviewBook: (bookId: string, chapterId?: string) => void;
   onAddCategory?: (category: { name: string; description?: string }) => void;
   onDeleteCategory?: (categoryId: string) => void;
@@ -78,6 +78,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'novels' | 'editor' | 'categories'>('novels');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
   // Novel Creation / Editing Modal State
   const [isNovelModalOpen, setIsNovelModalOpen] = useState(false);
@@ -102,8 +103,9 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   const [chapterContent, setChapterContent] = useState(
     currentChapter ? currentChapter.content.join('\n\n') : ''
   );
+  // Default status for chapters is 'draft' for safety
   const [chapterStatus, setChapterStatus] = useState<'draft' | 'ready'>(
-    currentChapter?.status || 'ready'
+    currentChapter?.status || 'draft'
   );
 
   // New Category State
@@ -113,9 +115,14 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
 
-  const showNotification = (msg: string) => {
-    setSaveSuccessMsg(msg);
-    setTimeout(() => setSaveSuccessMsg(null), 3000);
+  const showNotification = (msg: string, isError: boolean = false) => {
+    if (isError) {
+      setSaveErrorMsg(msg);
+      setTimeout(() => setSaveErrorMsg(null), 4000);
+    } else {
+      setSaveSuccessMsg(msg);
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
+    }
   };
 
   // Sync state when current chapter changes
@@ -129,11 +136,26 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   };
 
   // Save current chapter
-  const handleSaveChapter = () => {
+  const handleSaveChapter = async () => {
     if (!currentBook) return;
 
     if (!chapterTitle.trim()) {
       alert('يرجى إدخال عنوان الفصل.');
+      return;
+    }
+
+    const chNum = Number(chapterNumber);
+    if (!Number.isInteger(chNum) || chNum <= 0) {
+      alert('يرجى إدخال رقم فصل صحيح أكبر من صفر.');
+      return;
+    }
+
+    // Validate chapter number uniqueness within this book
+    const duplicateChapter = (currentBook.chapters || []).find(
+      (ch) => ch.chapterNumber === chNum && ch.id !== (currentChapter?.id || '')
+    );
+    if (duplicateChapter) {
+      alert(`رقم الفصل ${chNum} مستخدم بالفعل في هذا العمل للفصل «${duplicateChapter.title}». يرجى استخدام رقم غير مكرر.`);
       return;
     }
 
@@ -142,20 +164,26 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       .map((p) => p.trim())
       .filter((p) => p.length > 0);
 
+    // Publishing integrity validation: Ready chapters MUST have non-empty content!
+    if (chapterStatus === 'ready' && paragraphs.length === 0) {
+      alert('لا يمكن اعتماد الفصل كـ جاهز للقراءة (ready) بدون محتوى حقيقي. يرجى كتابة نص الفصل أو حفظه كـ مسودة (draft).');
+      return;
+    }
+
     const words = calculateWordsCount(paragraphs);
     const readingTime = calculateReadingTimeMinutes(words);
 
     let updatedChapters: BookChapter[];
 
     if (currentChapter) {
-      // Update existing chapter
+      // Update existing chapter (no fake placeholder text)
       updatedChapters = currentBook.chapters.map((ch) =>
         ch.id === currentChapter.id
           ? {
               ...ch,
-              chapterNumber,
+              chapterNumber: chNum,
               title: chapterTitle.trim(),
-              content: paragraphs.length > 0 ? paragraphs : ['محتوى الفصل قيد الكتابة...'],
+              content: paragraphs,
               status: chapterStatus,
               wordCount: words,
               readingTimeMinutes: readingTime,
@@ -168,9 +196,9 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       const newCh: BookChapter = {
         id: `ch-${Date.now()}`,
         bookId: currentBook.id,
-        chapterNumber,
+        chapterNumber: chNum,
         title: chapterTitle.trim(),
-        content: paragraphs.length > 0 ? paragraphs : ['محتوى الفصل قيد الكتابة...'],
+        content: paragraphs,
         status: chapterStatus,
         wordCount: words,
         readingTimeMinutes: readingTime,
@@ -181,7 +209,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       setSelectedChapterId(newCh.id);
     }
 
-    // Sort chapters by chapterNumber
+    // Sort chapters by chapterNumber ascending
     updatedChapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
 
     const updatedBook: BookProject = {
@@ -190,24 +218,32 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
-    onUpdateBook(updatedBook);
-    showNotification('تم حفظ ونشر الفصل بنجاح ومزامنته سحابياً ✓');
+    try {
+      const result = await onUpdateBook(updatedBook);
+      if (result === false) {
+        showNotification('فشل حفظ الفصل في السحابة. تم الاحتفاظ بتعديلاتك في المحرر.', true);
+        return;
+      }
+      showNotification('تم حفظ وتحديث الفصل بنجاح ومزامنته سحابياً ✓');
+    } catch (err: any) {
+      showNotification('حدث خطأ أثناء حفظ الفصل. تم الاحتفاظ بالبيانات محلياً.', true);
+    }
   };
 
-  // Add new chapter trigger
+  // Add new chapter trigger: defaults strictly to 'draft' and clean empty content
   const handleCreateNewChapter = () => {
     if (!currentBook) return;
     const nextNumber = currentBook.chapters.length + 1;
     setSelectedChapterId('');
     setChapterNumber(nextNumber);
-    setChapterTitle(`الفصل ${nextNumber}: عنوان الفصل الجديد`);
-    setChapterContent('اكتب نص الفصل هنا...\n\nيمكنك لصق نصوص كاملة أو فصول مفرغة مباشرة.');
-    setChapterStatus('ready');
+    setChapterTitle(`الفصل ${nextNumber}`);
+    setChapterContent('');
+    setChapterStatus('draft'); // Default status must be draft!
     setActiveTab('editor');
   };
 
   // Delete chapter
-  const handleDeleteChapter = (chId: string) => {
+  const handleDeleteChapter = async (chId: string) => {
     if (!currentBook) return;
     if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الفصل؟')) return;
 
@@ -217,17 +253,26 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       chapters: remaining,
       updatedAt: new Date().toISOString(),
     };
-    onUpdateBook(updatedBook);
-    if (selectedChapterId === chId) {
-      if (remaining.length > 0) {
-        handleSelectChapter(remaining[0]);
-      } else {
-        setSelectedChapterId('');
-        setChapterTitle('');
-        setChapterContent('');
+
+    try {
+      const result = await onUpdateBook(updatedBook);
+      if (result === false) {
+        showNotification('فشل حذف الفصل من السحابة.', true);
+        return;
       }
+      if (selectedChapterId === chId) {
+        if (remaining.length > 0) {
+          handleSelectChapter(remaining[0]);
+        } else {
+          setSelectedChapterId('');
+          setChapterTitle('');
+          setChapterContent('');
+        }
+      }
+      showNotification('تم حذف الفصل بنجاح.');
+    } catch (err: any) {
+      showNotification('حدث خطأ أثناء حذف الفصل.', true);
     }
-    showNotification('تم حذف الفصل بنجاح.');
   };
 
   // Open Novel Modal for Create
@@ -255,7 +300,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   };
 
   // Save Novel (Create or Edit)
-  const handleSaveNovel = (e: React.FormEvent) => {
+  const handleSaveNovel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novelTitle.trim()) {
       alert('يرجى إدخال عنوان الرواية / العمل.');
@@ -276,7 +321,11 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
           summary: novelSummary.trim(),
           updatedAt: new Date().toISOString(),
         };
-        onUpdateBook(updated);
+        const res = await onUpdateBook(updated);
+        if (res === false) {
+          showNotification('فشل تحديث بيانات العمل في السحابة.', true);
+          return;
+        }
         showNotification('تم تحديث بيانات العمل بنجاح ✓');
       }
     } else {
@@ -295,10 +344,15 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      let res;
       if (onCreateBook) {
-        onCreateBook(newBook);
+        res = await onCreateBook(newBook);
       } else {
-        onUpdateBook(newBook);
+        res = await onUpdateBook(newBook);
+      }
+      if (res === false) {
+        showNotification('فشل حفظ العمل الجديد في السحابة.', true);
+        return;
       }
       onSelectBook(newBook.id);
       showNotification('تم إنشاء العمل بنجاح! يمكنك الآن كتابة الفصول الأولى.');
@@ -307,10 +361,14 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   };
 
   // Delete Novel
-  const handleDeleteNovel = (bookId: string) => {
+  const handleDeleteNovel = async (bookId: string) => {
     if (!confirm('تحذير: هل أنت متأكد من حذف هذا العمل وكافة فصوله نهائياً؟')) return;
     if (onDeleteBook) {
-      onDeleteBook(bookId);
+      const res = await onDeleteBook(bookId);
+      if (res === false) {
+        showNotification('فشل حذف العمل من السحابة.', true);
+        return;
+      }
     }
     showNotification('تم حذف العمل بنجاح.');
   };
@@ -408,6 +466,14 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         <div className="fixed bottom-6 left-6 z-50 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-3 text-xs font-bold text-white shadow-2xl flex items-center gap-2 animate-bounce">
           <CheckCircle className="h-4 w-4" />
           <span>{saveSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Floating Error Toast */}
+      {saveErrorMsg && (
+        <div className="fixed bottom-6 left-6 z-50 rounded-2xl bg-gradient-to-r from-rose-600 to-red-700 px-5 py-3 text-xs font-bold text-white shadow-2xl flex items-center gap-2 animate-bounce">
+          <AlertCircle className="h-4 w-4" />
+          <span>{saveErrorMsg}</span>
         </div>
       )}
 

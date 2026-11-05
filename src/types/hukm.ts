@@ -24,6 +24,10 @@ export interface BookChapter {
   updatedAt: string;
 }
 
+export interface BookDraftChapter extends BookChapter {
+  bookId: string;
+}
+
 export type MediaType = 'image' | 'gif' | 'video';
 
 export interface ChapterMedia {

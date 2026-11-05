@@ -241,13 +241,24 @@ export default function App() {
     return INITIAL_CATEGORIES;
   });
 
-  // Books data: purged of mock books to start pristine with official publications
+  // Books data: safe migration from v1/v2 to v3 without destructive deletion
   const [books, setBooks] = useState<BookProject[]>(() => {
     try {
-      localStorage.removeItem('hukm_books_v2');
-      localStorage.removeItem('hukm_books_v1');
-      const saved = localStorage.getItem('hukm_books_v3');
-      if (saved) return JSON.parse(saved);
+      const savedV3 = localStorage.getItem('hukm_books_v3');
+      if (savedV3) return JSON.parse(savedV3);
+      // Non-destructive fallback migration
+      const savedV2 = localStorage.getItem('hukm_books_v2');
+      if (savedV2) {
+        const parsed = JSON.parse(savedV2);
+        localStorage.setItem('hukm_books_v3', JSON.stringify(parsed));
+        return parsed;
+      }
+      const savedV1 = localStorage.getItem('hukm_books_v1');
+      if (savedV1) {
+        const parsed = JSON.parse(savedV1);
+        localStorage.setItem('hukm_books_v3', JSON.stringify(parsed));
+        return parsed;
+      }
     } catch {}
     return INITIAL_BOOKS;
   });
@@ -315,13 +326,11 @@ export default function App() {
 
     // Pull or Seed Books (filtered to published for readers, unfiltered for admins)
     fetchBooksFromFirestore(checkIsAdmin(currentUser)).then((remoteBooks) => {
-      if (remoteBooks && remoteBooks.length > 0) {
+      if (remoteBooks !== null) {
         const realBooks = remoteBooks.filter(
           (b) => !['investigation-01', 'science-ai-01', 'history-01'].includes(b.id)
         );
-        if (realBooks.length > 0) {
-          setBooks(realBooks);
-        }
+        setBooks(realBooks);
       }
     });
 
@@ -378,56 +387,82 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
-  const handleUpdateBook = (updatedBook: BookProject) => {
-    setBooks((prev) =>
-      prev.map((b) => (b.id === updatedBook.id ? updatedBook : b))
-    );
-    saveBookToFirestore(updatedBook);
-    showToast(`تم حفظ وتحديث كتاب «${updatedBook.title}» في السحابة بنجاح!`);
+  const handleUpdateBook = async (updatedBook: BookProject): Promise<boolean> => {
+    const success = await saveBookToFirestore(updatedBook);
+    if (success) {
+      setBooks((prev) =>
+        prev.map((b) => (b.id === updatedBook.id ? updatedBook : b))
+      );
+      showToast(`تم حفظ وتحديث كتاب «${updatedBook.title}» في السحابة بنجاح!`);
+      return true;
+    } else {
+      showToast(`فشل حفظ كتاب «${updatedBook.title}» في السحابة. تم الاحتفاظ بالتعديلات محلياً.`);
+      return false;
+    }
   };
 
-  const handleCreateBook = (newBook: BookProject) => {
+  const handleCreateBook = async (newBook: BookProject): Promise<boolean> => {
+    const success = await saveBookToFirestore(newBook);
+    if (!success) {
+      showToast(`فشل حفظ كتاب «${newBook.title}» في السحابة. يرجى التحقق من الاتصال والمحاولة لاحقاً.`);
+      return false;
+    }
+
     setBooks((prev) => [newBook, ...prev]);
     setSelectedBookId(newBook.id);
-    saveBookToFirestore(newBook);
 
-    // 1. Dispatch automatic notification for readers
-    const newNotif: AppNotification = {
-      id: `notif-${Date.now()}`,
-      title: `كتاب استقصائي جديد: ${newBook.title} 🏛️`,
-      message: newBook.subtitle || newBook.summary.slice(0, 90) + '...',
-      type: 'new_book',
-      timestamp: 'الآن',
-      read: false,
-      bookId: newBook.id,
-      targetRole: 'all',
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
+    const isPublished = ['published', 'completed', 'ongoing', 'ready'].includes(newBook.status);
+    const readyChapters = (newBook.chapters || []).filter((ch) => ch.status === 'ready');
 
-    // 2. Dispatch royal branded email release to all active subscribers
-    const activeSubs = getStoredSubscribers().filter((s) => s.active);
-    addEmailLog({
-      subject: `إصدار استقصائي جديد: ${newBook.title} | حُكم HUKM MEDIA`,
-      recipientCount: activeSubs.length,
-      timestamp: 'الآن',
-      type: 'new_release',
-      bookTitle: newBook.title,
-      previewHtml: generateNewReleaseEmailHtml(newBook, newBook.chapters[0]),
-      delivered: true,
-    });
+    // Only dispatch notification & email if book is actually published AND has at least one ready chapter!
+    if (isPublished && readyChapters.length > 0) {
+      // 1. Dispatch automatic notification for readers
+      const newNotif: AppNotification = {
+        id: `notif-${Date.now()}`,
+        title: `كتاب استقصائي جديد: ${newBook.title} 🏛️`,
+        message: newBook.subtitle || newBook.summary.slice(0, 90) + '...',
+        type: 'new_book',
+        timestamp: 'الآن',
+        read: false,
+        bookId: newBook.id,
+        targetRole: 'all',
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+
+      // 2. Dispatch royal branded email release to all active subscribers
+      const activeSubs = getStoredSubscribers().filter((s) => s.active);
+      if (activeSubs.length > 0) {
+        addEmailLog({
+          subject: `إصدار استقصائي جديد: ${newBook.title} | حُكم HUKM MEDIA`,
+          recipientCount: activeSubs.length,
+          timestamp: 'الآن',
+          type: 'new_release',
+          bookTitle: newBook.title,
+          previewHtml: generateNewReleaseEmailHtml(newBook, readyChapters[0]),
+          delivered: false, // Delivery status recorded honestly without false success claims
+        });
+      }
+    }
 
     showToast(`تم نشر كتاب «${newBook.title}» ومزامنته سحابياً مع قاعدة البيانات! ☁️`);
     setCurrentView('writer');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    return true;
   };
 
-  const handleDeleteBook = (bookId: string) => {
-    setBooks((prev) => prev.filter((b) => b.id !== bookId));
-    deleteBookFromFirestore(bookId);
-    if (selectedBookId === bookId) {
-      setSelectedBookId('');
+  const handleDeleteBook = async (bookId: string): Promise<boolean> => {
+    const success = await deleteBookFromFirestore(bookId);
+    if (success) {
+      setBooks((prev) => prev.filter((b) => b.id !== bookId));
+      if (selectedBookId === bookId) {
+        setSelectedBookId('');
+      }
+      showToast('تم حذف العمل بنجاح.');
+      return true;
+    } else {
+      showToast('فشل حذف العمل من السحابة. لم يتم الحذف.');
+      return false;
     }
-    showToast('تم حذف العمل بنجاح.');
   };
 
   const handleCreateSampleNovel = () => {

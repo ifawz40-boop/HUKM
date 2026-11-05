@@ -115,6 +115,27 @@
         "updatedAt": { "type": "string", "maxLength": 64 }
       },
       "required": ["userId", "bookId", "chapterId"]
+    },
+    "BookDraftChapter": {
+      "title": "BookDraftChapter",
+      "description": "Confidential isolated draft chapter inaccessible to public readers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "bookId": { "type": "string", "maxLength": 128 },
+        "chapterNumber": { "type": "number" },
+        "title": { "type": "string", "maxLength": 256 },
+        "subtitle": { "type": "string", "maxLength": 512 },
+        "content": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string", "maxLength": 4096 },
+        "references": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["draft"] },
+        "wordCount": { "type": "number" },
+        "readingTimeMinutes": { "type": "number" },
+        "viewsCount": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "bookId", "title", "status"]
     }
   },
   "firestore": {
@@ -145,6 +166,11 @@
     "/readingProgress/{progressId}": {
       "schema": { "$ref": "#/entities/ReadingProgress" },
       "description": "Reading progress registry per user."
+    },
+    "/bookDraftChapters/{draftId}": {
+      "schema": { "$ref": "#/entities/BookDraftChapter" },
+      "description": "Isolated draft chapters collection accessible exclusively to verified administrators."
     }
   }
 }
+

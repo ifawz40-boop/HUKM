@@ -10,10 +10,11 @@ import {
   query,
   where,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { signInWithPopup } from 'firebase/auth';
 import { db, auth, googleProvider, handleFirestoreError, OperationType } from './config';
-import { BookProject, CategoryItem, ReadingProgress, ReadingProgressRecord } from '../types/hukm';
+import { BookProject, BookChapter, BookDraftChapter, CategoryItem, ReadingProgress, ReadingProgressRecord } from '../types/hukm';
 import { AdminAccount, BannedAccount, HukmSubscriber } from '../types/auth';
 
 // ----------------------------------------------------
@@ -36,15 +37,31 @@ export async function loginWithFirebaseGoogle(): Promise<{ email: string; name: 
 }
 
 // ----------------------------------------------------
-// BOOKS COLLECTION
+// BOOKS & DRAFT CHAPTERS ISOLATION
 // ----------------------------------------------------
 
+/**
+ * Format a stable, rules-compliant document ID for isolated draft chapters.
+ * Pattern: draft_<bookId>_<chapterId> sanitized to [a-zA-Z0-9_-], max 128 chars.
+ */
+export function formatDraftChapterId(bookId: string, chapterId: string): string {
+  const raw = `draft_${bookId}_${chapterId}`;
+  return raw.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 128);
+}
+
+/**
+ * Fetch books from Firestore.
+ * - If adminUser: queries all books, retrieves isolated drafts from /bookDraftChapters,
+ *   merges them into their respective books, and sorts chapters by chapterNumber ascending.
+ * - If reader / public: queries only published books and filters chapters strictly to 'ready'.
+ *   Drafts collection is never queried.
+ */
 export async function fetchBooksFromFirestore(isAdminUser: boolean = false): Promise<BookProject[] | null> {
   const path = 'books';
   try {
     let q;
     if (isAdminUser) {
-      // Admins and Owner can query all books including drafts
+      // Admins and Owner can query all books
       q = collection(db, path);
     } else {
       // Public and reader queries strictly filter published statuses to comply with firestore.rules
@@ -55,10 +72,69 @@ export async function fetchBooksFromFirestore(isAdminUser: boolean = false): Pro
     }
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
+
     const books: BookProject[] = [];
     snapshot.forEach((d) => {
       books.push(d.data() as BookProject);
     });
+
+    if (isAdminUser) {
+      // For administrators: fetch isolated draft chapters and re-merge
+      try {
+        const draftsSnapshot = await getDocs(collection(db, 'bookDraftChapters'));
+        const draftsByBookId = new Map<string, BookChapter[]>();
+
+        draftsSnapshot.forEach((d) => {
+          const draftData = d.data();
+          const draftChapter: BookChapter = {
+            id: draftData.chapterId || draftData.id.replace(new RegExp(`^draft_${draftData.bookId}_`), ''),
+            bookId: draftData.bookId,
+            chapterNumber: typeof draftData.chapterNumber === 'number' ? draftData.chapterNumber : 1,
+            title: draftData.title || '',
+            subtitle: draftData.subtitle || '',
+            content: Array.isArray(draftData.content) ? draftData.content : [],
+            notes: draftData.notes || '',
+            references: Array.isArray(draftData.references) ? draftData.references : [],
+            status: 'draft',
+            wordCount: typeof draftData.wordCount === 'number' ? draftData.wordCount : 0,
+            readingTimeMinutes: typeof draftData.readingTimeMinutes === 'number' ? draftData.readingTimeMinutes : 1,
+            viewsCount: typeof draftData.viewsCount === 'number' ? draftData.viewsCount : 0,
+            updatedAt: draftData.updatedAt || new Date().toISOString(),
+          };
+
+          const existing = draftsByBookId.get(draftChapter.bookId) || [];
+          existing.push(draftChapter);
+          draftsByBookId.set(draftChapter.bookId, existing);
+        });
+
+        // Merge drafts into each book
+        for (const book of books) {
+          const bookDrafts = draftsByBookId.get(book.id) || [];
+          const existingReadyChapters = (book.chapters || []).filter((ch) => ch.status === 'ready');
+          
+          // Also handle legacy embedded drafts by deduplicating against isolated drafts
+          const combinedMap = new Map<string, BookChapter>();
+          for (const ch of existingReadyChapters) {
+            combinedMap.set(ch.id, ch);
+          }
+          for (const draft of bookDrafts) {
+            combinedMap.set(draft.id, draft);
+          }
+          // Sort by chapterNumber ascending
+          book.chapters = Array.from(combinedMap.values()).sort(
+            (a, b) => a.chapterNumber - b.chapterNumber
+          );
+        }
+      } catch (draftErr) {
+        console.warn('Could not fetch book draft chapters (or permissions denied):', draftErr);
+      }
+    } else {
+      // Public / readers: strictly filter each book's chapters to ready only
+      for (const book of books) {
+        book.chapters = (book.chapters || []).filter((ch) => ch.status === 'ready');
+      }
+    }
+
     return books;
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, path);
@@ -66,21 +142,116 @@ export async function fetchBooksFromFirestore(isAdminUser: boolean = false): Pro
   }
 }
 
-export async function saveBookToFirestore(book: BookProject): Promise<void> {
+/**
+ * Atomically saves a book and isolates draft chapters.
+ * - Ready chapters remain in books/{bookId}.chapters
+ * - Draft chapters are stripped from books/{bookId}.chapters and saved to /bookDraftChapters/{draftId}
+ * - Promoted or deleted chapters are removed from /bookDraftChapters
+ * Returns Promise<boolean> explicitly.
+ */
+export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
   const path = `books/${book.id}`;
   try {
-    await setDoc(doc(db, 'books', book.id), book, { merge: true });
+    const allChapters = book.chapters || [];
+    const readyChapters = allChapters.filter((ch) => ch.status === 'ready');
+    const draftChapters = allChapters.filter((ch) => ch.status === 'draft');
+
+    const batch = writeBatch(db);
+
+    // 1. Fetch existing drafts for this book to clean up promoted/removed drafts
+    try {
+      const existingDraftsQ = query(
+        collection(db, 'bookDraftChapters'),
+        where('bookId', '==', book.id)
+      );
+      const existingDraftsSnap = await getDocs(existingDraftsQ);
+      const currentDraftIds = new Set(
+        draftChapters.map((d) => formatDraftChapterId(book.id, d.id))
+      );
+
+      existingDraftsSnap.forEach((docSnap) => {
+        if (!currentDraftIds.has(docSnap.id)) {
+          // Chapter was promoted to ready or deleted; remove from draft chapters collection
+          batch.delete(docSnap.ref);
+        }
+      });
+    } catch (queryErr) {
+      console.warn('Could not query existing book drafts for cleanup:', queryErr);
+    }
+
+    // 2. Write all active draft chapters into /bookDraftChapters/{draftId}
+    for (const draft of draftChapters) {
+      const draftId = formatDraftChapterId(book.id, draft.id);
+      const draftRef = doc(db, 'bookDraftChapters', draftId);
+      const draftPayload: Record<string, any> = {
+        id: draftId,
+        bookId: book.id,
+        chapterId: draft.id,
+        chapterNumber: draft.chapterNumber,
+        title: draft.title,
+        subtitle: draft.subtitle || '',
+        content: Array.isArray(draft.content) ? draft.content : [],
+        notes: draft.notes || '',
+        references: Array.isArray(draft.references) ? draft.references : [],
+        status: 'draft',
+        wordCount: draft.wordCount || 0,
+        readingTimeMinutes: draft.readingTimeMinutes || 1,
+        viewsCount: draft.viewsCount || 0,
+        updatedAt: draft.updatedAt || new Date().toISOString(),
+      };
+      batch.set(draftRef, draftPayload, { merge: true });
+    }
+
+    // 3. Write book document with ONLY ready chapters in books/{bookId}
+    const bookRef = doc(db, 'books', book.id);
+    const bookPayload: Record<string, any> = {
+      ...book,
+      chapters: readyChapters,
+      updatedAt: new Date().toISOString(),
+    };
+    batch.set(bookRef, bookPayload, { merge: true });
+
+    // 4. Commit batch atomically
+    await batch.commit();
+    return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
-export async function deleteBookFromFirestore(bookId: string): Promise<void> {
+/**
+ * Atomically deletes a book and all associated draft chapters in /bookDraftChapters.
+ * Returns Promise<boolean> explicitly.
+ */
+export async function deleteBookFromFirestore(bookId: string): Promise<boolean> {
   const path = `books/${bookId}`;
   try {
-    await deleteDoc(doc(db, 'books', bookId));
+    const batch = writeBatch(db);
+
+    // 1. Delete main book document
+    batch.delete(doc(db, 'books', bookId));
+
+    // 2. Find and delete all draft chapters belonging to this book
+    try {
+      const existingDraftsQ = query(
+        collection(db, 'bookDraftChapters'),
+        where('bookId', '==', bookId)
+      );
+      const existingDraftsSnap = await getDocs(existingDraftsQ);
+      existingDraftsSnap.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+    } catch (queryErr) {
+      console.warn('Could not query drafts to delete for book:', bookId, queryErr);
+    }
+
+    // 3. Commit atomic deletion
+    await batch.commit();
+    return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
+    return false;
   }
 }
 
