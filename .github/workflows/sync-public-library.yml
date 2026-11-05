@@ -1,4 +1,4 @@
-name: Sync curated Arabic public-domain library
+name: Sync rights-cleared full Arabic books
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/library/books src/data/library/NOTICE.md
+          git add src/data/library/books src/data/library/catalog.json src/data/library/NOTICE.md
           if git diff --cached --quiet; then
             echo "No generated library changes."
             exit 0
