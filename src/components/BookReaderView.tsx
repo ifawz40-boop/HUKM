@@ -243,6 +243,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [selectedTextDraft, setSelectedTextDraft] = useState('');
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
   const [selectedAnnotationChapterId, setSelectedAnnotationChapterId] = useState<string | null>(null);
+  const [selectedAnnotationOwnerId, setSelectedAnnotationOwnerId] = useState<string | null>(null);
   const [selectedStartOffset, setSelectedStartOffset] = useState(0);
   const [selectedEndOffset, setSelectedEndOffset] = useState(0);
   const [annotationNoteDraft, setAnnotationNoteDraft] = useState('');
@@ -282,6 +283,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     setSelectedTextDraft('');
     setSelectedParagraphIndex(null);
     setSelectedAnnotationChapterId(null);
+    setSelectedAnnotationOwnerId(null);
     const userId = currentUser?.id;
     const localForChapter = getReaderAnnotationsForChapter(book.id, currentChapter.id, userId);
     setReaderAnnotations(localForChapter);
@@ -723,6 +725,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     setSelectedTextDraft(selectedText);
     setSelectedParagraphIndex(paragraphIndex);
     setSelectedAnnotationChapterId(currentChapter?.id || null);
+    setSelectedAnnotationOwnerId(currentUser?.id || null);
     setSelectedStartOffset(startOffset);
     setSelectedEndOffset(endOffset);
     setAnnotationNoteDraft('');
@@ -731,7 +734,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   };
 
   const handleSaveAnnotation = async () => {
-    if (!currentChapter || selectedAnnotationChapterId !== currentChapter.id || selectedParagraphIndex === null || !selectedTextDraft) return;
+    if (!currentChapter || selectedAnnotationChapterId !== currentChapter.id || selectedAnnotationOwnerId !== (currentUser?.id || null) || selectedParagraphIndex === null || !selectedTextDraft) return;
     setIsSavingAnnotation(true);
     if (visibleReaderAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
       setIsSavingAnnotation(false);
@@ -1327,7 +1330,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           </section>
         )}
 
-        {isAnnotationEditorOpen && selectedAnnotationChapterId === currentChapter?.id && (
+        {isAnnotationEditorOpen && selectedAnnotationChapterId === currentChapter?.id && selectedAnnotationOwnerId === (currentUser?.id || null) && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="presentation">
             <div role="dialog" aria-modal="true" aria-labelledby="reader-annotation-title" className="w-full max-w-xl rounded-2xl border border-[#c59b27]/35 bg-[#0a1226] p-5 sm:p-6 text-white shadow-2xl space-y-4" dir="rtl">
               <div className="flex items-center justify-between gap-3">
