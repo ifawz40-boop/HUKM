@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { signInWithPopup } from 'firebase/auth';
 import { db, auth, googleProvider, handleFirestoreError, OperationType } from './config';
-import { BookProject, BookChapter, BookDraftChapter, CategoryItem, ReadingProgress, ReadingProgressRecord } from '../types/hukm';
+import { BookProject, BookChapter, BookDraftChapter, CategoryItem, ReadingProgress, ReadingProgressRecord, ReaderAnnotation } from '../types/hukm';
 import { AdminAccount, BannedAccount, HukmSubscriber } from '../types/auth';
 
 // ----------------------------------------------------
@@ -711,3 +711,124 @@ export async function uploadGuestReadingProgressToFirestore(
   return allSucceeded;
 }
 
+
+
+// ----------------------------------------------------
+// READER ANNOTATIONS — PRIVATE PER-USER SUBCOLLECTIONS
+// ----------------------------------------------------
+
+function isSafeAnnotationSegment(value: string): boolean {
+  return Boolean(value) && value.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(value);
+}
+
+function getReaderAnnotationCollection(userId: string, bookId: string, chapterId: string) {
+  return collection(db, 'users', userId, 'readerAnnotations', bookId, 'chapters', chapterId, 'items');
+}
+
+export async function fetchReaderAnnotationsFromFirestore(
+  userId: string,
+  bookId: string,
+  chapterId: string
+): Promise<ReaderAnnotation[] | null> {
+  if (
+    !userId ||
+    auth.currentUser?.uid !== userId ||
+    !isSafeAnnotationSegment(bookId) ||
+    !isSafeAnnotationSegment(chapterId)
+  ) return null;
+
+  const path = `users/${userId}/readerAnnotations/${bookId}/chapters/${chapterId}/items`;
+  try {
+    const snapshot = await getDocs(getReaderAnnotationCollection(userId, bookId, chapterId));
+    return snapshot.docs.map((item) => ({
+      ...item.data(),
+      syncStatus: 'synced',
+    } as ReaderAnnotation));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return null;
+  }
+}
+
+export async function saveReaderAnnotationToFirestore(
+  annotation: ReaderAnnotation
+): Promise<boolean> {
+  const userId = annotation.userId || '';
+  if (
+    !userId ||
+    auth.currentUser?.uid !== userId ||
+    !isSafeAnnotationSegment(annotation.id) ||
+    !isSafeAnnotationSegment(annotation.bookId) ||
+    !isSafeAnnotationSegment(annotation.chapterId) ||
+    !Number.isInteger(annotation.paragraphIndex) ||
+    annotation.paragraphIndex < 0 ||
+    !Number.isInteger(annotation.startOffset) ||
+    !Number.isInteger(annotation.endOffset) ||
+    annotation.startOffset < 0 ||
+    annotation.endOffset <= annotation.startOffset ||
+    annotation.selectedText.length === 0 ||
+    annotation.selectedText.length > 2000 ||
+    annotation.endOffset - annotation.startOffset !== annotation.selectedText.length ||
+    typeof annotation.note !== 'string' ||
+    annotation.note.length > 2000 ||
+    !['gold', 'green', 'blue', 'rose'].includes(annotation.color)
+  ) return false;
+
+  const path = `users/${userId}/readerAnnotations/${annotation.bookId}/chapters/${annotation.chapterId}/items/${annotation.id}`;
+  try {
+    const annotationRef = doc(
+      db,
+      'users', userId,
+      'readerAnnotations', annotation.bookId,
+      'chapters', annotation.chapterId,
+      'items', annotation.id
+    );
+    await setDoc(annotationRef, {
+      id: annotation.id,
+      userId,
+      bookId: annotation.bookId,
+      chapterId: annotation.chapterId,
+      paragraphIndex: annotation.paragraphIndex,
+      startOffset: annotation.startOffset,
+      endOffset: annotation.endOffset,
+      selectedText: annotation.selectedText,
+      note: annotation.note,
+      color: annotation.color,
+      createdAt: annotation.createdAt,
+      updatedAt: annotation.updatedAt,
+    }, { merge: true });
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+export async function deleteReaderAnnotationFromFirestore(
+  userId: string,
+  annotation: Pick<ReaderAnnotation, 'id' | 'bookId' | 'chapterId'>
+): Promise<boolean> {
+  if (
+    !userId ||
+    auth.currentUser?.uid !== userId ||
+    !isSafeAnnotationSegment(annotation.id) ||
+    !isSafeAnnotationSegment(annotation.bookId) ||
+    !isSafeAnnotationSegment(annotation.chapterId)
+  ) return false;
+
+  const path = `users/${userId}/readerAnnotations/${annotation.bookId}/chapters/${annotation.chapterId}/items/${annotation.id}`;
+  try {
+    const annotationRef = doc(
+      db,
+      'users', userId,
+      'readerAnnotations', annotation.bookId,
+      'chapters', annotation.chapterId,
+      'items', annotation.id
+    );
+    await deleteDoc(annotationRef);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+    return false;
+  }
+}
