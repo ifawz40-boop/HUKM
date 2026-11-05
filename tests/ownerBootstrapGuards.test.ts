@@ -87,6 +87,17 @@ describe('owner bootstrap integration invariants', () => {
     assert.ok(api.includes('targetRef.delete()'));
   });
 
+  it('provides a read-only verifier for matching Auth claims and Firestore founder state', () => {
+    const verifier = read('scripts/verify-owner.ts');
+    assert.ok(verifier.includes("auth.getUserByEmail(email)"));
+    assert.ok(verifier.includes("user.customClaims?.role === 'owner'"));
+    assert.ok(verifier.includes("bootstrap.status === 'completed'"));
+    assert.ok(verifier.includes("admin.isFounder === true"));
+    assert.doesNotMatch(verifier, /setCustomUserClaims|\.set\(|\.create\(|\.delete\(/);
+    const packageJson = JSON.parse(read('package.json'));
+    assert.equal(packageJson.scripts['owner:verify'], 'tsx scripts/verify-owner.ts');
+  });
+
   it('keeps the founder protected while allowing revocation of non-founder owner records', () => {
     const api = read('src/server/authClaimsApi.ts');
     const modal = read('src/components/AdminManagementModal.tsx');
