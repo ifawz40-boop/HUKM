@@ -385,8 +385,8 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
             </div>
             <p className="text-xs leading-7 text-[#cbd5e1]">{book.rights.attribution}</p>
             <div className="flex flex-wrap gap-2 text-xs">
-              <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#f0cb69] hover:bg-white/5">صفحة النص في ويكي مصدر</a>
-              {book.rights.historyUrl && <a href={book.rights.historyUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">سجل التعديلات</a>}
+              <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#f0cb69] hover:bg-white/5">صفحة الكتاب لدى الناشر</a>
+              {book.rights.historyUrl && <a href={book.rights.historyUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">إصدار مجموعة البيانات</a>}
               <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">شروط CC BY-SA 4.0</a>
               <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">بيانات المجموعة</a>
             </div>
