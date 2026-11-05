@@ -49,11 +49,10 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
 }) => {
   const isUserOwner = isOwner(currentUser);
   const isUserAdmin = isAdmin(currentUser);
-  const isFounder = adminsList.some((admin) => (admin.uid || admin.id) === currentUser?.id && admin.isFounder === true);
-
   // If user is owner, default to admins tab; if regular admin, lock to bans tab
   const [activeTab, setActiveTab] = useState<'admins' | 'bans'>(isUserOwner ? 'admins' : 'bans');
   const [adminsList, setAdminsList] = useState<AdminAccount[]>([]);
+  const isFounder = adminsList.some((admin) => (admin.uid || admin.id) === currentUser?.id && admin.isFounder === true);
   const [bansList, setBansList] = useState<BannedAccount[]>([]);
   const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
 
