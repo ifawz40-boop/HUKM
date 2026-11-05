@@ -194,6 +194,15 @@ export async function saveBookToFirestore(book: BookProject): Promise<boolean> {
     for (const draft of draftChapters) {
       const draftId = formatDraftChapterId(book.id, draft.id);
       const draftRef = doc(db, 'bookDraftChapters', draftId);
+      // A sanitized/truncated ID can collide with a draft from another book or chapter.
+      // Verify ownership before setDoc so an existing unrelated draft is never overwritten.
+      const existingDraftDoc = await getDoc(draftRef);
+      if (existingDraftDoc.exists()) {
+        const existingData = existingDraftDoc.data();
+        if (existingData.bookId !== book.id || existingData.chapterId !== draft.id) {
+          throw new Error(`Draft document ID collision with existing record "${draftId}". Save was safely aborted.`);
+        }
+      }
       const draftPayload: Record<string, any> = {
         id: draftId,
         bookId: book.id,
