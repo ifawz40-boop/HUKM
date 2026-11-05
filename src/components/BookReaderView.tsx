@@ -23,8 +23,11 @@ import {
   X,
   ChevronUp,
   ChevronDown,
+  Highlighter,
+  StickyNote,
+  Trash2,
 } from 'lucide-react';
-import { BookProject, BookChapter } from '../types/hukm';
+import { BookProject, BookChapter, ReaderAnnotation, ReaderAnnotationColor } from '../types/hukm';
 import { UserProfile } from '../types/auth';
 import { calculateReadingTimeMinutes, calculateWordsCount } from '../utils/hukmEngine';
 import {
@@ -36,7 +39,20 @@ import {
 } from '../utils/readingTracker';
 import {
   saveReadingProgressToFirestore,
+  fetchReaderAnnotationsFromFirestore,
+  saveReaderAnnotationToFirestore,
+  deleteReaderAnnotationFromFirestore,
 } from '../firebase/firestoreService';
+import {
+  createReaderAnnotationId,
+  getAllReaderAnnotations,
+  getReaderAnnotationsForChapter,
+  mergeReaderAnnotations,
+  removeReaderAnnotationLocal,
+  saveAllReaderAnnotations,
+  upsertReaderAnnotationLocal,
+  MAX_READER_ANNOTATIONS_PER_CHAPTER,
+} from '../utils/readerAnnotations';
 
 interface BookReaderViewProps {
   book: BookProject;
@@ -91,6 +107,56 @@ const renderSearchHighlights = (text: string, query: string): React.ReactNode =>
   }
 
   if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+};
+
+const annotationMarkClasses: Record<ReaderAnnotationColor, string> = {
+  gold: 'bg-amber-300/70 text-[#1f2937] decoration-amber-700',
+  green: 'bg-emerald-300/65 text-[#123326] decoration-emerald-700',
+  blue: 'bg-sky-300/70 text-[#102c46] decoration-sky-700',
+  rose: 'bg-rose-300/70 text-[#451a2a] decoration-rose-700',
+};
+
+const renderAnnotatedParagraph = (
+  text: string,
+  paragraphIndex: number,
+  annotations: ReaderAnnotation[],
+  searchQuery: string
+): React.ReactNode => {
+  const anchors = annotations
+    .filter((item) =>
+      item.paragraphIndex === paragraphIndex &&
+      item.startOffset >= 0 &&
+      item.endOffset <= text.length &&
+      item.endOffset > item.startOffset &&
+      text.slice(item.startOffset, item.endOffset) === item.selectedText
+    )
+    .sort((a, b) => a.startOffset - b.startOffset || a.endOffset - b.endOffset);
+
+  if (anchors.length === 0) return renderSearchHighlights(text, searchQuery);
+
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  let key = 0;
+
+  for (const annotation of anchors) {
+    if (annotation.startOffset < cursor) continue;
+    if (annotation.startOffset > cursor) {
+      parts.push(renderSearchHighlights(text.slice(cursor, annotation.startOffset), searchQuery));
+    }
+    parts.push(
+      <mark
+        key={key++}
+        className={`rounded px-0.5 decoration-2 underline-offset-2 ${annotationMarkClasses[annotation.color] || annotationMarkClasses.gold}`}
+        title={annotation.note || 'مقتطف محفوظ'}
+      >
+        {text.slice(annotation.startOffset, annotation.endOffset)}
+      </mark>
+    );
+    cursor = annotation.endOffset;
+  }
+
+  if (cursor < text.length) parts.push(renderSearchHighlights(text.slice(cursor), searchQuery));
   return <>{parts}</>;
 };
 
@@ -163,11 +229,74 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [activeSpeechParagraph, setActiveSpeechParagraph] = useState<number | null>(null);
   const speechSessionRef = useRef(0);
   const speechParagraphRef = useRef<(index: number) => void>(() => {});
+  const [readerAnnotations, setReaderAnnotations] = useState<ReaderAnnotation[]>([]);
+  const [isAnnotationsOpen, setIsAnnotationsOpen] = useState(false);
+  const [isAnnotationEditorOpen, setIsAnnotationEditorOpen] = useState(false);
+  const [isLoadingAnnotations, setIsLoadingAnnotations] = useState(false);
+  const [isSavingAnnotation, setIsSavingAnnotation] = useState(false);
+  const [selectedTextDraft, setSelectedTextDraft] = useState('');
+  const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
+  const [selectedStartOffset, setSelectedStartOffset] = useState(0);
+  const [selectedEndOffset, setSelectedEndOffset] = useState(0);
+  const [annotationNoteDraft, setAnnotationNoteDraft] = useState('');
+  const [annotationColor, setAnnotationColor] = useState<ReaderAnnotationColor>('gold');
+
 
 
   // Sync index
   const currentChapterIndex = book.chapters.findIndex((c) => c.id === selectedChapterId);
   const currentChapter = book.chapters[currentChapterIndex] || book.chapters[0];
+  // Load chapter annotations from the current account's private local/cloud partitions.
+  useEffect(() => {
+    if (!currentChapter?.id) {
+      setReaderAnnotations([]);
+      return;
+    }
+
+    let cancelled = false;
+    const userId = currentUser?.id;
+    const localForChapter = getReaderAnnotationsForChapter(book.id, currentChapter.id, userId);
+    setReaderAnnotations(localForChapter);
+
+    if (!userId) {
+      setIsLoadingAnnotations(false);
+      return () => { cancelled = true; };
+    }
+
+    setIsLoadingAnnotations(true);
+    fetchReaderAnnotationsFromFirestore(userId, book.id, currentChapter.id).then(async (cloudRecords) => {
+      if (cancelled || !cloudRecords) return;
+
+      const latestLocalAll = getAllReaderAnnotations(userId);
+      const latestLocalChapter = latestLocalAll.filter(
+        (item) => item.bookId === book.id && item.chapterId === currentChapter.id
+      );
+      const mergedChapter = mergeReaderAnnotations(latestLocalChapter, cloudRecords);
+      const otherChapters = latestLocalAll.filter(
+        (item) => item.bookId !== book.id || item.chapterId !== currentChapter.id
+      );
+      saveAllReaderAnnotations([...otherChapters, ...mergedChapter], userId);
+      if (!cancelled) setReaderAnnotations(mergedChapter);
+
+      for (const pending of mergedChapter.filter((item) => item.syncStatus === 'pending')) {
+        const saved = await saveReaderAnnotationToFirestore(pending);
+        if (!saved || cancelled) continue;
+        const synced = { ...pending, syncStatus: 'synced' as const };
+        upsertReaderAnnotationLocal(synced, userId);
+        if (!cancelled) {
+          setReaderAnnotations((current) => current.map((item) => item.id === synced.id ? synced : item));
+        }
+      }
+    }).catch(() => {
+      // Local notes remain available if the cloud is unreachable.
+    }).finally(() => {
+      if (!cancelled) setIsLoadingAnnotations(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [book.id, currentChapter?.id, currentUser?.id]);
+
+
 
   const prevChapter = currentChapterIndex > 0 ? book.chapters[currentChapterIndex - 1] : null;
   const nextChapter =
@@ -483,6 +612,131 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     };
   }, [currentChapter?.id]);
+
+  const handleCaptureSelection = () => {
+    const selection = typeof window !== 'undefined' ? window.getSelection() : null;
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      onShowToast?.('حدد مقتطفاً من نص الفصل أولاً.');
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const startNode = range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer as Element
+      : range.startContainer.parentElement;
+    const endNode = range.endContainer.nodeType === Node.ELEMENT_NODE
+      ? range.endContainer as Element
+      : range.endContainer.parentElement;
+    const paragraph = startNode?.closest('p[data-paragraph-index]');
+
+    if (!paragraph || !endNode || !paragraph.contains(endNode)) {
+      onShowToast?.('حدد النص داخل فقرة واحدة فقط حتى نحفظ موضعه بدقة.');
+      return;
+    }
+
+    const rawText = range.toString();
+    const selectedText = rawText.trim();
+    if (!selectedText) {
+      onShowToast?.('لم يتم العثور على نص صالح للحفظ.');
+      return;
+    }
+    if (selectedText.length > 2000) {
+      onShowToast?.('الحد الأقصى للمقتطف الواحد 2000 حرف.');
+      return;
+    }
+
+    const prefixRange = range.cloneRange();
+    prefixRange.selectNodeContents(paragraph);
+    prefixRange.setEnd(range.startContainer, range.startOffset);
+    const leadingTrim = rawText.length - rawText.trimStart().length;
+    const startOffset = prefixRange.toString().length + leadingTrim;
+    const endOffset = startOffset + selectedText.length;
+    const paragraphIndex = Number(paragraph.getAttribute('data-paragraph-index'));
+
+    if (
+      !Number.isInteger(paragraphIndex) ||
+      paragraphIndex < 0 ||
+      paragraph.textContent?.slice(startOffset, endOffset) !== selectedText
+    ) {
+      onShowToast?.('تعذر تثبيت موضع المقتطف بدقة. حاول تحديده مرة أخرى.');
+      return;
+    }
+
+    setSelectedTextDraft(selectedText);
+    setSelectedParagraphIndex(paragraphIndex);
+    setSelectedStartOffset(startOffset);
+    setSelectedEndOffset(endOffset);
+    setAnnotationNoteDraft('');
+    setAnnotationColor('gold');
+    setIsAnnotationEditorOpen(true);
+  };
+
+  const handleSaveAnnotation = async () => {
+    if (!currentChapter || selectedParagraphIndex === null || !selectedTextDraft) return;
+    if (readerAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
+      onShowToast?.(`وصلت إلى الحد الأقصى وهو ${MAX_READER_ANNOTATIONS_PER_CHAPTER} مقتطفاً لهذا الفصل.`);
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const annotation: ReaderAnnotation = {
+      id: createReaderAnnotationId(),
+      userId: currentUser?.id,
+      bookId: book.id,
+      chapterId: currentChapter.id,
+      paragraphIndex: selectedParagraphIndex,
+      startOffset: selectedStartOffset,
+      endOffset: selectedEndOffset,
+      selectedText: selectedTextDraft,
+      note: annotationNoteDraft.trim(),
+      color: annotationColor,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: currentUser?.id ? 'pending' : 'local',
+    };
+
+    const allLocal = getAllReaderAnnotations(currentUser?.id);
+    const nextLocal = [...allLocal, annotation];
+    if (!saveAllReaderAnnotations(nextLocal, currentUser?.id)) {
+      onShowToast?.('تعذر حفظ المقتطف على هذا الجهاز. قد تكون مساحة التخزين ممتلئة.');
+      return;
+    }
+
+    setReaderAnnotations((current) => [...current, annotation]);
+    setIsAnnotationEditorOpen(false);
+    window.getSelection()?.removeAllRanges();
+
+    if (currentUser?.id) {
+      setIsSavingAnnotation(true);
+      const saved = await saveReaderAnnotationToFirestore(annotation);
+      setIsSavingAnnotation(false);
+      if (saved) {
+        const synced = { ...annotation, syncStatus: 'synced' as const };
+        upsertReaderAnnotationLocal(synced, currentUser.id);
+        setReaderAnnotations((current) => current.map((item) => item.id === synced.id ? synced : item));
+        onShowToast?.('تم حفظ المقتطف ومزامنته مع حسابك ✓');
+      } else {
+        onShowToast?.('تم حفظ المقتطف على هذا الجهاز، وستتم محاولة مزامنته عند عودة الاتصال.');
+      }
+      return;
+    }
+
+    onShowToast?.('تم حفظ المقتطف على هذا الجهاز فقط.');
+  };
+
+  const handleDeleteAnnotation = async (annotation: ReaderAnnotation) => {
+    if (currentUser?.id && annotation.syncStatus === 'synced') {
+      const deleted = await deleteReaderAnnotationFromFirestore(currentUser.id, annotation);
+      if (!deleted) {
+        onShowToast?.('تعذر حذف المقتطف من السحابة؛ لم نحذفه من جهازك.');
+        return;
+      }
+    }
+
+    const next = removeReaderAnnotationLocal(annotation.id, currentUser?.id);
+    setReaderAnnotations(next.filter((item) => item.bookId === book.id && item.chapterId === currentChapter?.id));
+    onShowToast?.('تم حذف المقتطف.');
+  };
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
