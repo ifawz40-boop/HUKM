@@ -57,6 +57,37 @@ export async function requireOwnerRole(req: Request, res: Response, next: () => 
 }
 
 /**
+ * Only the original founder may appoint additional owners.
+ * Other owners retain normal owner powers but cannot expand the owner group.
+ */
+export async function requireFounderOwner(req: Request, res: Response, next: () => void) {
+  const user = (req as any).user;
+  if (!user || user.role !== 'owner' || !user.email_verified) {
+    return res.status(403).json({
+      success: false,
+      message: 'غير مصرح: هذه العملية مقتصرة على المالك المؤسس الأساسي.',
+    });
+  }
+
+  try {
+    const founderDoc = await adminDb.collection('admins').doc(user.uid).get();
+    if (!founderDoc.exists || founderDoc.data()?.role !== 'owner' || founderDoc.data()?.isFounder !== true) {
+      return res.status(403).json({
+        success: false,
+        message: 'إضافة مالكين جدد مقتصرة حصريًا على المالك المؤسس الأساسي.',
+      });
+    }
+    next();
+  } catch (err: any) {
+    console.error('requireFounderOwner verification error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'تعذر التحقق من صفة المالك المؤسس في السجل الرسمي.',
+    });
+  }
+}
+
+/**
  * 1. Public /bootstrap endpoint is PERMANENTLY DISABLED
  * Initial OWNER assignment must strictly occur via the operator-controlled CLI script:
  *   npx tsx scripts/bootstrap-owner.ts
@@ -358,11 +389,11 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
  * Grant an additional OWNER role. Only an existing verified Owner may call this.
  * The founder record is immutable; additional owners are explicitly non-founder.
  */
-authClaimsRouter.post('/grant-owner', authenticateToken, requireOwnerRole, async (req: Request, res: Response) => {
+authClaimsRouter.post('/grant-owner', authenticateToken, requireFounderOwner, async (req: Request, res: Response) => {
   const actor = (req as any).user;
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
-  if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ success: false, message: 'يرجى إدخال بريد إلكتروني صحيح للحساب المراد ترقيته.' });
   }
 
