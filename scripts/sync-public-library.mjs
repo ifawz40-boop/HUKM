@@ -24,7 +24,7 @@ async function requestJson(endpoint, params, label) {
   for (let attempt = 1; attempt <= 12; attempt += 1) {
     const response = await fetch(url, {
       headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
-      signal: AbortSignal.timeout(120000),
+      signal: AbortSignal.timeout(45000),
     });
     const body = await response.text();
     if (response.ok) {
@@ -91,7 +91,7 @@ async function fetchChapters(bookId) {
 
 function isTranslationExplicitlyLicensed(row) {
   const quote = safeText(row.license_quote);
-  const translationCovered = row.translation_covered === true || row.translation_covered === 'true';
+  const translationCovered = row.translation_covered === true || row.translation_covered === 'true' || row.translation_covered === 1;
   const originalIsPublicDomain = row.original_text_status === 'public-domain';
   const mentionsCcBy4 = /(?:المشاع الإبداعي|Creative Commons)[\s\S]{0,180}(?:٤[٫.]٠|4\.0)/i.test(quote);
   return translationCovered && originalIsPublicDomain && mentionsCcBy4;
@@ -135,7 +135,7 @@ function selectBooks(metadata, manifest) {
     const chapters = Number(row.n_chapters || 0);
     return (
       isTranslationExplicitlyLicensed(row) &&
-      Boolean(row.book_id && row.title && row.book_url && row.attribution) &&
+      Boolean(row.book_id && row.title && row.book_url && row.attribution && /^[a-f0-9]{64}$/i.test(safeText(row.source_file_sha256))) &&
       words >= manifest.minimumWords &&
       words <= manifest.maximumWordsPerBook &&
       chapters >= manifest.minimumChapters
@@ -205,9 +205,11 @@ function mapFootnotes(value) {
 function buildBook(metadata, sourceChapters, manifest) {
   const credits = getCredits(metadata);
   const authors = getRoleNames(credits, /author|مؤلف|كاتب|شاعر/i);
-  const translators = getRoleNames(credits, /translator|مترجم/i);
-  const editors = getRoleNames(credits, /editor|مراجع|محرر/i);
-  const author = authors.length ? authors.join('، ') : safeText(metadata.original_author || metadata.authors);
+  const translators = getRoleNames(credits, /translat|مترجم|ترجمة/i);
+  const editors = getRoleNames(credits, /edit|مراجع|محرر|تحرير|محقق/i);
+  const fallbackAuthors = Array.isArray(metadata.authors) ? metadata.authors.map((person) => safeText(typeof person === 'string' ? person : person?.name)).filter(Boolean) : [safeText(metadata.original_author || metadata.authors)].filter(Boolean);
+  const author = authors.length ? authors.join('، ') : fallbackAuthors.join('، ');
+  if (!author) throw new Error(`${metadata.title}: no verifiable author credit in the source metadata.`);
   const chapters = sourceChapters.map((row, index) => {
     const content = toParagraphs(row.text_raw);
     const wordCount = Number(row.n_words || countWords(row.text_raw || ''));
