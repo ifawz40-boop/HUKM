@@ -512,6 +512,21 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(researchPanelContent, /setSources\(remoteSources\)/);
       assert.match(researchPanelContent, /لا نستبدلها تلقائياً/);
     });
+
+    it('persists dirty chapter content before navigation, chapter creation, book creation, or deletion', () => {
+      assert.match(writerStudioContent, /const preserveCurrentEditorDraft = \(\): WriterDraftSnapshot \| null \| false/);
+      assert.match(writerStudioContent, /saveWriterDraftSnapshot\(snapshot\)/);
+      assert.match(writerStudioContent, /if \(isSavingChapterRef\.current \|\| preserveCurrentEditorDraft\(\) === false\) return/);
+      assert.match(writerStudioContent, /if \(!currentBook \|\| isSavingChapterRef\.current \|\| preserveCurrentEditorDraft\(\) === false\) return/);
+      assert.match(writerStudioContent, /if \(!editingNovelId && preserveCurrentEditorDraft\(\) === false\) return/);
+      assert.match(writerStudioContent, /const preservedSnapshot = selectedChapterId === chId \? preserveCurrentEditorDraft\(\) : null/);
+      assert.match(writerStudioContent, /setRecoverySnapshot\(preservedSnapshot\)/);
+    });
+
+    it('uses real paragraph separators when loading deleted-chapter recovery or discard targets', () => {
+      assert.equal((writerStudioContent.match(/join\('\\\\n\\\\n'\)/g) || []).length, 0);
+      assert.ok((writerStudioContent.match(/join\('\\n\\n'\)/g) || []).length >= 4);
+    });
   });
 
 });
