@@ -8,10 +8,6 @@ export function getReadingProgressStorageKey(userId?: string): string {
 }
 
 /**
- * Retrieve all reading progress records for a user or guest.
- * Transparently checks legacy storage if partitioned storage is empty.
- */
-/**
  * Retrieve only the progress partition owned by the requested user or guest.
  * The old unpartitioned key is intentionally excluded: it has no owner identity
  * and must never be silently merged into whichever account signs in next.
