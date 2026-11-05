@@ -671,7 +671,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
         adminModalContent.indexOf('pendingRequests.map'),
         adminModalContent.indexOf('{/* Admins Table */')
       );
-      assert.equal((requestReviewUi.match(/finally \{[\\s\\S]*?await loadPendingRequests\(\)/g) || []).length, 2);
+      assert.equal((requestReviewUi.match(/finally \\{[\\s\\S]*?await loadPendingRequests\\(\\)/g) || []).length, 2);
       assert.match(requestReviewUi, /if \(result\.success\) await loadAdmins\(\)/);
     });
   });
