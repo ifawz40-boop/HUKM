@@ -1,31 +1,23 @@
 import React from 'react';
 import {
   BookOpen,
-  Sparkles,
   ArrowDown,
-  PenTool,
-  Bookmark,
-  Layers,
   Crown,
 } from 'lucide-react';
 import { HUKM_LOGO, HUKM_MOTTO } from '../data/hukmData';
 
 interface HukmHeroProps {
-  onOpenWriter: () => void;
   onExploreBooks: () => void;
   totalBooksCount: number;
   totalChaptersCount: number;
   totalWordsCount: number;
-  isOwner?: boolean;
 }
 
 export const HukmHero: React.FC<HukmHeroProps> = ({
-  onOpenWriter,
   onExploreBooks,
   totalBooksCount,
   totalChaptersCount,
   totalWordsCount,
-  isOwner = false,
 }) => {
   return (
     <section
@@ -48,7 +40,7 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-[#c59b27]/15 border border-[#c59b27]/30 px-2.5 py-0.5 text-[11px] font-bold text-[#f0cb69]">
-                منصة الروايات والمؤلفات الرسمية
+                مكتبة التراث العربي المفتوحة
               </span>
               <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1">
                 <Crown className="h-3.5 w-3.5 text-amber-400" />
@@ -56,7 +48,7 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white font-cairo mt-1">
-              منصة <span className="gold-gradient-text">حُكم | HUKM MEDIA</span> للروايات والتحقيقات
+              مكتبة حُكم للكتب العربية التراثية
             </h1>
             <p className="text-xs sm:text-sm text-[#cbd5e1] font-medium font-amiri mt-0.5 text-[#f0cb69]">
               {HUKM_MOTTO}
@@ -78,24 +70,14 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
             </div>
           </div>
 
-          {isOwner ? (
-            <button
-              onClick={onOpenWriter}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#c59b27] to-[#997314] hover:from-[#f0cb69] hover:to-[#b88c1b] px-4 py-2.5 text-xs font-bold text-[#070d1e] shadow transition-transform hover:scale-102 cursor-pointer"
-            >
-              <PenTool className="h-4 w-4" />
-              <span>استوديو إدارة ونشر الأعمال</span>
-            </button>
-          ) : (
-            <button
-              onClick={onExploreBooks}
-              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] px-4 py-2.5 text-xs font-black text-[#070d1e] shadow transition-transform hover:scale-102 cursor-pointer"
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>تصفح الأعمال أدناه</span>
-              <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
-            </button>
-          )}
+          <button
+            onClick={onExploreBooks}
+            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] hover:from-[#f0cb69] hover:to-[#b88c1b] px-4 py-2.5 text-xs font-black text-[#070d1e] shadow transition-transform hover:scale-102 cursor-pointer"
+          >
+            <BookOpen className="h-4 w-4" />
+            <span>تصفح الكتب</span>
+            <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
+          </button>
         </div>
       </div>
     </section>
