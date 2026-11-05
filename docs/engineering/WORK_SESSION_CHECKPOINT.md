@@ -286,3 +286,51 @@ A stronger primary source was found after the first Wikisource sync attempt:
 6. Verify generated titles, credits, chapters, rights and content sizes in CI logs and NOTICE. Do not call a title "complete" unless chapter and word-count validation passes.
 7. Run CI tests/typecheck/build. Fix failures and checkpoint. Then address Vercel build-rate-limit.
 8. After deployment, the founder must execute the confirmation-gated legacy purge from the owner-only control. Production Firestore cleanup is not complete until endpoint returns exact deletion counts and the status marker is completed.
+
+
+## Static library implementation checkpoint — 2026-11-05 20:00 UTC
+
+### Current main
+- Latest main at checkpoint: `21611192cbf4c0f22be5adc87d7981cebfd50091` (`docs: document Open Arabic Books rights filter and lazy static loading`).
+- Branch: `main` only.
+
+### Source decision
+- Primary corpus now: Bayanat Labs **Open Arabic Books** v0.1.0, pinned dataset revision `39876c0e7f28c2d16887c7c139800e0df9f87263`.
+- Source dataset has 1,545 whole Arabic books and 27,544 chapter/section rows. Initial HUKM filter is deliberately stricter: only `translation_covered=true`, `original_text_status=public-domain`, explicit CC BY 4.0 colophon for Arabic translation, source URL, attribution, source SHA-256, minimum word count and chapter count.
+- Target 24 books, minimum 15; 8,000–120,000 words per book, at least 3 sections, max 1.5m total words. Category quotas provide history, literature, detective fiction, novels, biographies, children, science and philosophy; remaining slots fill from other categories.
+- This avoids treating the dataset's CC BY 4.0 table license as automatic permission for every text. Exact per-book colophon quote and attribution are retained.
+
+### Implemented on main
+- `src/App.tsx`: no Firestore book/category reads or writes; static catalogue metadata only; full book loaded from bundled JSON when opened; legacy localStorage book/category caches are removed; progress/bookmarks/notes and user data remain separate.
+- `src/data/hukmData.ts`: removed empty/default book/category seeds and fictional preset media.
+- Active UI: removed cloud writer/new-book/category publishing controls and fake investigation spotlight; updated library wording and generic typographic covers.
+- `src/data/library/index.ts`: static categories, lightweight metadata import and lazy `import.meta.glob('./books/*.json')` loaders.
+- `src/data/library/catalog.json`: initialized empty; sync workflow will populate metadata.
+- `src/data/library/manifest.json`: rights-screened Open Arabic Books selection criteria.
+- `scripts/sync-public-library.mjs`: downloads metadata pages, screens rights, selects a category-balanced subset, fetches chapter rows by book ID, checks chapter/word completeness, preserves footnotes and omitted-media counts, writes one JSON file per book plus a metadata-only catalogue and attribution notice.
+- `.github/workflows/sync-public-library.yml`: runs the source sync on manifest/script changes and commits generated files to main; generated full text is not fetched by the live website.
+- `src/types/hukm.ts`: book rights, credits, footnotes, omitted media, word/chapter counts.
+- UI: BookCard, BookOverviewView, BookReaderView, BookSpineShelf, HukmHero, HukmNavbar, HukmLandingView and UserProfileModal updated for static metadata/lazy text, per-book attribution, license quote, footnotes and omitted media.
+- `src/server/authClaimsApi.ts`: founder-only status endpoint and confirmation-gated `POST /api/auth/purge-legacy-library`; deletes only Firestore `books`, `bookDraftChapters`, `categories`, with bounded batches and one-time audit marker.
+- `src/components/LegacyLibraryPurgeModal.tsx` and `src/App.tsx`: owner-facing confirmation UI. It requires exact phrase `DELETE_ALL_LEGACY_LIBRARY_DATA`; backend independently checks founder registry.
+- `tests/staticLibrary.test.ts` added to package test command; older draft/navigation tests revised for the static library.
+- `docs/security/OWNER_BOOTSTRAP_RUNBOOK.md` documents data purge, rights selection and lazy static source.
+
+### Verification
+- GitHub Actions run `42098611658` at commit `f0598095c34559922b92cf83bcadcab66abbd00` (see run URL below) completed SUCCESS: full tests, TypeScript check and Vite production build.
+  - Run URL: https://github.com/ifawz40-boop/HUKM/actions/runs/42098611658
+- A second CI run for commit `d738953c2be6c43bc58ba6043f2549948453d798` is running/queued after the source-hash and author validation tightening; re-check before claiming latest verification.
+- Static library sync run `42098611748` is in progress using the initial Open Arabic Books script; run `42098663598` is queued for the tightened script. Inspect both before changing anything. Old Wikisource sync run `42097845305` may still be active from an earlier snapshot; if it commits old corpus files, the new sync script must replace them and remove stale JSON.
+- Vercel combined status remains failure due the external build-rate-limit/upgrade target. No successful Vercel deployment is confirmed.
+- Production Firestore cleanup has NOT run; the founder must execute the UI confirmation after a successful deployment. Do not claim old Firestore documents are deleted until API success returns exact counts and `_system/legacyLibraryPurge.status=completed`.
+- Google AI Studio sync remains unconfirmed.
+
+### Exact next actions
+1. Re-fetch latest main and Actions runs.
+2. Wait for the Open Arabic Books sync workflow. Inspect its logs for metadata row count, eligible rights-cleared works, each accepted title/author/word count/chapter count, rejected reasons, total words and total JSON MiB.
+3. If it fails, inspect the exact HF Dataset Viewer response/schema. Fix only the mismatched field/API query; do not weaken rights checks or completeness thresholds to force a pass.
+4. If it succeeds, verify generated `catalog.json` count equals JSON file count; inspect representative books for author/translator, exact colophon, source hash, text, footnotes and omitted-media counts. Confirm stale Wikisource JSON files are gone.
+5. Run/inspect CI on the generated data commit. It must pass tests, TypeScript and production build; the generated-book test must run (not skip).
+6. Review initial bundle size and confirm book JSON files are lazy-loaded chunks, not eager imports.
+7. Verify Vercel deployment separately; rate-limit is external and may persist.
+8. After deployment, the founder uses the owner-only cleanup control once. Confirm exact deleted counts and the completed marker. User profiles, auth, bookmarks, progress, notes, notifications, subscribers and admin records must remain intact.
