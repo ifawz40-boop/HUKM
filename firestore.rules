@@ -203,11 +203,13 @@ service cloud.firestore {
     }
 
     // 4. Admins Registry:
-    // Only verified Admins and Owner can read.
-    // ONLY OWNER can create, update, or delete admins. ADMINS CANNOT ASSIGN OR REVOKE ADMIN ROLES!
+    // Verified Admins and Owners may read the registry.
+    // All client-side writes are denied. Only trusted Firebase Admin SDK server
+    // operations and the local first-owner bootstrap may mutate role records.
+    // This prevents an additional owner from self-appointing as founder.
     match /admins/{adminId} {
       allow read: if isAdmin();
-      allow create, update, delete: if isOwner() && isValidId(adminId);
+      allow create, update, delete: if false;
     }
 
     // 5. Admin Requests: private records are accessible only through the authenticated server API.
