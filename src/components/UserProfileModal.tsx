@@ -599,7 +599,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 {book.title}
                               </span>
                               <div className="flex items-center gap-2 text-[10px] text-[#94a3b8]">
-                                <span>{book.chapters.length} فصول</span>
+                                <span>{book.chapterCount ?? book.chapters.length} فصول</span>
                                 {completedCount > 0 && (
                                   <span className="text-emerald-400 font-bold">• قرأت {percent}%</span>
                                 )}
