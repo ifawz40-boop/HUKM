@@ -1013,7 +1013,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                       type="number"
                       value={chapterNumber}
                       disabled={isSavingChapter}
-                                            onChange={(e) => setChapterNumber(parseInt(e.target.value) || 1)}
+                      onChange={(e) => setChapterNumber(parseInt(e.target.value) || 1)}
                       className="w-16 rounded-lg bg-[#050a16] border border-white/15 px-2 py-1 text-xs text-center font-bold text-[#f0cb69] focus:outline-none focus:border-[#c59b27]"
                     />
                   </div>
@@ -1023,8 +1023,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                       <span>الحالة:</span>
                       <select
                         value={chapterStatus}
-                      disabled={isSavingChapter}
-                                                onChange={(e) => setChapterStatus(e.target.value as 'draft' | 'ready')}
+                        disabled={isSavingChapter}
+                        onChange={(e) => setChapterStatus(e.target.value as 'draft' | 'ready')}
                         className="rounded-lg bg-[#050a16] border border-white/15 px-2.5 py-1 text-xs text-white focus:outline-none"
                       >
                         <option value="ready">منشور (جاهز للقراءة)</option>
@@ -1084,8 +1084,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                   <input
                     type="text"
                     value={chapterTitle}
-                      disabled={isSavingChapter}
-                                            onChange={(e) => setChapterTitle(e.target.value)}
+                    disabled={isSavingChapter}
+                    onChange={(e) => setChapterTitle(e.target.value)}
                     placeholder="مثال: الفصل الأول: استيقاظ الحقيقة"
                     className="w-full rounded-xl bg-[#050a16] border border-white/15 px-4 py-2.5 text-sm font-bold text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none font-cairo"
                   />
@@ -1108,8 +1108,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                   <textarea
                     rows={16}
                     value={chapterContent}
-                      disabled={isSavingChapter}
-                                            onChange={(e) => setChapterContent(e.target.value)}
+                    disabled={isSavingChapter}
+                    onChange={(e) => setChapterContent(e.target.value)}
                     placeholder="اكتب أو الصق نص الفصل هنا... افصل بين الفقرات بسطر فارغ."
                     className="w-full rounded-xl bg-[#050a16] border border-white/15 p-4 text-sm text-[#f4efe6] placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none font-amiri leading-relaxed"
                   />
