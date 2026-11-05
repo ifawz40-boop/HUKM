@@ -194,3 +194,56 @@
 6. Revisit Vercel build-rate-limit failure and independently confirm Google AI Studio sync.
 
 **LATEST VERIFIED CODE COMMIT:** `5cb8023bd1d3559a74aa80b88955255b6669d310`.
+
+
+## Static Arabic public-domain library replacement — 2026-11-05
+
+### User request
+Remove every existing book and all default/demo library data from HUKM. Research a real, publishable Arabic book collection and bundle full book texts inside repository source files so the public catalogue does not read/write Firebase. Continue without waiting for repeated user confirmations. Save checkpoints and resume instructions.
+
+### Repository state at task start
+- Repository: `ifawz40-boop/HUKM`
+- Branch: `main`
+- Starting HEAD: `c39985a419a157cffbc7cd3fbee266ec567fc40b`
+- Google AI Studio is expected to connect to `main`, but synchronization has not been independently verified.
+
+### Source research and rights decision
+- Primary candidate corpus: Bayanat Labs, **Arabic Wikisource Public-Domain Works**, dataset v0.1.0, built from the official Arabic Wikisource dump dated 2026-10-01.
+- Dataset card: https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd
+- Dataset description: https://www.bayanatlabs.com/open/arabic-wikisource-pd
+- It contains whole works with chapters, authors/translators/editors and death dates, source pages and revision history. Core tier contains 40,782 works / 66,352,748 words; most records are poems, so do NOT import the entire dataset indiscriminately.
+- Text transcription license: CC BY-SA 4.0; attribution must credit Arabic Wikisource contributors and the dataset, link source pages/history, and keep redistributed text under CC BY-SA 4.0. Dataset tables are CC BY 4.0; builder code Apache-2.0.
+- Use only `works-pd-core` tier. Do not use `works-life50` or uncertain/late-copyright records.
+- Dataset limitations: 36 released works are marked incomplete; 29 have unclosed markup; many texts derive from modern editions with unnamed editors. The selected works must be filtered for text length, chapters, non-poetry genre, completeness flags/categories and source-page metadata; do not claim scholarly critical-edition verification.
+- Confirmed Wikisource examples/pages: `البيان والتبيين`, `الكامل في اللغة`, `تهافت الفلاسفة (الغزالي)`, `المنقذ من الضلال`, `مقدمة ابن خلدون/القسم الأول من المقدمة`, `رسالة الغفران/الجزء الأول`. Some known pages are explicitly incomplete (e.g. `مروج الذهب ومعادن الجوهر`, `العقد الفريد` 1953 introductory text) and must not be included as complete books without separate verification.
+- Hugging Face Dataset Viewer supports exact-title filtering via `https://datasets-server.huggingface.co/filter` with dataset/config/split/where/offset/length. Build-time retrieval only; the deployed app must not call this API.
+
+### Current defects found in HUKM
+- `src/App.tsx` fetches books from Firestore and can restore stale localStorage caches (`hukm_books_v1/v2/v3`).
+- It fetches Firestore categories and seeds `INITIAL_CATEGORIES` when absent.
+- Book create/update/delete and chapter views write to Firestore.
+- Existing writer/new-book/category management UI creates new cloud book data.
+- Current `INITIAL_BOOKS` is empty, but old Firestore/localStorage content can still reappear.
+- Book reader progress, bookmarks, annotations and notifications are separate user data; preserve them unless they point to removed book IDs. Do not wipe unrelated user data.
+- The server has Firebase Admin SDK and founder verification middleware `requireFounderOwner` in `src/server/authClaimsApi.ts`; server routes are mounted under `/api/auth`.
+
+### Planned architecture
+1. Static, version-controlled book files in `src/data/library/books/*.json`, imported eagerly by Vite; no runtime Firebase reads/writes for book catalogue/content.
+2. Static category definitions in source; remove category seeding and category Firestore reads/writes.
+3. Build-time one-off GitHub Actions sync script to fetch only explicitly curated complete works from Hugging Face Dataset Viewer, validate tier/license/length/chapters/non-poetry/completeness, and commit full chapters as static JSON. No Hugging Face request at site runtime.
+4. Include source URL, revision/history URL, author/editor/translator metadata, dataset version, CC BY-SA 4.0 notice and per-book attribution.
+5. Replace stock/fake cover imagery with a local typographic cover fallback; do not invent cover images or metadata.
+6. Remove legacy book caches on client and stop restoring them.
+7. Remove or disable cloud book authoring/editing/deletion and default category management for this static public-domain catalogue. Preserve user-specific reading progress/bookmarks where valid.
+8. Add founder-only, confirmation-gated server cleanup for legacy Firestore `books`, `bookDraftChapters`, and `categories` documents; preserve `users`, `readingProgress`, `annotations`, auth, admin, notifications and subscriber records. Production deletion is NOT complete until the founder-triggered endpoint succeeds.
+9. Add tests for static data validation, no catalogue Firestore access, licensing metadata and cleanup endpoint guards.
+10. Run GitHub Actions tests, typecheck and production build; verify Vercel status separately. Do not claim successful deployment if Vercel rate-limit persists.
+
+### Exact resume instructions
+- Always re-fetch latest `main` before writing.
+- Continue on `main` only; no PR or feature branch.
+- First implement the manifest + build-time sync script + workflow; inspect the generated rows and only keep complete, sufficiently long non-poetry works.
+- Then wire the static catalogue into App, remove old cache/Firestore catalogue paths and authoring controls, add rights attribution UI.
+- Then add founder-only purge endpoint and a clear confirmation UI/runbook. Do not invoke production deletion without explicit confirmation string from the founder UI; do not delete unrelated user data.
+- After every substantial phase, update this checkpoint with current commit, changed files, test status, generated-book counts/size, purge status, and next exact action.
+- Never claim that legacy Firestore data has been deleted until a successful production response reports counts.
