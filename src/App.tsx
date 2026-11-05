@@ -43,11 +43,10 @@ import {
   HUKM_MOTTO,
   HUKM_DESCRIPTION,
 } from './data/hukmData';
-import { PUBLIC_LIBRARY_BOOKS, PUBLIC_LIBRARY_CATEGORIES } from './data/library';
-import { CategoryItem } from './types/hukm';
+import { PUBLIC_LIBRARY_BOOKS, PUBLIC_LIBRARY_CATEGORIES, loadPublicLibraryBook } from './data/library';
+import { CategoryItem, BookProject } from './types/hukm';
 import { UserProfile, AppNotification } from './types/auth';
 import {
-  calculateBookStats,
   incrementBookViews,
 } from './utils/hukmEngine';
 import {
@@ -219,7 +218,9 @@ export default function App() {
   // The public-domain catalogue and its categories are bundled with the application.
   // They are immutable at runtime and never loaded from Firestore or localStorage.
   const [categories] = useState<CategoryItem[]>(PUBLIC_LIBRARY_CATEGORIES);
-  const [books] = useState(PUBLIC_LIBRARY_BOOKS);
+  const [books, setBooks] = useState(PUBLIC_LIBRARY_BOOKS);
+  const [loadedBook, setLoadedBook] = useState<BookProject | null>(null);
+  const [isLoadingBook, setIsLoadingBook] = useState(false);
 
   // Remove only obsolete catalogue caches. User reading progress, bookmarks and notes are preserved.
   useEffect(() => {
@@ -279,12 +280,32 @@ export default function App() {
     }, 3800);
   };
 
-  const handleQuickResumeChapter = (bookId: string, chapterId: string) => {
+  const loadBookById = async (bookId: string): Promise<BookProject | null> => {
+    if (loadedBook?.id === bookId) return loadedBook;
+    setIsLoadingBook(true);
+    try {
+      const fullBook = await loadPublicLibraryBook(bookId);
+      setLoadedBook(fullBook);
+      return fullBook;
+    } catch (error) {
+      console.error('Static book load failed:', error);
+      showToast('تعذر تحميل ملف هذا الكتاب من حزمة الموقع.');
+      return null;
+    } finally {
+      setIsLoadingBook(false);
+    }
+  };
+
+  const handleQuickResumeChapter = async (bookId: string, chapterId: string) => {
     const targetBook = books.find((book) => book.id === bookId);
-    const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
-    const chapterIsPublic = targetBook?.chapters?.some((chapter) => chapter.id === chapterId && chapter.status === 'ready');
-    if (!targetBook || (!isOwner && (!isPublicBook || !chapterIsPublic))) {
-      showToast('هذا الفصل غير متاح للقراءة بهذا الحساب.');
+    if (!targetBook) {
+      showToast('هذا الكتاب غير موجود في فهرس المكتبة.');
+      return;
+    }
+    const fullBook = await loadBookById(bookId);
+    const chapterIsPublic = fullBook?.chapters.some((chapter) => chapter.id === chapterId && chapter.status === 'ready');
+    if (!fullBook || !chapterIsPublic) {
+      showToast('هذا الفصل غير موجود في النسخة المضمّنة من الكتاب.');
       return;
     }
     setSelectedBookId(bookId);
@@ -306,7 +327,7 @@ export default function App() {
     saveStoredNotifications(notifications);
   }, [notifications]);
 
-remove Firestore catalog synchronization
+
 
   // Support direct deep link URL params (strictly for views/books, no role bypass)
   useEffect(() => {
@@ -320,38 +341,46 @@ remove Firestore catalog synchronization
     } else if (viewParam === 'landing') {
       setCurrentView('landing');
     } else if (bookParam) {
-      setSelectedBookId(bookParam);
-      setCurrentView('reader');
+      void loadPublicLibraryBook(bookParam).then((book) => {
+        setLoadedBook(book);
+        setSelectedBookId(bookParam);
+        setCurrentView('reader');
+      }).catch((error) => {
+        console.error('Direct static book link failed:', error);
+        setCurrentView('home');
+      });
     }
   }, []);
 
-  // Client-side cache guard only; Firestore Rules remain the authoritative access control.
-  // Do not render owner-cached drafts to readers while the public query is loading.
+  // Catalogue entries contain metadata only; full text is loaded lazily from the bundled JSON file.
   const accessibleBooks = books;
-
-  const currentBook = (selectedBookId
-    ? accessibleBooks.find((book) => book.id === selectedBookId)
-    : accessibleBooks[0]) || null;
+  const currentBook = loadedBook?.id === selectedBookId ? loadedBook : null;
 
   // Actions
-  const handleOpenBookOverview = (bookId: string) => {
+  const handleOpenBookOverview = async (bookId: string) => {
     const targetBook = books.find((book) => book.id === bookId);
-    const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
-    if (!targetBook || (!isOwner && !isPublicBook)) {
-      showToast('هذا العمل غير متاح للقراءة بهذا الحساب.');
+    if (!targetBook) {
+      showToast('هذا الكتاب غير موجود في فهرس المكتبة.');
       return;
     }
+    const fullBook = await loadBookById(bookId);
+    if (!fullBook) return;
     setSelectedBookId(bookId);
     setCurrentView('overview');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
-  const handleOpenReader = (bookId: string, chapterId?: string) => {
+  const handleOpenReader = async (bookId: string, chapterId?: string) => {
     const targetBook = books.find((book) => book.id === bookId);
-    const isPublicBook = targetBook && ['published', 'completed', 'ongoing', 'ready'].includes(targetBook.status);
-    const chapterIsPublic = !chapterId || targetBook?.chapters?.some((chapter) => chapter.id === chapterId && chapter.status === 'ready');
-    if (!targetBook || (!isOwner && (!isPublicBook || !chapterIsPublic))) {
-      showToast(chapterId ? 'هذا الفصل غير متاح للقراءة بهذا الحساب.' : 'هذا العمل غير متاح للقراءة بهذا الحساب.');
+    if (!targetBook) {
+      showToast('هذا الكتاب غير موجود في فهرس المكتبة.');
+      return;
+    }
+    const fullBook = await loadBookById(bookId);
+    if (!fullBook) return;
+    const chapterIsPublic = !chapterId || fullBook.chapters.some((chapter) => chapter.id === chapterId && chapter.status === 'ready');
+    if (!chapterIsPublic) {
+      showToast('هذا الفصل غير موجود في النسخة المضمّنة من الكتاب.');
       return;
     }
     setSelectedBookId(bookId);
@@ -360,11 +389,13 @@ remove Firestore catalog synchronization
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
-  // Catalogue view counters are session-only; book records are immutable source files.
+  // View counters remain session-only; full text and catalogue records stay immutable source files.
   const handleChapterViewed = (chapterId: string) => {
     if (!currentBook) return;
+    const updated = incrementBookViews(currentBook, chapterId);
+    setLoadedBook(updated);
     setBooks((prev) => prev.map((book) =>
-      book.id === currentBook.id ? incrementBookViews(book, chapterId) : book
+      book.id === currentBook.id ? { ...book, viewsCount: updated.viewsCount } : book
     ));
   };
 
@@ -448,9 +479,9 @@ remove Firestore catalog synchronization
 
 
   // Public metrics and search must never include locally cached private drafts.
-  const totalChapters = accessibleBooks.reduce((acc, book) => acc + book.chapters.length, 0);
+  const totalChapters = accessibleBooks.reduce((acc, book) => acc + (book.chapterCount ?? book.chapters.length), 0);
   const totalWords = accessibleBooks.reduce(
-    (acc, book) => acc + calculateBookStats(book.chapters).totalWords,
+    (acc, book) => acc + (book.wordCount ?? 0),
     0
   );
 
