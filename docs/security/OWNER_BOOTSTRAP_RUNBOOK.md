@@ -23,6 +23,18 @@ The script deliberately refuses to:
 - proceed if any owner registry record already exists during first-owner setup;
 - promote an account that already has an admin/owner or unknown role claim, except the same UID during a valid pending recovery.
 
+## Deploy the hardened Firestore rules
+
+The committed `firestore.rules` now denies all browser/client writes to `/admins/{uid}`. Role registry mutations must go through the trusted Firebase Admin SDK API or the local first-owner bootstrap. This is required to prevent an additional owner from changing their own `isFounder` field.
+
+After pulling the latest `main`, deploy the rules separately (Vercel deployment does not deploy Firestore rules):
+
+```powershell
+firebase deploy --only firestore:rules --project gen-lang-client-0492732633
+```
+
+Run this from the repository root with the Firebase CLI installed and an authorized Firebase account selected. Confirm the deployment result in Firebase CLI output or Firebase Console → Firestore Database → Rules. Do not assume the repository change is active in production until this deployment succeeds.
+
 ## Local execution (Windows PowerShell)
 
 Open a terminal in the repository root after pulling the latest `main`.
