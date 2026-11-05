@@ -32,6 +32,13 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(migrationScriptContent, /Global draft ID collision detected/);
       assert.match(migrationScriptContent, /Existing draft ID collision/);
     });
+
+    it('must use an unambiguous migration owner key and preflight document sizes', () => {
+      assert.match(migrationScriptContent, /JSON\.stringify\(\[plan\.bookId, draft\.id\]\)/);
+      assert.match(migrationScriptContent, /assertSafeDocumentSize\(createDraftPayload/);
+      assert.match(migrationScriptContent, /SAFE_DOCUMENT_LIMIT_BYTES = 800 \* 1024/);
+      assert.match(migrationScriptContent, /No migration writes were performed/);
+    });
   });
 
   // =========================================================================
