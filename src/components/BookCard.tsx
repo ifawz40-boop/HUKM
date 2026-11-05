@@ -28,13 +28,15 @@ export const BookCard: React.FC<BookCardProps> = ({
   onToggleBookmark,
 }) => {
   const stats = calculateBookStats(book.chapters, book.viewsCount);
+  const chapterCount = book.chapterCount ?? book.chapters.length;
   const categoryLabel = getCategoryName(categories, book.category);
   const readingProgress = getBookReadingProgress(book.id, currentUserId);
   const lastChapter = readingProgress.lastChapterId
     ? book.chapters.find((c) => c.id === readingProgress.lastChapterId)
     : null;
   const completedCount = readingProgress.completedChapterIds?.length || 0;
-  const percentCompleted = book.chapters.length > 0 ? Math.round((completedCount / book.chapters.length) * 100) : 0;
+  const percentCompleted = chapterCount > 0 ? Math.round((completedCount / chapterCount) * 100) : 0;
+  const resumeChapterId = readingProgress.lastChapterId || null;
 
   return (
     <div
@@ -89,7 +91,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           <div className="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between text-[11px] text-white/90">
             <span className="flex items-center gap-1 rounded-md bg-black/70 backdrop-blur-md px-2 py-0.5 font-bold">
               <FileText className="h-3 w-3 text-[#d4af37]" />
-              <span>{book.chapters.length} فصول</span>
+              <span>{chapterCount} فصول</span>
             </span>
 
             <span className="flex items-center gap-1 rounded-md bg-black/70 backdrop-blur-md px-2 py-0.5 font-bold text-[#f0cb69]">
@@ -138,7 +140,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           <div className="pt-2.5">
             <div className="flex items-center justify-between text-[10px] text-[#94a3b8] mb-1">
               <span className="text-emerald-400 font-bold">قرأت {percentCompleted}%</span>
-              <span>{completedCount} من {book.chapters.length} فصول</span>
+              <span>{completedCount} من {chapterCount} فصول</span>
             </div>
             <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
               <div
@@ -152,16 +154,16 @@ export const BookCard: React.FC<BookCardProps> = ({
 
       {/* Card Actions Footer */}
       <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-        {lastChapter && onQuickResume ? (
+        {resumeChapterId && onQuickResume ? (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onQuickResume(lastChapter.id);
+              onQuickResume(resumeChapterId);
             }}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 py-2 text-xs font-bold text-white shadow transition-all"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
-            <span>متابعة (فـ {lastChapter.chapterNumber})</span>
+            <span>{lastChapter ? `متابعة (فـ ${lastChapter.chapterNumber})` : 'متابعة القراءة'}</span>
           </button>
         ) : (
           <button
