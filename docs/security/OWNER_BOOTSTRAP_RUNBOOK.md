@@ -5,7 +5,7 @@
 The first owner is provisioned only by the local operator CLI at `scripts/bootstrap-owner.ts`.
 The public HTTP `/api/auth/bootstrap` endpoint remains disabled. Browser-side email matching is never an authorization mechanism.
 
-The first owner is the founder account. The founder record is protected from the normal revoke-owner workflow. Additional owners may be granted later only by an already authenticated, verified owner through the owner-only management panel and the server-side `POST /api/auth/grant-owner` route.
+The first owner is the founder account. The founder record is protected from the normal revoke-owner workflow. Additional owners may be granted later only by the original founder (`isFounder: true`) through the owner-only management panel and the server-side `POST /api/auth/grant-owner` route. Other owners cannot appoint further owners.
 
 ## Preconditions
 
@@ -39,7 +39,7 @@ bun run owner:bootstrap
 bun run owner:verify
 ```
 
-If dependencies are already installed from the lockfile, `npm ci` may be skipped. The credential must belong to the intended Firebase project and have only the IAM permissions required to read/update Firebase Authentication users and read/write the HUKM Firestore database. Do not grant broad project Owner access just for this script.
+If dependencies are already installed from the lockfile, the install step may be skipped. The credential must belong to the intended Firebase project and have only the IAM permissions required to read/update Firebase Authentication users and read/write the HUKM Firestore database. Do not grant broad project Owner access just for this script.
 
 The script uses the project and database IDs in the source configuration. Optional `FIREBASE_PROJECT_ID` or `FIREBASE_DATABASE_ID` overrides are accepted only when they exactly match those configured IDs.
 
@@ -74,9 +74,9 @@ Do not mark provisioning complete based on a UI screenshot alone; the claim and 
 
 ## Adding another owner later
 
-An existing verified owner can use the owner management panel's **إضافة مالك آخر للمنصة** form. The backend resolves the target by email, requires an existing verified Firebase Auth account, rejects self-promotion and already-privileged accounts, creates a non-founder owner registry record, grants the custom claim, and revokes refresh tokens. On a failure it attempts to roll back both the registry and claims.
+Only the verified founder account can use the owner management panel's **إضافة مالك آخر للمنصة** form. The backend independently checks the caller's `admins/{uid}.isFounder === true` record; an additional owner receives HTTP 403. The backend resolves the target by email, requires an existing verified Firebase Auth account, rejects self-promotion and already-privileged accounts, creates a non-founder owner registry record, grants the custom claim, and revokes refresh tokens. On a failure it attempts to roll back both the registry and claims.
 
-Only the founder record (`isFounder: true`) is protected from the ordinary owner-revocation endpoint. Additional owners are explicitly non-founder and can be removed by an authorized owner.
+Only the founder record (`isFounder: true`) is protected from the ordinary owner-revocation endpoint. Additional owners are explicitly non-founder and can be removed by an authorized owner, but cannot appoint replacements.
 
 ## Explicitly out of scope
 
