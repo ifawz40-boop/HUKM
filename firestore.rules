@@ -163,25 +163,29 @@ service cloud.firestore {
 
     // 8. Reading Progress:
     // Strict user ownership and field validation. Users cannot alter userId or tamper with other users' records.
-    function isValidReadingProgressCreate() {
+    function isValidReadingProgressCreate(progressId) {
       let data = incoming();
       return data.keys().hasOnly(['id', 'userId', 'bookId', 'chapterId', 'chapterIndex', 'scrollPercent', 'lastReadAt', 'completed', 'updatedAt']) &&
-             data.keys().hasAll(['userId', 'bookId', 'chapterId']) &&
+             data.keys().hasAll(['id', 'userId', 'bookId', 'chapterId']) &&
+             data.id == progressId &&
              data.userId == request.auth.uid &&
-             data.bookId is string && data.bookId.size() <= 128 &&
-             data.chapterId is string && data.chapterId.size() <= 128 &&
+             data.bookId is string && data.bookId.size() > 0 && data.bookId.size() <= 128 &&
+             data.chapterId is string && data.chapterId.size() > 0 && data.chapterId.size() <= 128 &&
              (!('chapterIndex' in data) || (data.chapterIndex is int && data.chapterIndex >= 0)) &&
              (!('scrollPercent' in data) || (data.scrollPercent is number && data.scrollPercent >= 0 && data.scrollPercent <= 100)) &&
              (!('completed' in data) || data.completed is bool);
     }
 
-    function isValidReadingProgressUpdate() {
+    function isValidReadingProgressUpdate(progressId) {
       let incomingData = incoming();
       let existingData = existing();
       let affected = incomingData.diff(existingData).affectedKeys();
-      return affected.hasOnly(['chapterId', 'chapterIndex', 'scrollPercent', 'lastReadAt', 'completed', 'updatedAt']) &&
+      return incomingData.id == progressId &&
+             (!('id' in existingData) || existingData.id == progressId) &&
              incomingData.userId == existingData.userId &&
-             (!('chapterId' in incomingData) || (incomingData.chapterId is string && incomingData.chapterId.size() <= 128)) &&
+             incomingData.bookId == existingData.bookId &&
+             incomingData.chapterId == existingData.chapterId &&
+             affected.hasOnly(['chapterIndex', 'scrollPercent', 'lastReadAt', 'completed', 'updatedAt']) &&
              (!('chapterIndex' in incomingData) || (incomingData.chapterIndex is int && incomingData.chapterIndex >= 0)) &&
              (!('scrollPercent' in incomingData) || (incomingData.scrollPercent is number && incomingData.scrollPercent >= 0 && incomingData.scrollPercent <= 100)) &&
              (!('completed' in incomingData) || incomingData.completed is bool);
@@ -189,8 +193,8 @@ service cloud.firestore {
 
     match /readingProgress/{progressId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && isValidId(progressId) && isValidReadingProgressCreate();
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && isValidReadingProgressUpdate();
+      allow create: if isSignedIn() && isValidId(progressId) && isValidReadingProgressCreate(progressId);
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && isValidReadingProgressUpdate(progressId);
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
