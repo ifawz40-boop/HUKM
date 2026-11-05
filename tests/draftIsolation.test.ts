@@ -14,6 +14,7 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
   const newBookModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/NewBookModal.tsx'), 'utf-8');
   const writerStudioContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/BookWriterStudio.tsx'), 'utf-8');
   const researchPanelContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/BookResearchPanel.tsx'), 'utf-8');
+  const researchRecoveryContent = fs.readFileSync(path.resolve(process.cwd(), 'src/utils/bookResearchRecovery.ts'), 'utf-8');
   const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
 
   describe('Invariant 0: Draft ID collision protection', () => {
@@ -511,6 +512,19 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(researchPanelContent, /if \(hasRemoteResearchChanges\)/);
       assert.match(researchPanelContent, /setSources\(remoteSources\)/);
       assert.match(researchPanelContent, /لم نستبدلها تلقائياً/);
+    });
+
+    it('stores bounded research recovery locally and offers explicit restore or discard', () => {
+      assert.match(researchRecoveryContent, /MAX_RESEARCH_DRAFT_SOURCES = 50/);
+      assert.match(researchRecoveryContent, /MAX_RESEARCH_DRAFT_QUOTES = 100/);
+      assert.match(researchRecoveryContent, /MAX_RESEARCH_DRAFT_CHARS = 1_500_000/);
+      assert.match(researchRecoveryContent, /localStorage\.setItem/);
+      assert.match(researchRecoveryContent, /localStorage\.removeItem/);
+      assert.match(researchPanelContent, /saveBookResearchDraft\(/);
+      assert.match(researchPanelContent, /getBookResearchDraft\(book\.id\)/);
+      assert.match(researchPanelContent, /handleRestoreLocalResearchDraft/);
+      assert.match(researchPanelContent, /handleDiscardLocalResearchDraft/);
+      assert.match(researchPanelContent, /researchRecoveryDraft\) return/);
     });
 
     it('persists dirty chapter content before navigation, chapter creation, book creation, or deletion', () => {
