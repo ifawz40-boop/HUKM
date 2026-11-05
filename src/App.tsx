@@ -781,7 +781,7 @@ export default function App() {
                       مكتبة حُكم جاهزة لاستقبال النشرات والكتب الرسمية
                     </h3>
                     <p className="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
-                      تم تفريغ كافة الكتب الافتراضية بنجاح لتكون المنصة صفحة بيضاء نقية جاهزة لإصدارات المؤسس د. إسلام محمد وهيئة التحرير والتحقيقات الاستقصائية الموثقة.
+                      لم تُنشر كتب بعد. ستظهر هنا الإصدارات التي يعتمدها فريق حُكم للنشر.
                     </p>
                   </div>
 
@@ -817,7 +817,7 @@ export default function App() {
                       onClick={() => setCurrentView('landing')}
                       className="inline-flex items-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 text-xs sm:text-sm font-bold text-white transition-all cursor-pointer"
                     >
-                      <span>التعريف برؤية المنصة ومؤسسيها</span>
+                      <span>التعريف برؤية المنصة</span>
                     </button>
                   </div>
                 </div>
