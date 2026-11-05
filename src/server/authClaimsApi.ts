@@ -355,6 +355,105 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
 });
 
 /**
+ * Grant an additional OWNER role. Only an existing verified Owner may call this.
+ * The founder record is immutable; additional owners are explicitly non-founder.
+ */
+authClaimsRouter.post('/grant-owner', authenticateToken, requireOwnerRole, async (req: Request, res: Response) => {
+  const actor = (req as any).user;
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+
+  if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    return res.status(400).json({ success: false, message: 'يرجى إدخال بريد إلكتروني صحيح للحساب المراد ترقيته.' });
+  }
+
+  try {
+    const targetUser = await adminAuth.getUserByEmail(email);
+    if (targetUser.uid === actor.uid) {
+      return res.status(400).json({ success: false, message: 'لا يمكن ترقية حساب المالك الحالي مرة أخرى.' });
+    }
+    if (!targetUser.emailVerified || !targetUser.email) {
+      return res.status(403).json({ success: false, message: 'يجب أن يكون بريد الحساب المستهدف موثقًا في Firebase Authentication.' });
+    }
+
+    const previousClaims = (targetUser.customClaims || {}) as Record<string, any>;
+    if (previousClaims.role === 'owner' || previousClaims.role === 'admin') {
+      return res.status(409).json({ success: false, message: 'الحساب يمتلك صلاحية إدارية بالفعل.' });
+    }
+
+    const targetRef = adminDb.collection('admins').doc(targetUser.uid);
+    const existing = await targetRef.get();
+    if (existing.exists) {
+      return res.status(409).json({ success: false, message: 'يوجد سجل إداري لهذا الحساب بالفعل؛ لم يتم استبداله.' });
+    }
+
+    const now = new Date().toISOString();
+    let registryCreated = false;
+    let claimsChanged = false;
+    try {
+      await targetRef.create({
+        id: targetUser.uid,
+        uid: targetUser.uid,
+        email: targetUser.email,
+        name: targetUser.displayName || 'مالك معتمد',
+        title: 'مالك معتمد',
+        role: 'owner',
+        isFounder: false,
+        canEditBooks: true,
+        canManageBans: true,
+        addedBy: actor.uid,
+        addedAt: now,
+      });
+      registryCreated = true;
+
+      await adminAuth.setCustomUserClaims(targetUser.uid, {
+        ...previousClaims,
+        role: 'owner',
+      });
+      claimsChanged = true;
+      await adminAuth.revokeRefreshTokens(targetUser.uid);
+
+      return res.status(200).json({
+        success: true,
+        message: 'تمت إضافة المالك الجديد بنجاح. يجب عليه تسجيل الدخول مجددًا لتحديث الجلسة.',
+        owner: { uid: targetUser.uid, email: targetUser.email },
+      });
+    } catch (grantError: any) {
+      let rollbackSucceeded = true;
+      if (registryCreated) {
+        try {
+          await targetRef.delete();
+        } catch (rollbackError) {
+          rollbackSucceeded = false;
+          console.error('Additional owner registry rollback failed:', rollbackError);
+        }
+      }
+      if (claimsChanged) {
+        try {
+          await adminAuth.setCustomUserClaims(targetUser.uid, previousClaims);
+          await adminAuth.revokeRefreshTokens(targetUser.uid);
+        } catch (rollbackError) {
+          rollbackSucceeded = false;
+          console.error('Additional owner claims rollback failed:', rollbackError);
+        }
+      }
+      console.error('Grant additional owner failed:', grantError);
+      return res.status(rollbackSucceeded ? 400 : 500).json({
+        success: false,
+        message: rollbackSucceeded
+          ? 'تعذرت إضافة المالك؛ أُعيدت التغييرات ولم تُمنح الصلاحية.'
+          : 'فشل التراجع الكامل عن عملية الإضافة. يلزم فحص سجل الحساب قبل أي إعادة محاولة.',
+      });
+    }
+  } catch (err: any) {
+    if (err?.code === 'auth/user-not-found') {
+      return res.status(404).json({ success: false, message: 'لم يتم العثور على الحساب في Firebase Authentication. يجب أن يسجل أولًا.' });
+    }
+    console.error('Grant additional owner error:', err);
+    return res.status(500).json({ success: false, message: 'حدث خطأ أثناء إضافة المالك. لم يتم تأكيد نجاح العملية.' });
+  }
+});
+
+/**
  * 6. Revoke Admin Role (Strictly for OWNER)
  * Completely strips administrative Custom Claims and deletes admins/{uid}.
  * Preserves other custom claims. Immediately deletes Firestore doc first for instant revocation.
