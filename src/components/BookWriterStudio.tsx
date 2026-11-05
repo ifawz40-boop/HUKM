@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { BookProject, BookChapter, CategoryItem } from '../types/hukm';
 import { calculateWordsCount, calculateReadingTimeMinutes, getCategoryName } from '../utils/hukmEngine';
+import { WriterDraftSnapshot } from '../types/hukm';
+import { getWriterDraftSnapshot, removeWriterDraftSnapshot, removeWriterDraftSnapshotsForBook, saveWriterDraftSnapshot } from '../utils/writerDraftRecovery';
 
 // Quick curated collection of high-res novel cover arts for easy 1-click selection
 const PRESET_COVERS = [
@@ -62,6 +64,7 @@ interface BookWriterStudioProps {
   onAddCategory?: (category: { name: string; description?: string }) => void;
   onDeleteCategory?: (categoryId: string) => void;
   onOpenAdminModal?: () => void;
+  currentUserId?: string;
 }
 
 export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
@@ -76,6 +79,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   onAddCategory,
   onDeleteCategory,
   onOpenAdminModal,
+  currentUserId,
 }) => {
   const [activeTab, setActiveTab] = useState<'novels' | 'editor' | 'research' | 'categories'>('novels');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
