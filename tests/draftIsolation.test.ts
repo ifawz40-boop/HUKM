@@ -485,7 +485,7 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
         assert.match(writerStudioContent.slice(fieldIndex, fieldIndex + 180), /disabled=\{isSavingChapter\}/);
       }
       assert.match(writerStudioContent, /const handleSelectChapter = \(ch: BookChapter\) => \{\s*if \(isSavingChapterRef\.current \|\| preserveCurrentEditorDraft\(\) === false\) return/);
-      assert.match(writerStudioContent, /const handleCreateNewChapter = \(\) => \{\s*if \(!currentBook \|\| isSavingChapterRef\.current\) return/);
+      assert.match(writerStudioContent, /const handleCreateNewChapter = \(\) => \{\s*if \(!currentBook \|\| isSavingChapterRef\.current \|\| preserveCurrentEditorDraft\(\) === false\) return/);
       assert.match(writerStudioContent, /const handleDeleteChapter = async \(chId: string\) => \{\s*if \(!currentBook \|\| isSavingChapterRef\.current\) return/);
     });
 
