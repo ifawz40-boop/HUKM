@@ -153,7 +153,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
         updatedAt: new Date().toISOString(),
       });
       if (result === false) {
-        onShowToast('تعذر حفظ المراجع والاقتباسات سحابيًا. احتفظنا بالتعديلات في هذه الجلسة.');
+        onShowToast('تعذر حفظ المراجع والاقتباسات. لم تُحفظ التعديلات؛ حاول مرة أخرى قبل مغادرة الصفحة.');
         return;
       }
       onShowToast('تم حفظ ملف البحث ومراجعه بنجاح.');
