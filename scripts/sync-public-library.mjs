@@ -99,11 +99,17 @@ function isTranslationExplicitlyLicensed(row) {
 
 function getCredits(row) {
   return Array.isArray(row.credits)
-    ? row.credits.map((credit) => ({
-        role: safeText(credit.role_ar || credit.role),
-        name: safeText(credit.name),
-        deathYear: Number.isFinite(Number(credit.death_year)) ? Number(credit.death_year) : null,
-      })).filter((credit) => credit.name)
+    ? row.credits.map((credit) => {
+        const rawDeathYear = credit.death_year;
+        const deathYear = rawDeathYear === null || rawDeathYear === undefined || rawDeathYear === ''
+          ? null
+          : (Number.isFinite(Number(rawDeathYear)) ? Number(rawDeathYear) : null);
+        return {
+          role: safeText(credit.role_ar || credit.role),
+          name: safeText(credit.name),
+          deathYear,
+        };
+      }).filter((credit) => credit.name)
     : [];
 }
 
