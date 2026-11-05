@@ -202,7 +202,13 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     return 'dark';
   });
 
-  const [contentWidth, setContentWidth] = useState<'normal' | 'wide' | 'compact'>('normal');
+  const [contentWidth, setContentWidth] = useState<'normal' | 'wide' | 'compact'>(() => {
+    try {
+      const saved = localStorage.getItem('hukm_reader_width');
+      if (saved === 'normal' || saved === 'wide' || saved === 'compact') return saved;
+    } catch {}
+    return 'normal';
+  });
   const [lineHeight, setLineHeight] = useState<number>(() => {
     try {
       const saved = Number(localStorage.getItem('hukm_reader_lineheight'));
@@ -236,6 +242,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const [isSavingAnnotation, setIsSavingAnnotation] = useState(false);
   const [selectedTextDraft, setSelectedTextDraft] = useState('');
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
+  const [selectedAnnotationChapterId, setSelectedAnnotationChapterId] = useState<string | null>(null);
   const [selectedStartOffset, setSelectedStartOffset] = useState(0);
   const [selectedEndOffset, setSelectedEndOffset] = useState(0);
   const [annotationNoteDraft, setAnnotationNoteDraft] = useState('');
@@ -274,6 +281,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     setIsAnnotationsOpen(false);
     setSelectedTextDraft('');
     setSelectedParagraphIndex(null);
+    setSelectedAnnotationChapterId(null);
     const userId = currentUser?.id;
     const localForChapter = getReaderAnnotationsForChapter(book.id, currentChapter.id, userId);
     setReaderAnnotations(localForChapter);
@@ -445,8 +453,9 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       localStorage.setItem('hukm_reader_theme', theme);
       localStorage.setItem('hukm_reader_lineheight', String(lineHeight));
       localStorage.setItem('hukm_reader_speed', String(readingSpeedWpm));
+      localStorage.setItem('hukm_reader_width', contentWidth);
     } catch {}
-  }, [fontSize, fontFamily, theme, lineHeight, readingSpeedWpm]);
+  }, [fontSize, fontFamily, theme, lineHeight, readingSpeedWpm, contentWidth]);
 
   // Track chapter view and restore its last position without changing completion state.
   useEffect(() => {
@@ -547,7 +556,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   };
 
   const speakParagraph = useCallback((paragraphIndex: number) => {
-    if (!currentChapter || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    if (!currentChapter || typeof window === 'undefined' || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
       onShowToast?.('القراءة الصوتية غير مدعومة في هذا المتصفح.');
       setSpeechStatus('idle');
       return;
@@ -571,6 +580,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       if (speechSessionRef.current === sessionId) {
         setSpeechStatus('speaking');
         setActiveSpeechParagraph(paragraphIndex);
+        document.getElementById(`reader-paragraph-${paragraphIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     };
     utterance.onend = () => {
@@ -627,6 +637,8 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   };
 
   useEffect(() => {
+    setSpeechStatus('idle');
+    setActiveSpeechParagraph(null);
     return () => {
       speechSessionRef.current += 1;
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -710,6 +722,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
     setSelectedTextDraft(selectedText);
     setSelectedParagraphIndex(paragraphIndex);
+    setSelectedAnnotationChapterId(currentChapter?.id || null);
     setSelectedStartOffset(startOffset);
     setSelectedEndOffset(endOffset);
     setAnnotationNoteDraft('');
@@ -718,7 +731,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   };
 
   const handleSaveAnnotation = async () => {
-    if (!currentChapter || selectedParagraphIndex === null || !selectedTextDraft) return;
+    if (!currentChapter || selectedAnnotationChapterId !== currentChapter.id || selectedParagraphIndex === null || !selectedTextDraft) return;
     setIsSavingAnnotation(true);
     if (visibleReaderAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
       setIsSavingAnnotation(false);
@@ -1314,7 +1327,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           </section>
         )}
 
-        {isAnnotationEditorOpen && (
+        {isAnnotationEditorOpen && selectedAnnotationChapterId === currentChapter?.id && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="presentation">
             <div role="dialog" aria-modal="true" aria-labelledby="reader-annotation-title" className="w-full max-w-xl rounded-2xl border border-[#c59b27]/35 bg-[#0a1226] p-5 sm:p-6 text-white shadow-2xl space-y-4" dir="rtl">
               <div className="flex items-center justify-between gap-3">
