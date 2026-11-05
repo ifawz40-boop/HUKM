@@ -23,6 +23,8 @@ export function getAllWriterDraftSnapshots(userId: string): WriterDraftSnapshot[
       typeof (item as WriterDraftSnapshot).id === 'string' &&
       typeof (item as WriterDraftSnapshot).title === 'string' &&
       typeof (item as WriterDraftSnapshot).content === 'string' &&
+      (item as WriterDraftSnapshot).content.length <= MAX_WRITER_DRAFT_CONTENT_CHARS &&
+      typeof (item as WriterDraftSnapshot).savedAt === 'string' &&
       ((item as WriterDraftSnapshot).chapterId === null || typeof (item as WriterDraftSnapshot).chapterId === 'string') &&
       Number.isInteger((item as WriterDraftSnapshot).chapterNumber) &&
       ['draft', 'ready'].includes((item as WriterDraftSnapshot).status)
@@ -52,8 +54,13 @@ export function saveWriterDraftSnapshot(snapshot: WriterDraftSnapshot): boolean 
       (snapshot.chapterId !== null && (!snapshot.chapterId || snapshot.chapterId.length > 128)) ||
       !Number.isInteger(snapshot.chapterNumber) ||
       snapshot.chapterNumber <= 0 ||
+      !snapshot.id ||
+      snapshot.id.length > 300 ||
+      typeof snapshot.title !== 'string' ||
       snapshot.title.length > 300 ||
+      typeof snapshot.content !== 'string' ||
       snapshot.content.length > MAX_WRITER_DRAFT_CONTENT_CHARS ||
+      typeof snapshot.savedAt !== 'string' ||
       !['draft', 'ready'].includes(snapshot.status)
     ) return false;
 
