@@ -8,6 +8,34 @@ export function getReaderAnnotationStorageKey(userId?: string): string {
     : 'hukm_guest_reader_annotations_v1';
 }
 
+export interface ReaderAnnotationOffsets {
+  selectedText: string;
+  startOffset: number;
+  endOffset: number;
+}
+
+/** Convert a DOM Range prefix and raw selection into a verifiable paragraph anchor. */
+export function getReaderAnnotationOffsets(
+  paragraphText: string,
+  prefixText: string,
+  rawSelectedText: string
+): ReaderAnnotationOffsets | null {
+  const selectedText = rawSelectedText.trim();
+  if (!selectedText || selectedText.length > 2000) return null;
+
+  const leadingTrim = rawSelectedText.length - rawSelectedText.trimStart().length;
+  const startOffset = prefixText.length + leadingTrim;
+  const endOffset = startOffset + selectedText.length;
+
+  if (
+    startOffset < 0 ||
+    endOffset > paragraphText.length ||
+    paragraphText.slice(startOffset, endOffset) !== selectedText
+  ) return null;
+
+  return { selectedText, startOffset, endOffset };
+}
+
 export function createReaderAnnotationId(): string {
   const randomPart = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID().replace(/-/g, '')
