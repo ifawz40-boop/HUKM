@@ -979,6 +979,7 @@ export default function App() {
             <BookWriterStudio
               books={books}
               currentBook={currentBook}
+              currentUserId={currentUser?.id}
               categories={categories}
               onSelectBook={(bookId) => setSelectedBookId(bookId)}
               onUpdateBook={handleUpdateBook}
