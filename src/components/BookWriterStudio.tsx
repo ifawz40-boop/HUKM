@@ -127,7 +127,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     setSelectedChapterId(firstChapter?.id || '');
     setChapterNumber(firstChapter?.chapterNumber || 1);
     setChapterTitle(firstChapter?.title || '');
-    setChapterContent(firstChapter ? firstChapter.content.join('\\n\\n') : '');
+    setChapterContent(firstChapter ? firstChapter.content.join('\n\n') : '');
     setChapterStatus(firstChapter?.status || 'draft');
   }, [currentBook?.id]);
 
