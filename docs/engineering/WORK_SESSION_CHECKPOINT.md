@@ -79,6 +79,7 @@
 - Added `docs/security/OWNER_BOOTSTRAP_RUNBOOK.md` with Windows PowerShell setup, credential handling, expected verification, and recovery guidance.
 - Added owner-only `POST /api/auth/grant-owner` with verified target email, no self-promotion, no overwriting an existing admin record, non-founder owner records, claim assignment, token revocation, and rollback handling.
 - Added `grantOwnerRole` client action and an owner-only management-panel form. Additional owners can be revoked by an owner; the founder record remains protected.
+- Added `scripts/verify-owner.ts` and `owner:verify`, a read-only Firebase Auth + Firestore consistency check; its test asserts that it performs no writes.
 - The initial public HTTP bootstrap endpoint remains disabled. No email-based or client-side role assignment was introduced.
 
 ### Latest owner-provisioning code commits
@@ -90,6 +91,8 @@
 - Full test inclusion and CLI script: `84080a14ce8d277bc9600650e85dd5ff80420d0b`
 - Integration guard tests: `f5f9ea51d9df4817131f1d3745ea9fa47c8c80bc`
 - Latest rollback hardening: `cae7633f4493b755e5c580b1279c0800fbd6a906` and `36335b01ace8ea5980f415b602fef92691a78989`
+- Read-only verification CLI: `6a973f893752b05a32f762596faf766d08c096c1`
+- Verification runbook and test updates: `e6a0f1285920f6ac553315cb9ca4dc700f832d0b` and `0a12d43237a6171889d2bb54d5839ccf183dc2e8`
 
 ### Verification state and next resume marker
 - Source files and the new test/runbook files were committed directly to `main`; latest code commit at checkpoint preparation: `36335b01ace8ea5980f415b602fef92691a78989`.
@@ -98,4 +101,4 @@
 - Firebase production bootstrap has NOT been executed. No Firebase Auth custom claim or Firestore admin/bootstrap document has been changed by this work.
 - Google AI Studio synchronization has not been independently confirmed.
 
-**RESUME HERE:** First inspect latest `main` and the CI run for the latest owner-provisioning commit. Fix any failing tests/type errors and save the fix plus an updated checkpoint to `main`. Then provide the operator with the local runbook steps; wait for the non-secret command result and verify that Firebase Auth `role: owner`, `admins/{uid}` (`isFounder: true`), and `_system/bootstrap.status=completed` agree. Never ask for or accept the service-account key in chat.
+**RESUME HERE:** First inspect latest `main` and the CI run for the latest owner-provisioning commit (currently `0a12d43237a6171889d2bb54d5839ccf183dc2e8`). Fix any failing tests/type errors and save the fix plus an updated checkpoint to `main`. Then provide the operator with the local runbook steps (`bun run owner:bootstrap`, followed by `bun run owner:verify`); wait for the non-secret verifier output and confirm that Firebase Auth `role: owner`, `admins/{uid}` (`isFounder: true`), and `_system/bootstrap.status=completed` agree. Never ask for or accept the service-account key in chat.
