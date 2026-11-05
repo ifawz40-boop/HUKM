@@ -75,7 +75,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               {book.status === 'draft' || book.status === 'in_progress'
                 ? 'مسودة'
                 : book.status === 'completed'
-                  ? 'مكتملة'
+                  ? 'كتاب كامل'
                   : 'مستمرة'}
             </span>
           </div>
