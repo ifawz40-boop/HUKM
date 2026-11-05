@@ -96,6 +96,8 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
       ...current,
       {
         id: makeEntryId('source'),
+        managedBy: 'hukm-research-panel',
+        visibility: 'public',
         title: sourceTitle.trim().slice(0, 200),
         author: sourceAuthor.trim().slice(0, 150),
         publisher: sourcePublisher.trim().slice(0, 150),
@@ -126,6 +128,8 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
       ...current,
       {
         id: makeEntryId('quote'),
+        managedBy: 'hukm-research-panel',
+        visibility: 'public',
         text: quoteText.trim().slice(0, 2000),
         sourceId: quoteSourceId || '',
         page: quotePage.trim().slice(0, 40),
@@ -294,7 +298,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
           </div>
         </section>
       </div>
-      <p className="text-[10px] leading-relaxed text-[#64748b]">تُحفظ المراجع والاقتباسات مع بيانات الكتاب وتكون متاحة للقراء عند نشره. لا تضع ملاحظات داخلية أو اقتباسات محمية طويلة.</p>
+      <p className="text-[10px] leading-relaxed text-[#64748b]">كل مصدر أو اقتباس تضيفه هنا مخصص للنشر وسيكون ظاهرًا للقراء عند نشر الكتاب. لا تضع ملاحظات داخلية أو اقتباسات محمية طويلة.</p>
     </div>
   );
 };
