@@ -16,7 +16,8 @@ import {
   Play,
   History,
 } from 'lucide-react';
-import { UserProfile } from '../types/auth';
+import { UserProfile, AdminRequest } from '../types/auth';
+import { createAdminRequest, getMyAdminRequest } from '../services/adminClaimsClient';
 import { BookProject } from '../types/hukm';
 import { isOwner, isAdmin } from '../services/permissionService';
 import { resendVerificationEmail, reloadCurrentUserSession } from '../firebase/authService';
@@ -55,12 +56,42 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [savedSubTab, setSavedSubTab] = useState<'favorites' | 'history'>('favorites');
   const [isResending, setIsResending] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
+  const [adminRequest, setAdminRequest] = useState<AdminRequest | null>(null);
+  const [adminRequestReason, setAdminRequestReason] = useState('');
+  const [isLoadingAdminRequest, setIsLoadingAdminRequest] = useState(false);
+  const [isSubmittingAdminRequest, setIsSubmittingAdminRequest] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
     }
   }, [isOpen, initialTab]);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!isOpen || !user || user.role !== 'reader') return () => { active = false; };
+    setIsLoadingAdminRequest(true);
+    getMyAdminRequest().then((result) => {
+      if (!active) return;
+      if (result.success) setAdminRequest(result.request);
+      else onShowToast?.(result.message || 'تعذر تحميل حالة طلب الإدارة.');
+    }).finally(() => {
+      if (active) setIsLoadingAdminRequest(false);
+    });
+    return () => { active = false; };
+  }, [isOpen, user?.id, user?.role, onShowToast]);
+
+  const handleSubmitAdminRequest = async () => {
+    if (!user || !user.emailVerified || !adminRequestReason.trim()) return;
+    setIsSubmittingAdminRequest(true);
+    const result = await createAdminRequest(adminRequestReason.trim());
+    setIsSubmittingAdminRequest(false);
+    if (result.success && result.request) {
+      setAdminRequest(result.request);
+      setAdminRequestReason('');
+    }
+    onShowToast?.(result.message);
+  };
 
   if (!isOpen || !user) return null;
 
@@ -243,6 +274,58 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             {user.bio && (
               <div className="rounded-xl bg-[#070d1e] p-3 text-xs text-[#cbd5e1] border border-white/5 leading-relaxed">
                 {user.bio}
+              </div>
+            )}
+
+            {/* Admin role request: reader-only, server-authoritative */}
+            {user.role === 'reader' && (
+              <div className="rounded-2xl bg-[#070d1e] border border-[#c59b27]/25 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#f0cb69]">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>طلب الانضمام إلى فريق الإدارة</span>
+                </div>
+                {isLoadingAdminRequest ? (
+                  <p className="text-xs text-[#94a3b8]">جاري تحميل حالة طلبك...</p>
+                ) : adminRequest?.status === 'pending' || adminRequest?.status === 'processing' ? (
+                  <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3 text-xs text-amber-200">
+                    {adminRequest.status === 'pending' ? 'طلبك قيد المراجعة من صاحب المنصة.' : 'يجري صاحب المنصة مراجعة طلبك الآن.'}
+                    <p className="mt-1 text-[10px] text-amber-200/70">تاريخ الإرسال: {new Date(adminRequest.submittedAt).toLocaleString('ar-EG')}</p>
+                  </div>
+                ) : adminRequest?.status === 'needs_attention' ? (
+                  <p className="rounded-xl bg-rose-500/10 border border-rose-500/25 p-3 text-xs text-rose-200">تعذر إكمال مراجعة الطلب بأمان. يرجى التواصل مع إدارة المنصة.</p>
+                ) : adminRequest?.status === 'approved' ? (
+                  <p className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-3 text-xs text-emerald-200">تمت الموافقة على طلبك. حدّث جلسة الدخول لتفعيل الصلاحيات.</p>
+                ) : (
+                  <>
+                    {adminRequest?.status === 'rejected' && (
+                      <p className="rounded-xl bg-rose-500/10 border border-rose-500/25 p-3 text-xs text-rose-200">
+                        لم تتم الموافقة على طلبك السابق. يمكنك تقديم طلب جديد بعد مراجعة السبب.
+                        {adminRequest.reviewNote && <span className="block mt-1 text-rose-100/80">ملاحظة الإدارة: {adminRequest.reviewNote}</span>}
+                      </p>
+                    )}
+                    {!user.emailVerified ? (
+                      <p className="text-xs text-amber-200">يجب تأكيد بريدك الإلكتروني أولاً قبل تقديم طلب الإدارة.</p>
+                    ) : (
+                      <>
+                        <p className="text-xs text-[#94a3b8] leading-relaxed">اكتب باختصار سبب رغبتك في الانضمام إلى فريق الإدارة. الطلب لا يمنح أي صلاحيات تلقائياً؛ القرار النهائي لصاحب المنصة وحده.</p>
+                        <textarea
+                          value={adminRequestReason}
+                          onChange={(e) => setAdminRequestReason(e.target.value.slice(0, 500))}
+                          maxLength={500}
+                          rows={3}
+                          placeholder="لماذا ترغب في الانضمام إلى فريق الإدارة؟"
+                          className="w-full rounded-xl bg-[#050a16] border border-white/15 px-3 py-2.5 text-xs text-white placeholder-[#64748b] focus:border-[#c59b27] focus:outline-none resize-y"
+                        />
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[10px] text-[#64748b]">{adminRequestReason.length}/500</span>
+                          <button type="button" onClick={handleSubmitAdminRequest} disabled={isSubmittingAdminRequest || !adminRequestReason.trim()} className="rounded-xl gold-gradient-btn px-4 py-2 text-xs font-bold text-[#070d1e] disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isSubmittingAdminRequest ? 'جاري الإرسال...' : 'إرسال طلب الإدارة'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
