@@ -184,7 +184,11 @@ async function bootstrapOwner(): Promise<void> {
       const bootstrapSnap = await transaction.get(bootstrapRef);
       const ownerAdminSnap = await transaction.get(ownerAdminRef);
       const ownersSnap = await transaction.get(db.collection('admins').where('role', '==', 'owner'));
-      const registeredOwnerUids = ownersSnap.docs.map((doc) => String(doc.data().uid || doc.id));
+      const foundersSnap = await transaction.get(db.collection('admins').where('isFounder', '==', true));
+      const registeredOwnerUids = [...new Set([
+        ...ownersSnap.docs.map((doc) => String(doc.data().uid || doc.id)),
+        ...foundersSnap.docs.map((doc) => String(doc.data().uid || doc.id)),
+      ])];
 
       const finalDecision = decideOwnerBootstrap({
         bootstrapExists: bootstrapSnap.exists,
