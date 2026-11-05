@@ -12,6 +12,7 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import type { App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { isValidOwnerEmail } from '../src/server/ownerBootstrapGuards.ts';
 
 const PROJECT_ID = 'gen-lang-client-0492732633';
 const DATABASE_ID = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
