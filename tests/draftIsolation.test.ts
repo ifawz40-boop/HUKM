@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { formatDraftChapterId } from '../src/firebase/firestoreService.ts';
+import { formatDraftChapterId, partitionBookChapters } from '../src/firebase/firestoreService.ts';
 import type { BookProject, BookChapter } from '../src/types/hukm.ts';
 
 describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation Suite', () => {
@@ -57,28 +57,45 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
   // =========================================================================
   // SECTION 2: Document ID Generation & ID Validation Rules
   // =========================================================================
-  describe('Invariant 2: formatDraftChapterId Determinism & Sanitization', () => {
-    it('generates IDs complying with isValidId pattern (alphanumeric, dash, underscore, <= 128 chars)', () => {
-      const validPattern = /^[a-zA-Z0-9_\-]+$/;
+  describe('Invariant 2: formatDraftChapterId Determinism & Lossless Validation', () => {
+    it('preserves historical IDs for safe inputs within the Firestore limit', () => {
+      const validPattern = /^[a-zA-Z0-9_\\-]+$/;
       const testCases = [
         { bookId: 'book-100', chapterId: 'ch-1' },
         { bookId: 'investigation_deep', chapterId: 'chapter_02' },
-        { bookId: 'book with spaces & symbols!', chapterId: 'ch #99 (v2)' },
-        { bookId: 'a'.repeat(100), chapterId: 'b'.repeat(100) },
       ];
-
       for (const tc of testCases) {
         const id = formatDraftChapterId(tc.bookId, tc.chapterId);
-        assert.ok(id.length > 0 && id.length <= 128, `Length must be 1..128 chars (was ${id.length})`);
-        assert.match(id, validPattern, `ID "${id}" must strictly match isValidId regex`);
-        assert.ok(id.startsWith('draft_'), 'Must prefix with draft_');
+        assert.ok(id.length > 0 && id.length <= 128);
+        assert.match(id, validPattern);
+        assert.ok(id.startsWith('draft_'));
       }
     });
 
+    it('rejects unsafe characters instead of normalizing distinct inputs to one ID', () => {
+      assert.throws(() => formatDraftChapterId('book with spaces', 'ch-1'), /Refusing lossy ID normalization/);
+    });
+
+    it('rejects overlong IDs instead of truncating distinguishing suffixes', () => {
+      assert.throws(() => formatDraftChapterId('a'.repeat(100), 'b'.repeat(100)), /Refusing lossy truncation/);
+    });
+
     it('produces identical deterministic ID for the same inputs', () => {
-      const id1 = formatDraftChapterId('book-alpha', 'ch-42');
-      const id2 = formatDraftChapterId('book-alpha', 'ch-42');
-      assert.equal(id1, id2);
+      assert.equal(formatDraftChapterId('book-alpha', 'ch-42'), formatDraftChapterId('book-alpha', 'ch-42'));
+    });
+  });
+
+  describe('Invariant 2A: Unknown chapter statuses remain private', () => {
+    it('keeps only explicitly ready chapters in the public book payload', () => {
+      const chapters = [
+        { id: 'ready-1', status: 'ready' },
+        { id: 'draft-1', status: 'draft' },
+        { id: 'legacy-1', status: 'review_pending' },
+        { id: 'missing-1' },
+      ] as unknown as BookChapter[];
+      const partition = partitionBookChapters(chapters);
+      assert.deepEqual(partition.readyChapters.map((chapter) => chapter.id), ['ready-1']);
+      assert.deepEqual(partition.draftChapters.map((chapter) => chapter.id), ['draft-1', 'legacy-1', 'missing-1']);
     });
   });
 
@@ -121,7 +138,7 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
     function simulateSaveSeparation(book: BookProject) {
       const allChapters = book.chapters || [];
       const readyChapters = allChapters.filter((ch) => ch.status === 'ready');
-      const draftChapters = allChapters.filter((ch) => ch.status === 'draft');
+      const draftChapters = allChapters.filter((ch) => ch.status !== 'ready');
 
       const bookDocPayload = {
         ...book,
