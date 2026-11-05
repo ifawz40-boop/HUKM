@@ -479,6 +479,14 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(writerStudioContent, /isSavingChapterRef\.current = true/);
       assert.match(writerStudioContent, /finally \{[\s\S]*?isSavingChapterRef\.current = false[\s\S]*?setIsSavingChapter\(false\)/);
       assert.equal((writerStudioContent.match(/disabled=\{!currentBook \|\| isSavingChapter\}/g) || []).length, 2);
+      for (const field of ['chapterNumber', 'chapterStatus', 'chapterTitle', 'chapterContent']) {
+        const fieldIndex = writerStudioContent.indexOf(`value={${field}}`);
+        assert.ok(fieldIndex >= 0, `Missing editor field: ${field}`);
+        assert.match(writerStudioContent.slice(fieldIndex, fieldIndex + 180), /disabled=\{isSavingChapter\}/);
+      }
+      assert.match(writerStudioContent, /const handleSelectChapter = \(ch: BookChapter\) => \{\s*if \(isSavingChapterRef\.current\) return/);
+      assert.match(writerStudioContent, /const handleCreateNewChapter = \(\) => \{\s*if \(!currentBook \|\| isSavingChapterRef\.current\) return/);
+      assert.match(writerStudioContent, /const handleDeleteChapter = async \(chId: string\) => \{\s*if \(!currentBook \|\| isSavingChapterRef\.current\) return/);
     });
 
     it('locks research inputs while saving and rejects duplicate save submissions', () => {
