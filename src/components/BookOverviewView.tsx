@@ -377,6 +377,37 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
           </p>
         </section>
 
+        {book.rights && (
+          <section className="rounded-2xl border border-[#c59b27]/25 bg-[#0a1329] p-5 sm:p-7 space-y-4" aria-label="مصدر النص والترخيص">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[#d4af37]" />
+              <h2 className="text-base font-black text-white">المصدر وحقوق إعادة النشر</h2>
+            </div>
+            <p className="text-xs leading-7 text-[#cbd5e1]">{book.rights.attribution}</p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#f0cb69] hover:bg-white/5">صفحة النص في ويكي مصدر</a>
+              {book.rights.historyUrl && <a href={book.rights.historyUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">سجل التعديلات</a>}
+              <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">شروط CC BY-SA 4.0</a>
+              <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">بيانات المجموعة</a>
+            </div>
+            {book.rights.sourcePages.length > 0 && (
+              <details className="rounded-xl border border-white/10 bg-black/15 p-3">
+                <summary className="cursor-pointer text-xs font-bold text-[#f0cb69]">صفحات المصدر وسجل النسخ ({book.rights.sourcePages.length})</summary>
+                <ul className="mt-3 space-y-2">
+                  {book.rights.sourcePages.slice(0, 12).map((page, index) => (
+                    <li key={page.revisionId || page.url || index}>
+                      <a href={page.url} target="_blank" rel="noreferrer" className="text-[11px] text-[#cbd5e1] underline decoration-white/20 underline-offset-4 hover:text-white">
+                        {page.title || `صفحة المصدر ${index + 1}`}
+                      </a>
+                      {page.revisionId && <span className="mr-2 text-[10px] text-[#64748b]">Revision {page.revisionId}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </section>
+        )}
+
         {/* Published bibliography and quotations */}
         {(publicSources.length > 0 || publicQuotes.length > 0) && (
           <section className="rounded-2xl border border-[#c59b27]/20 bg-[#0a1329] p-6 sm:p-8 space-y-6">
