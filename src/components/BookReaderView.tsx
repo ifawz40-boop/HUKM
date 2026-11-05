@@ -930,10 +930,10 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             <button
               onClick={onOpenOverview || onBack}
               className="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-colors hover:opacity-80"
-              title="العودة لصفحة تفاصيل الرواية"
+              title="العودة لصفحة تفاصيل الكتاب"
             >
               <ArrowRight className="h-4 w-4" />
-              <span className="hidden sm:inline">تفاصيل الرواية</span>
+              <span className="hidden sm:inline">تفاصيل الكتاب</span>
             </button>
 
             <div className="border-r border-current/20 pr-3">
@@ -1255,7 +1255,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           </div>
           {book.rights && (
             <p className="border-t border-current/10 pt-3 text-[10px] leading-6 opacity-70">
-              النص من <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="underline">ويكي مصدر العربي</a>، مرخص وفق <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="underline">CC BY-SA 4.0</a>. <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="underline">بيانات المصدر والترخيص</a>.
+              النص من <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="underline">مؤسسة هنداوي</a>، مرخص وفق <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="underline">CC BY-SA 4.0</a>. <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="underline">بيانات المصدر والترخيص</a>.
             </p>
           )}
         </div>
