@@ -1,5 +1,5 @@
 import { BookProject, BookChapter } from '../types/hukm';
-import { HUKM_LOGO, HUKM_MOTTO, DEFAULT_CREATOR } from '../data/hukmData';
+import { HUKM_LOGO, HUKM_MOTTO } from '../data/hukmData';
 
 export function getHukmEmailHeader(): string {
   return `
@@ -59,7 +59,7 @@ export function getHukmEmailFooter(userEmail?: string): string {
               <p style="margin: 0; font-family: 'Cairo', Tahoma, sans-serif; font-size: 11px; color: #64748b; line-height: 1.8;">
                 تصلك هذه الرسالة التلقائية لأنك مسجل ومعتمد في منصة <strong>حُكم | HUKM MEDIA</strong>.<br/>
                 ${userEmail ? `تم الإرسال إلى: <span style="color: #cbd5e1;">${userEmail}</span> | ` : ''}
-                الناشر الرسمي والمؤسس: <strong style="color: #f0cb69;">${DEFAULT_CREATOR.name}</strong>
+                الناشر: <strong style="color: #f0cb69;">إدارة ومنصة حُكم</strong>
               </p>
               <p style="margin: 8px 0 0 0; font-family: 'Cairo', Tahoma, sans-serif; font-size: 10px; color: #475569;">
                 © ${new Date().getFullYear()} حُكم HUKM MEDIA — جميع حقوق التوثيق والاستقصاء محفوظة.
