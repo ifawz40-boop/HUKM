@@ -485,7 +485,8 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     it('must reserve and resume bootstrap only for the same founder UID', () => {
       assert.match(bootstrapScriptContent, /decideOwnerBootstrap\(/);
       assert.match(bootstrapScriptContent, /assertOwnerClaimCanBeAssigned\(existingClaims\.role, reservationDecision === 'resume'\)/);
-      assert.match(bootstrapScriptContent, /BOOTSTRAP_RESERVED_BY_OTHER_USER/);
+      const guardContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/ownerBootstrapGuards.ts'), 'utf-8');
+      assert.match(guardContent, /BOOTSTRAP_RESERVED_BY_OTHER_USER/);
       assert.match(bootstrapScriptContent, /managerUid: null/);
       assert.match(bootstrapScriptContent, /managerEmail: null/);
     });
