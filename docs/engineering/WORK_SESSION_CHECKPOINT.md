@@ -334,3 +334,52 @@ A stronger primary source was found after the first Wikisource sync attempt:
 6. Review initial bundle size and confirm book JSON files are lazy-loaded chunks, not eager imports.
 7. Verify Vercel deployment separately; rate-limit is external and may persist.
 8. After deployment, the founder uses the owner-only cleanup control once. Confirm exact deleted counts and the completed marker. User profiles, auth, bookmarks, progress, notes, notifications, subscribers and admin records must remain intact.
+
+
+## Combined static-library + Firebase owner activation continuation — 2026-11-05 20:09 UTC
+
+### Latest repository state
+- Latest `main` checkpoint commit: `aa641dc189e79a83aaa7eeabf6724d78356234ac` (`test: validate actual per-book license labels`).
+- Repository remains `ifawz40-boop/HUKM`, branch `main` only.
+- Latest full CI before the last test-only commit passed at `b2843a484ecdc3d35f0ee97e0275c08c2b8271fb`: https://github.com/ifawz40-boop/HUKM/actions/runs/42100408974
+- CI for `aa641dc189e79a83aaa7eeabf6724d78356234ac` is queued at checkpoint time: https://github.com/ifawz40-boop/HUKM/actions/runs/42100523861
+- The static library sync run `42099576786` is still in progress; its job has been running the source download/validation step since 20:03 UTC and no logs are available until the step completes. It was launched from commit `f343a93c642cb7e51a57b49b00ea6373e12713b3`. Do not assume generated books exist yet. Run: https://github.com/ifawz40-boop/HUKM/actions/runs/42099576786
+- Vercel commit status remains failure with external target `https://vercel.com/ifawz40-boop?upgradeToPro=build-rate-limit`; this is a build-rate-limit condition, not a code test failure and not a successful deployment.
+
+### Critical Firebase named-database target correction — committed
+- Confirmed `src/server/firebaseAdmin.ts`, `scripts/bootstrap-owner.ts`, and `scripts/verify-owner.ts` all target project `gen-lang-client-0492732633` and named Firestore database `ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96`.
+- Previous `firebase.json` had only `firestore.rules` and omitted the database ID, which could target the default database instead of the app's named database.
+- Updated root `firebase.json` to include that exact `firestore.database` value.
+- Updated runbook command to `firebase deploy --only firestore --project gen-lang-client-0492732633`; operator must confirm CLI output explicitly names the same custom database and stop if it says `(default)`.
+- Added regression test requiring `firebase.json`, bootstrap CLI, verifier, and server Admin SDK to agree on the same named database.
+- Official Firebase documentation confirms named database rule sources must be associated with their database in `firebase.json`, and CLI deployment uses configured database targets:
+  - https://firebase.google.com/docs/cli
+  - https://firebase.google.com/docs/rules/manage-deploy
+  - https://firebase.google.com/docs/firestore/manage-databases
+- Do not claim the rules are deployed. No Firebase production write has occurred.
+
+### Owner activation status
+- Bootstrap CLI remains local Admin SDK only, with explicit `OWNER_EMAIL`, `BOOTSTRAP_CONFIRMATION=HUKM_INITIAL_OWNER`, exact project/database pinning, verified Auth email requirement, transactional reservation and fail-closed checks.
+- Read-only `owner:verify` checks Auth email verification, owner custom claim, bootstrap lock/completion, UID match, owner registry, and founder flag.
+- Firestore rules deny browser/client writes to `admins/{uid}`; trusted Admin SDK only.
+- Neither Firestore rules deployment nor initial owner bootstrap/verifier has been executed against production. No Auth claims or Firestore admin/bootstrap documents have been changed.
+- Plugin discovery found Firebase and Vercel integrations, both uninstalled at time of check; connection suggestions were presented. After the user connects them, inspect available actions and permissions before use. Do not ask for service-account JSON or private keys.
+- User's previously confirmed founder email in project discussion: `ifawz40@gmail.com`. Only use it as `OWNER_EMAIL` after Firebase confirms that exact Auth user exists and is verified.
+
+### Public-library source research update
+- Current primary candidate: Bayanat Labs Open Arabic Books v0.1.0, pinned revision `39876c0e7f28c2d16887c7c139800e0df9f87263`, 1,545 Hindawi books / 27,544 sections. It distinguishes 332 translations with CC BY 4.0 covering the Arabic translation from 1,212 works whose colophon puts the original text in the public domain while CC BY applies to design; those are not blanket text CC BY rights. Source: https://www.bayanatlabs.com/open/open-arabic-books
+- Script screens for explicit CC BY translation + public-domain original, or a stricter life+70 metadata screen. The second is only a triage heuristic and must remain clearly labelled, not legal advice. Unknown/incomplete credit rows fail closed. Runbook now documents both rights paths.
+- A second potentially useful corpus was found: Bayanat Labs Arabic Wikisource Public-Domain Works v0.1.0, with 40,782 `works-pd-core` works and CC BY-SA 4.0 transcribed text, authors/translators/editors and death-date evidence. However 40,732 are poetry (mostly single poems), so it should be a separate classical/poetry collection rather than falsely marketed as 40k complete books. It could supplement, not replace, the Hindawi book catalogue. Source: https://www.bayanatlabs.com/open/arabic-wikisource-pd
+- The older Wikisource sync workflow run `42097845305` and previous sync attempts were cancelled/stale. Inspect for stale generated JSON after the current Open Arabic Books run completes.
+- Static library architecture remains: metadata-only catalogue + one lazy-loaded JSON per book; no runtime Firebase/Hugging Face book fetches; user progress/bookmarks/notes remain separate and preserved.
+
+### Exact continuation instructions
+1. Fetch latest `main`, latest Actions runs, and verify `aa641dc...` CI result.
+2. Poll sync run `42099576786`. Once complete, inspect its job log. If failed, fix the exact dataset-viewer schema/API issue; do not relax rights or completeness filters.
+3. If successful, verify `catalog.json` count equals generated JSON files; inspect representative titles, author/translator credits, per-book rights tier, colophon, attribution, source hash, footnotes, omissions, word and section totals, and ensure stale old corpus files are gone.
+4. Update sync script's startup and NOTICE text so it describes both rights paths accurately (currently some old strings still say only explicit CC BY). Correct the rights regex/metadata handling only after inspecting actual generated rows and source schema. Re-run CI; ensure the generated-book test does not skip.
+5. Consider a separate optional Wikisource classical-poetry collection only after inspecting schema, sample quality, duplicate/incomplete status, chapter structures and CC BY-SA attribution. Do not combine it with modern book category counts.
+6. Verify lazy chunks and production bundle size.
+7. Check Vercel again. It remains blocked by build-rate-limit; use Vercel integration once connected to inspect project/build details and avoid claiming deployment.
+8. For owner activation, use Firebase integration only after connection. Read actual project/database IDs and current Firestore rule release, verify Auth user `ifawz40@gmail.com`, then deploy only to the named database after confirming target. Execute bootstrap once only if all preconditions pass, then run read-only verifier. Preserve all user and subscriber data.
+9. If Firebase/Vercel integrations remain unconnected, report the precise blocker and preserve this checkpoint; never claim production rules or owner state changed.
