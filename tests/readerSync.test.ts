@@ -305,12 +305,12 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
     });
 
     it('computes stable offsets for Arabic text and trims selected edge whitespace', () => {
-      const paragraph = 'قبل النص المحدد وبعده';
-      const anchor = getReaderAnnotationOffsets(paragraph, 'قبل ', ' النص المحدد ');
+      const paragraph = 'قبل   النص المحدد   وبعده';
+      const anchor = getReaderAnnotationOffsets(paragraph, 'قبل  ', ' النص المحدد ');
       assert.deepEqual(anchor, {
         selectedText: 'النص المحدد',
-        startOffset: 4,
-        endOffset: 15,
+        startOffset: 6,
+        endOffset: 17,
       });
       assert.equal(paragraph.slice(anchor!.startOffset, anchor!.endOffset), anchor!.selectedText);
     });
