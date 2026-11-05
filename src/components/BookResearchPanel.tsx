@@ -38,20 +38,43 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
   const [quoteNote, setQuoteNote] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
+  const [hasRemoteResearchChanges, setHasRemoteResearchChanges] = useState(false);
+  const previousBookIdRef = useRef(book?.id);
+  const previousUpdatedAtRef = useRef(book?.updatedAt);
 
   useEffect(() => {
-    setSources(Array.isArray(book?.sources) ? book.sources : []);
-    setQuotes(Array.isArray(book?.quotes) ? book.quotes : []);
-    setSourceTitle('');
-    setSourceAuthor('');
-    setSourcePublisher('');
-    setSourceYear('');
-    setSourceUrl('');
-    setSourceNote('');
-    setQuoteText('');
-    setQuoteSourceId('');
-    setQuotePage('');
-    setQuoteNote('');
+    if (!book) return;
+    const remoteSources = Array.isArray(book.sources) ? book.sources : [];
+    const remoteQuotes = Array.isArray(book.quotes) ? book.quotes : [];
+    const bookChanged = previousBookIdRef.current !== book.id;
+
+    if (bookChanged) {
+      previousBookIdRef.current = book.id;
+      previousUpdatedAtRef.current = book.updatedAt;
+      setSources(remoteSources);
+      setQuotes(remoteQuotes);
+      setHasRemoteResearchChanges(false);
+      setSourceTitle('');
+      setSourceAuthor('');
+      setSourcePublisher('');
+      setSourceYear('');
+      setSourceUrl('');
+      setSourceNote('');
+      setQuoteText('');
+      setQuoteSourceId('');
+      setQuotePage('');
+      setQuoteNote('');
+      return;
+    }
+
+    if (previousUpdatedAtRef.current !== book.updatedAt) {
+      previousUpdatedAtRef.current = book.updatedAt;
+      const localMatchesRemote =
+        JSON.stringify(remoteSources) === JSON.stringify(sources) &&
+        JSON.stringify(remoteQuotes) === JSON.stringify(quotes);
+      // Do not silently replace unsaved local research edits when another session updates this book.
+      setHasRemoteResearchChanges(!localMatchesRemote);
+    }
   }, [book?.id, book?.updatedAt]);
 
   const selectableSources = useMemo(
@@ -164,6 +187,10 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
 
   const handleSave = async () => {
     if (isSavingRef.current) return;
+    if (hasRemoteResearchChanges) {
+      onShowToast('تغيرت المراجع في نسخة أحدث من هذا الكتاب. حمّل النسخة الأحدث وادمج تعديلاتك قبل الحفظ لتجنب الكتابة فوق عمل آخر.');
+      return;
+    }
     isSavingRef.current = true;
     setIsSaving(true);
     try {
@@ -184,6 +211,15 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
       isSavingRef.current = false;
       setIsSaving(false);
     }
+  };
+
+  const handleReloadRemoteResearch = () => {
+    if (!book) return;
+    if (!window.confirm('سيؤدي تحميل النسخة الأحدث إلى استبدال التعديلات المحلية غير المحفوظة. هل تريد المتابعة؟')) return;
+    setSources(Array.isArray(book.sources) ? book.sources : []);
+    setQuotes(Array.isArray(book.quotes) ? book.quotes : []);
+    setHasRemoteResearchChanges(false);
+    onShowToast('تم تحميل أحدث نسخة من ملف البحث.');
   };
 
   const sourceTitleFor = (sourceId: string) =>
@@ -210,6 +246,12 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
         </button>
       </div>
 
+      {hasRemoteResearchChanges && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+          <p className="min-w-0 flex-1 leading-relaxed">هناك نسخة أحدث من ملف المراجع على الخادم. احتفظنا بتعديلاتك الحالية ولم نستبدلها تلقائياً.</p>
+          <button type="button" onClick={handleReloadRemoteResearch} disabled={isSaving} className="shrink-0 rounded-lg border border-amber-300/40 px-3 py-2 font-bold text-amber-100 disabled:opacity-50">تحميل النسخة الأحدث</button>
+        </div>
+      )}
       <fieldset disabled={isSaving} className="min-w-0 space-y-5 disabled:opacity-80">
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <section className="space-y-4 rounded-2xl border border-white/10 bg-[#0a1329] p-4">
