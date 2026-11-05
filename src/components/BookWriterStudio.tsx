@@ -155,7 +155,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     ? Boolean(chapterTitle.trim() || chapterContent.trim())
     : Boolean(currentChapter && (
         chapterTitle !== currentChapter.title ||
-        chapterContent !== currentChapter.content.join('\\n\\n') ||
+        chapterContent !== currentChapter.content.join('\n\n') ||
         chapterNumber !== currentChapter.chapterNumber ||
         chapterStatus !== currentChapter.status
       ));
@@ -183,7 +183,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     const snapshotMatchesCloud = Boolean(cloudChapter &&
       snapshot.chapterNumber === cloudChapter.chapterNumber &&
       snapshot.title === cloudChapter.title &&
-      snapshot.content === cloudChapter.content.join('\\n\\n') &&
+      snapshot.content === cloudChapter.content.join('\n\n') &&
       snapshot.status === cloudChapter.status);
 
     if (snapshotMatchesCloud) {
