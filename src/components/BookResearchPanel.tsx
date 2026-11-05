@@ -74,6 +74,24 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
     );
   }
 
+  const handleDeleteSource = (sourceId: string, index: number, title: string) => {
+    const linkedQuotes = quotes.filter((item) =>
+      isRecord(item) && readText(item.sourceId) === sourceId
+    ).length;
+    const message = linkedQuotes > 0
+      ? `هذا المصدر مرتبط بـ ${linkedQuotes} اقتباس. حذفه سيفصل الاقتباسات عنه دون حذفها. هل تريد المتابعة؟`
+      : `هل تريد حذف المصدر «${title}»؟`;
+    if (!window.confirm(message)) return;
+
+    setSources((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    if (sourceId) {
+      setQuotes((current) => current.map((item) => {
+        if (!isRecord(item) || readText(item.sourceId) !== sourceId) return item;
+        return { ...item, sourceId: '' };
+      }));
+    }
+  };
+
   const handleAddSource = () => {
     if (!sourceTitle.trim()) {
       onShowToast('اكتب عنوان المصدر أولًا.');
@@ -199,7 +217,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
             <h3 className="flex items-center gap-2 text-sm font-black text-[#f0cb69]">
               <FileText className="h-4 w-4" /> مصادر ومراجع البحث
             </h3>
-            <span className="text-[10px] text-[#94a3b8]">{sources.length} / 100</span>
+            <span className="text-[10px] text-[#94a3b8]">{sources.length} / 50</span>
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -243,7 +261,7 @@ export const BookResearchPanel: React.FC<BookResearchPanelProps> = ({
                     {note && <p className="text-[10px] leading-relaxed text-[#cbd5e1]">{note}</p>}
                     {safeUrl && <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 break-all text-[10px] text-[#f0cb69] hover:underline"><ExternalLink className="h-3 w-3 shrink-0" />{url}</a>}
                   </div>
-                  <button type="button" onClick={() => setSources((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`حذف المصدر ${title}`} className="shrink-0 rounded-lg p-2 text-[#94a3b8] hover:bg-rose-500/10 hover:text-rose-300">
+                  <button type="button" onClick={() => handleDeleteSource(id, index, title)} aria-label={`حذف المصدر ${title}`} className="shrink-0 rounded-lg p-2 text-[#94a3b8] hover:bg-rose-500/10 hover:text-rose-300">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
