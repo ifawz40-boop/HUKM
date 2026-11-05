@@ -267,6 +267,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     setChapterTitle(recoverySnapshot.title);
     setChapterContent(recoverySnapshot.content);
     setChapterStatus(recoverySnapshot.status);
+    setLastLocalAutosavedAt(null);
     editorBaseUpdatedAtRef.current = existingChapter ? recoverySnapshot.baseUpdatedAt : null;
     setRecoverySnapshot(null);
     showNotification(restoreAsNew
@@ -299,6 +300,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   // Sync state when current chapter changes
   const handleSelectChapter = (ch: BookChapter) => {
     setRecoverySnapshot(null);
+    setLastLocalAutosavedAt(null);
     dismissedRecoveryKeyRef.current = null;
     setIsCreatingChapter(false);
     editorBaseUpdatedAtRef.current = ch.updatedAt || null;
@@ -424,6 +426,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     if (!currentBook) return;
     const nextNumber = Math.max(0, ...currentBook.chapters.map((chapter) => chapter.chapterNumber || 0)) + 1;
     setRecoverySnapshot(null);
+    setLastLocalAutosavedAt(null);
     dismissedRecoveryKeyRef.current = null;
     setIsCreatingChapter(true);
     editorBaseUpdatedAtRef.current = null;
@@ -454,6 +457,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
         return;
       }
       if (currentUserId) removeWriterDraftSnapshot(currentUserId, currentBook.id, chId);
+      if (recoverySnapshot?.chapterId === chId) setRecoverySnapshot(null);
       if (selectedChapterId === chId) {
         if (remaining.length > 0) {
           handleSelectChapter(remaining[0]);
@@ -463,6 +467,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
           setChapterNumber(1);
           setChapterTitle('');
           setChapterContent('');
+          editorBaseUpdatedAtRef.current = null;
+          setLastLocalAutosavedAt(null);
         }
       }
       showNotification('تم حذف الفصل بنجاح.');
@@ -1041,8 +1047,8 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                           <h3 className="text-sm font-black text-amber-200">وجدنا نسخة كتابة محلية غير متزامنة</h3>
                           <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
                             حُفظت هذه النسخة تلقائياً على هذا الجهاز بتاريخ {new Date(recoverySnapshot.savedAt).toLocaleString('ar-EG')}.
-                            {recoverySnapshot.chapterId && currentBook.chapters.some((chapter) => chapter.id === recoverySnapshot.chapterId) &&
-                              recoverySnapshot.baseUpdatedAt !== currentBook.chapters.find((chapter) => chapter.id === recoverySnapshot.chapterId)?.updatedAt
+                            {recoverySnapshot.chapterId && currentBook?.chapters.some((chapter) => chapter.id === recoverySnapshot.chapterId) &&
+                              recoverySnapshot.baseUpdatedAt !== currentBook?.chapters.find((chapter) => chapter.id === recoverySnapshot.chapterId)?.updatedAt
                               ? ' توجد نسخة سحابية أحدث؛ راجع النسختين قبل اعتماد التغييرات المحلية.'
                               : ' لم تُرفع هذه التعديلات إلى السحابة بعد.'}
                           </p>
