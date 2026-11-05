@@ -74,8 +74,10 @@ async function runMigration() {
       const bookData = docSnap.data();
       const chapters: any[] = Array.isArray(bookData.chapters) ? bookData.chapters : [];
 
-      const drafts = chapters.filter((c: any) => c.status === 'draft');
-      const ready = chapters.filter((c: any) => c.status !== 'draft');
+      // Only explicitly ready chapters may remain public. Unknown/missing legacy statuses
+      // are quarantined as drafts rather than accidentally published.
+      const ready = chapters.filter((c: any) => c.status === 'ready');
+      const drafts = chapters.filter((c: any) => c.status !== 'ready');
 
       totalReadyChaptersRetained += ready.length;
 
@@ -125,48 +127,56 @@ async function runMigration() {
       return;
     }
 
-    // Applying changes via Firestore batch writes
-    console.log('🚀 Committing migration to Firestore via atomic batches...');
+    // Firestore permits at most 500 writes per batch. Write private copies first in
+    // bounded chunks, then remove non-ready chapters from the public book document.
+    // If an intermediate chunk fails, the original book remains untouched (no data loss).
+    console.log('🚀 Committing migration with bounded, retry-safe batches...');
     let migratedBooks = 0;
     let migratedDrafts = 0;
 
     for (const plan of migrationPlan) {
-      const batch = db.batch();
-
-      // 1. Write draft chapters to /bookDraftChapters/{draftId}
-      for (const draft of plan.draftChapters) {
-        const draftId = formatDraftChapterId(plan.bookId, draft.id);
-        const draftRef = db.collection('bookDraftChapters').doc(draftId);
-        const draftPayload = {
-          id: draftId,
-          bookId: plan.bookId,
-          chapterId: draft.id,
-          chapterNumber: draft.chapterNumber || 1,
-          title: draft.title || '',
-          subtitle: draft.subtitle || '',
-          content: Array.isArray(draft.content) ? draft.content : [],
-          notes: draft.notes || '',
-          references: Array.isArray(draft.references) ? draft.references : [],
-          status: 'draft',
-          wordCount: draft.wordCount || 0,
-          readingTimeMinutes: draft.readingTimeMinutes || 1,
-          viewsCount: draft.viewsCount || 0,
-          updatedAt: draft.updatedAt || new Date().toISOString(),
-        };
-        batch.set(draftRef, draftPayload, { merge: true });
-        migratedDrafts++;
+      const draftIds = plan.draftChapters.map((draft) => formatDraftChapterId(plan.bookId, draft.id));
+      if (new Set(draftIds).size !== draftIds.length) {
+        throw new Error(`Draft ID collision in book "${plan.bookId}". No public source data was changed.`);
       }
 
-      // 2. Strip draft chapters from book doc
-      const bookRef = db.collection('books').doc(plan.bookId);
-      batch.update(bookRef, {
+      for (let offset = 0; offset < plan.draftChapters.length; offset += 450) {
+        const chunk = plan.draftChapters.slice(offset, offset + 450);
+        const batch = db.batch();
+        for (const draft of chunk) {
+          const draftId = formatDraftChapterId(plan.bookId, draft.id);
+          const draftRef = db.collection('bookDraftChapters').doc(draftId);
+          const draftPayload = {
+            id: draftId,
+            bookId: plan.bookId,
+            chapterId: draft.id,
+            chapterNumber: draft.chapterNumber || 1,
+            title: draft.title || '',
+            subtitle: draft.subtitle || '',
+            content: Array.isArray(draft.content) ? draft.content : [],
+            notes: draft.notes || '',
+            references: Array.isArray(draft.references) ? draft.references : [],
+            status: 'draft',
+            wordCount: draft.wordCount || 0,
+            readingTimeMinutes: draft.readingTimeMinutes || 1,
+            viewsCount: draft.viewsCount || 0,
+            updatedAt: draft.updatedAt || new Date().toISOString(),
+          };
+          batch.set(draftRef, draftPayload, { merge: true });
+        }
+        await batch.commit();
+        migratedDrafts += chunk.length;
+      }
+
+      // Strip legacy drafts only after every private copy for this book was committed.
+      const finalizeBatch = db.batch();
+      finalizeBatch.update(db.collection('books').doc(plan.bookId), {
         chapters: plan.readyChapters,
         updatedAt: new Date().toISOString(),
       });
-
-      await batch.commit();
+      await finalizeBatch.commit();
       migratedBooks++;
-      console.log(`  ✓ Migrated book "${plan.bookTitle}": ${plan.draftChapters.length} draft(s) isolated.`);
+      console.log(`  ✓ Migrated book "${plan.bookTitle}": ${plan.draftChapters.length} non-ready chapter(s) isolated.`);
     }
 
     console.log('\n' + '='.repeat(70));
