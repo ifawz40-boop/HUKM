@@ -58,7 +58,7 @@ export const BookSpineShelf: React.FC<BookSpineShelfProps> = ({
               type="button"
               onClick={() => onRead(book.id)}
               aria-label={`فتح كتاب ${book.title}`}
-              title={`${book.title} — ${book.author || 'حُكم | HUKM MEDIA'}`}
+              title={`${book.title} — ${book.author || 'غير منسوب'}`}
               whileHover={{ y: -12, rotateY: -9, scale: 1.035 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 320, damping: 22 }}
