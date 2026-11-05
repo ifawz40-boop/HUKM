@@ -130,8 +130,8 @@ async function runMigration() {
       }
     }
 
-    // Preflight every planned ID globally before the first write. The legacy ID
-    // formatter sanitizes and truncates strings, so checking one book at a time is insufficient.
+    // Preflight every planned ID globally before the first write. Keep this ownership
+    // audit even though unsafe IDs are rejected, as defense against duplicate source tuples.
     const plannedDraftOwners = new Map<string, string>();
     for (const plan of migrationPlan) {
       for (const draft of plan.draftChapters) {
