@@ -488,6 +488,13 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(researchPanelContent, /<fieldset disabled=\{isSaving\}/);
       assert.match(researchPanelContent, /disabled=\{isSaving\}/);
     });
+
+    it('warns before deleting a source linked to quotes and preserves those quotes as unlinked', () => {
+      assert.match(researchPanelContent, /const handleDeleteSource =/);
+      assert.match(researchPanelContent, /linkedQuotes > 0/);
+      assert.match(researchPanelContent, /return \{ \.\.\.item, sourceId: '' \}/);
+      assert.match(researchPanelContent, /\{sources\.length\} \/ 50/);
+    });
   });
 
 });
