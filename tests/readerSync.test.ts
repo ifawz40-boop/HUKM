@@ -399,6 +399,12 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
       assert.equal(deleteBlock.includes("annotation.syncStatus === 'synced'"), false);
     });
 
+    it('waits for in-flight annotation writes before deleting the remote document', () => {
+      assert.match(bookReaderContent, /annotationSyncPromisesRef = useRef<Map<string, Promise<boolean>>>/);
+      assert.match(bookReaderContent, /const existingRequest = annotationSyncPromisesRef\.current\.get\(annotation\.id\)/);
+      assert.match(bookReaderContent, /const inFlightSync = annotationSyncPromisesRef\.current\.get\(annotation\.id\);\s*if \(inFlightSync\) await inFlightSync/);
+    });
+
     it('computes stable offsets for Arabic text and trims selected edge whitespace', () => {
       const paragraph = 'قبل   النص المحدد   وبعده';
       const anchor = getReaderAnnotationOffsets(paragraph, 'قبل  ', ' النص المحدد ');
