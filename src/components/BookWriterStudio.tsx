@@ -196,6 +196,11 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
     return snapshot;
   };
 
+  const handlePreviewBookSafely = (bookId: string, chapterId?: string) => {
+    if (isSavingChapterRef.current || preserveCurrentEditorDraft() === false) return;
+    onPreviewBook(bookId, chapterId);
+  };
+
   // Offer recovery rather than overwriting a local snapshot automatically.
   useEffect(() => {
     if (!currentUserId || !currentBook) {
@@ -919,7 +924,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                           </button>
 
                           <button
-                            onClick={() => onPreviewBook(book.id)}
+                            onClick={() => handlePreviewBookSafely(book.id)}
                             className="rounded-xl bg-[#0e1935] hover:bg-[#162752] border border-white/10 px-2.5 py-1.5 text-xs font-bold text-blue-300 hover:text-white transition-colors"
                             title="معاينة العمل كقارئ"
                           >
@@ -970,7 +975,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
 
                 {currentBook && (
                   <button
-                    onClick={() => onPreviewBook(currentBook.id, currentChapter?.id)}
+                    onClick={() => handlePreviewBookSafely(currentBook.id, currentChapter?.id)}
                     className="flex items-center gap-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs font-bold text-[#f0cb69] transition-colors"
                   >
                     <Eye className="h-3.5 w-3.5" />
