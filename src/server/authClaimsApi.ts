@@ -109,90 +109,226 @@ authClaimsRouter.post('/lookup-user', authenticateToken, requireOwnerRole, async
 });
 
 /**
- * 3. Assign Role (Strictly for OWNER)
- * Grants Custom Claim `role: 'admin' | 'reader'`. ADMINS CANNOT CALL THIS.
- * Prevents unverified email accounts from obtaining administrative roles.
- * Preserves existing custom claims and ensures atomic synchronization ordering.
+ * Direct role assignment is disabled. Admin privileges are granted only by
+ * reviewing a previously submitted request through /admin-requests/:uid/review.
  */
-authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, async (req: Request, res: Response) => {
-  const caller = (req as any).user;
-  const { targetUid, role, title } = req.body;
+authClaimsRouter.post('/set-role', authenticateToken, requireOwnerRole, (_req: Request, res: Response) => {
+  return res.status(410).json({
+    success: false,
+    message: 'تم إيقاف التعيين المباشر. يجب على المستخدم تقديم طلب ثم مراجعته من المالك.',
+  });
+});
 
-  if (!targetUid || typeof targetUid !== 'string') {
-    return res.status(400).json({ success: false, message: 'معرف المستخدم (UID) مطلوب.' });
+authClaimsRouter.post('/admin-requests', authenticateToken, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+  if (!user.email_verified) {
+    return res.status(403).json({ success: false, message: 'يجب تأكيد بريدك الإلكتروني قبل تقديم طلب الإدارة.' });
   }
-
-  if (role !== 'admin' && role !== 'reader') {
-    return res.status(400).json({ success: false, message: 'الدور المطلوب غير مدعوم (يجب أن يكون admin أو reader).' });
+  if (!reason || reason.length > 500) {
+    return res.status(400).json({ success: false, message: 'اكتب سبباً واضحاً للطلب بحد أقصى 500 حرف.' });
   }
 
   try {
-    const targetUser = await adminAuth.getUser(targetUid);
-    const existingClaims = (targetUser.customClaims || {}) as Record<string, any>;
+    const account = await adminAuth.getUser(user.uid);
+    if (!account.emailVerified || !account.email) {
+      return res.status(403).json({ success: false, message: 'يجب أن يكون البريد الإلكتروني للحساب مؤكداً.' });
+    }
+    const claims = account.customClaims || {};
+    if (claims.role === 'owner' || claims.role === 'admin') {
+      return res.status(409).json({ success: false, message: 'حسابك يمتلك صلاحيات إدارية بالفعل.' });
+    }
 
-    // Prevent granting admin to unverified accounts (strictly check targetUser.emailVerified)
-    const isVerified = Boolean(targetUser.emailVerified);
+    const requestRef = adminDb.collection('adminRequests').doc(user.uid);
+    const now = new Date().toISOString();
+    const requestData = {
+      uid: user.uid,
+      email: account.email,
+      displayName: account.displayName || 'مستخدم حُكم',
+      reason,
+      status: 'pending',
+      submittedAt: now,
+      reviewedAt: null,
+      reviewedBy: null,
+      reviewNote: null,
+    };
 
-    if (role === 'admin' && !isVerified) {
-      return res.status(400).json({
+    const result = await adminDb.runTransaction(async (transaction) => {
+      const existing = await transaction.get(requestRef);
+      const status = existing.exists ? existing.data()?.status : null;
+      if (status === 'pending' || status === 'processing' || status === 'approved') {
+        return { accepted: false, status };
+      }
+      transaction.set(requestRef, requestData);
+      return { accepted: true, status: 'pending' };
+    });
+
+    if (!result.accepted) {
+      return res.status(409).json({
         success: false,
-        message: 'لا يمكن منح صلاحيات إدارية لحساب بريد إلكتروني غير مؤكد. يجب على المستخدم تأكيد بريده أولاً.',
+        message: result.status === 'approved'
+          ? 'تمت الموافقة على طلبك بالفعل.'
+          : 'لديك طلب إدارة قيد المراجعة بالفعل.',
+      });
+    }
+    return res.status(201).json({ success: true, request: requestData, message: 'تم إرسال طلبك إلى صاحب المنصة للمراجعة.' });
+  } catch (err: any) {
+    console.error('Create admin request error:', err);
+    return res.status(500).json({ success: false, message: 'تعذر إرسال الطلب حالياً. حاول مرة أخرى لاحقاً.' });
+  }
+});
+
+authClaimsRouter.get('/admin-requests/mine', authenticateToken, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  try {
+    const snap = await adminDb.collection('adminRequests').doc(user.uid).get();
+    return res.json({ success: true, request: snap.exists ? snap.data() : null });
+  } catch (err: any) {
+    console.error('Read own admin request error:', err);
+    return res.status(500).json({ success: false, message: 'تعذر تحميل حالة طلبك حالياً.' });
+  }
+});
+
+authClaimsRouter.get('/admin-requests', authenticateToken, requireOwnerRole, async (_req: Request, res: Response) => {
+  try {
+    const snapshot = await adminDb.collection('adminRequests').where('status', 'in', ['pending', 'processing']).get();
+    const requests = snapshot.docs
+      .map((doc) => doc.data())
+      .sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')));
+    return res.json({ success: true, requests });
+  } catch (err: any) {
+    console.error('List admin requests error:', err);
+    return res.status(500).json({ success: false, message: 'تعذر تحميل طلبات الإدارة حالياً.' });
+  }
+});
+
+authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireOwnerRole, async (req: Request, res: Response) => {
+  const reviewer = (req as any).user;
+  const targetUid = req.params.uid;
+  const action = req.body?.action;
+  const reviewNote = typeof req.body?.reviewNote === 'string' ? req.body.reviewNote.trim().slice(0, 500) : '';
+
+  if (!targetUid || targetUid === reviewer.uid || !['approve', 'reject'].includes(action)) {
+    return res.status(400).json({ success: false, message: 'بيانات مراجعة الطلب غير صالحة.' });
+  }
+
+  const requestRef = adminDb.collection('adminRequests').doc(targetUid);
+  const now = new Date().toISOString();
+
+  try {
+    const lock = await adminDb.runTransaction(async (transaction) => {
+      const snap = await transaction.get(requestRef);
+      if (!snap.exists) return { acquired: false, reason: 'NOT_FOUND' };
+      const data = snap.data()!;
+      const staleProcessing = data.status === 'processing' &&
+        Number.isFinite(Date.parse(data.processingAt || '')) &&
+        Date.parse(data.processingAt) < Date.now() - 5 * 60 * 1000;
+      if (data.status !== 'pending' && !staleProcessing) {
+        return { acquired: false, reason: data.status || 'INVALID_STATE' };
+      }
+      transaction.update(requestRef, {
+        status: 'processing',
+        processingAt: now,
+        reviewedBy: reviewer.uid,
+      });
+      return { acquired: true, data };
+    });
+
+    if (!lock.acquired) {
+      return res.status(lock.reason === 'NOT_FOUND' ? 404 : 409).json({
+        success: false,
+        message: lock.reason === 'NOT_FOUND' ? 'الطلب غير موجود.' : 'تمت معالجة هذا الطلب أو يجري التعامل معه بالفعل.',
       });
     }
 
-    const adminDocRef = adminDb.collection('admins').doc(targetUid);
+    if (action === 'reject') {
+      await requestRef.update({
+        status: 'rejected',
+        reviewedAt: now,
+        reviewedBy: reviewer.uid,
+        reviewNote,
+        processingAt: null,
+      });
+      return res.json({ success: true, message: 'تم رفض الطلب. لم تُمنح أي صلاحيات إدارية.' });
+    }
 
-    if (role === 'admin') {
-      // 1. Establish the Firestore admin record first so that when claims are granted, /admins/{uid} exists
-      await adminDocRef.set({
+    let adminDocWritten = false;
+    let claimsWritten = false;
+    let existingClaims: Record<string, any> = {};
+    try {
+      const targetUser = await adminAuth.getUser(targetUid);
+      existingClaims = (targetUser.customClaims || {}) as Record<string, any>;
+      if (!targetUser.emailVerified || !targetUser.email) {
+        throw new Error('لا يمكن قبول الطلب لأن البريد الإلكتروني للحساب غير مؤكد.');
+      }
+      if (existingClaims.role === 'owner' || existingClaims.role === 'admin') {
+        throw new Error('الحساب يمتلك صلاحيات إدارية بالفعل.');
+      }
+
+      await adminDb.collection('admins').doc(targetUid).set({
         id: targetUid,
         uid: targetUid,
         email: targetUser.email,
         name: targetUser.displayName || 'مدير معتمد',
-        title: title || 'مدير تحرير معتمد',
+        title: 'مدير معتمد',
         role: 'admin',
         isFounder: false,
         canEditBooks: true,
         canManageBans: true,
-        addedBy: caller.uid,
-        addedAt: new Date().toISOString(),
+        addedBy: reviewer.uid,
+        addedAt: now,
       });
+      adminDocWritten = true;
 
-      // 2. Grant Custom Claims while preserving other existing custom claims
       await adminAuth.setCustomUserClaims(targetUid, {
         ...existingClaims,
         role: 'admin',
       });
-
-      // 3. Invalidate stale client tokens immediately
+      claimsWritten = true;
       await adminAuth.revokeRefreshTokens(targetUid);
-    } else {
-      // Downgrade to reader:
-      // 1. Delete admin document FIRST (immediately cuts off Firestore access via rules check exists(/admins/{uid}))
-      await adminDocRef.delete();
 
-      // 2. Demote Custom Claims while preserving other existing custom claims
-      await adminAuth.setCustomUserClaims(targetUid, {
-        ...existingClaims,
-        role: 'reader',
+      await requestRef.update({
+        status: 'approved',
+        reviewedAt: new Date().toISOString(),
+        reviewedBy: reviewer.uid,
+        reviewNote,
+        processingAt: null,
       });
-
-      // 3. Invalidate stale client tokens immediately
-      await adminAuth.revokeRefreshTokens(targetUid);
+      return res.json({ success: true, message: 'تمت الموافقة على الطلب ومنح صلاحيات المدير بنجاح. سيحتاج المستخدم إلى تحديث جلسة الدخول.' });
+    } catch (approvalError: any) {
+      let rollbackSucceeded = true;
+      try {
+        if (claimsWritten) await adminAuth.setCustomUserClaims(targetUid, existingClaims);
+        if (adminDocWritten) await adminDb.collection('admins').doc(targetUid).delete();
+        if (claimsWritten) await adminAuth.revokeRefreshTokens(targetUid);
+      } catch (rollbackError) {
+        rollbackSucceeded = false;
+        console.error('Admin approval rollback failed:', rollbackError);
+      }
+      try {
+        await requestRef.update({
+          status: rollbackSucceeded ? 'pending' : 'needs_attention',
+          processingAt: null,
+          lastError: String(approvalError?.message || 'Approval failed').slice(0, 500),
+        });
+      } catch (stateError) {
+        console.error('Admin request state recovery failed:', stateError);
+      }
+      return res.status(rollbackSucceeded ? 400 : 500).json({
+        success: false,
+        message: rollbackSucceeded
+          ? (approvalError.message || 'تعذرت الموافقة على الطلب، وأُعيدت الحالة دون منح صلاحيات.')
+          : 'حدث خلل أثناء التراجع الآمن. أوقفنا إعادة المحاولة التلقائية ويجب فحص الطلب من المالك.',
+      });
     }
-
-    return res.json({
-      success: true,
-      message: `تم تحديث رتبة وصلاحيات الحساب إلى (${role === 'admin' ? 'مدير' : 'قارئ'}) وتطبيق Custom Claims بنجاح.`,
-    });
   } catch (err: any) {
-    console.error('Set role error:', err);
-    return res.status(500).json({ success: false, message: err.message || 'فشلت عملية تحديث الصلاحية.' });
+    console.error('Review admin request error:', err);
+    return res.status(500).json({ success: false, message: 'تعذرت مراجعة الطلب حالياً.' });
   }
 });
 
 /**
- * 4. Revoke Admin Role (Strictly for OWNER)
+ * 6. Revoke Admin Role (Strictly for OWNER)
  * Completely strips administrative Custom Claims and deletes admins/{uid}.
  * Preserves other custom claims. Immediately deletes Firestore doc first for instant revocation.
  */
@@ -237,7 +373,7 @@ authClaimsRouter.post('/revoke-role', authenticateToken, requireOwnerRole, async
 });
 
 /**
- * 5. Current User Claims Info
+ * 7. Current User Claims Info
  */
 authClaimsRouter.get('/my-claims', authenticateToken, async (req: Request, res: Response) => {
   const user = (req as any).user;
