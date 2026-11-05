@@ -292,6 +292,11 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(rulesContent, /data\.chapterId == chapterId/);
     });
 
+    it('must scope collection-group notebook reads to the authenticated user ID', () => {
+      assert.match(rulesContent, /match \/\{path=\*\*\}\/readerAnnotationEntries\/\{annotationId\}/);
+      assert.match(rulesContent, /allow read: if isSignedIn\(\) && resource\.data\.userId == request\.auth\.uid/);
+    });
+
     it('must restrict annotation fields, excerpt size, note size, offsets and colors', () => {
       assert.match(rulesContent, /data\.selectedText\.size\(\) <= 2000/);
       assert.match(rulesContent, /data\.note\.size\(\) <= 2000/);
