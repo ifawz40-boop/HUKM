@@ -170,6 +170,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   // Progress state is local-first. Cloud writes are rate-limited to avoid a write on every scroll.
   const scrollDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredChapterRef = useRef<Record<string, boolean>>({});
+  const trackedChapterViewsRef = useRef<Record<string, boolean>>({});
   const scrollProgressRef = useRef(0);
   const lastCloudSyncRef = useRef<Record<string, { percent: number; timestamp: number }>>({});
   const cloudSyncInFlightRef = useRef<Set<string>>(new Set());
@@ -270,10 +271,12 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   useEffect(() => {
     if (!currentChapter?.id) return;
 
-    onChapterViewedRef.current?.(currentChapter.id);
-    recordChapterOpened(book.id, currentChapter.id, currentUser?.id);
-
     const chapterSessionKey = `${book.id}:${currentUser?.id || 'guest'}:${currentChapter.id}`;
+    if (!trackedChapterViewsRef.current[chapterSessionKey]) {
+      trackedChapterViewsRef.current[chapterSessionKey] = true;
+      onChapterViewedRef.current?.(currentChapter.id);
+    }
+    recordChapterOpened(book.id, currentChapter.id, currentUser?.id);
     const savedPosition = getChapterScrollPosition(book.id, currentChapter.id, currentUser?.id);
     scrollProgressRef.current = savedPosition;
     setScrollProgress(savedPosition);
@@ -826,12 +829,6 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
                 className={`text-justify leading-[2.1] tracking-wide rounded-lg transition-colors ${activeSpeechParagraph === idx ? 'bg-[#c59b27]/10 ring-1 ring-[#c59b27]/30 px-3 py-2' : ''}`}
               >
                 {renderSearchHighlights(paragraph, chapterSearchQuery)}
-              </p>')})`, 'gi')).map((part, partIndex) =>
-                      part.toLocaleLowerCase() === chapterSearchQuery.trim().toLocaleLowerCase()
-                        ? <mark key={partIndex} className="rounded bg-amber-300/70 text-[#1f2937] px-0.5">{part}</mark>
-                        : <React.Fragment key={partIndex}>{part}</React.Fragment>
-                    )
-                  : paragraph}
               </p>
             ))
           ) : (
