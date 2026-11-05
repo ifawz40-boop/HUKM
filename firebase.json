@@ -1,6 +1,7 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "database": "ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96"
   },
   "emulators": {
     "firestore": {
