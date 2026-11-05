@@ -15,10 +15,15 @@ import {
   Clock,
   Play,
   History,
+  StickyNote,
+  Highlighter,
+  Trash2,
 } from 'lucide-react';
 import { UserProfile, AdminRequest } from '../types/auth';
 import { createAdminRequest, getMyAdminRequest } from '../services/adminClaimsClient';
-import { BookProject } from '../types/hukm';
+import { BookProject, ReaderAnnotation } from '../types/hukm';
+import { fetchAllReaderAnnotationsFromFirestore, saveReaderAnnotationToFirestore, deleteReaderAnnotationFromFirestore } from '../firebase/firestoreService';
+import { getAllReaderAnnotations, mergeReaderAnnotations, removeReaderAnnotationLocal, saveAllReaderAnnotations, upsertReaderAnnotationLocal } from '../utils/readerAnnotations';
 import { isOwner, isAdmin } from '../services/permissionService';
 import { resendVerificationEmail, reloadCurrentUserSession } from '../firebase/authService';
 import { getAllReadingProgress, getBookReadingProgress } from '../utils/readingTracker';
@@ -52,7 +57,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onUserRefreshed,
   onShowToast,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'bookmarks'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'profile' | 'bookmarks' | 'notes'>(initialTab);
+  const [readerNotes, setReaderNotes] = useState<ReaderAnnotation[]>([]);
+  const [isLoadingReaderNotes, setIsLoadingReaderNotes] = useState(false);
   const [savedSubTab, setSavedSubTab] = useState<'favorites' | 'history'>('favorites');
   const [isResending, setIsResending] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
@@ -80,6 +87,34 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     });
     return () => { active = false; };
   }, [isOpen, user?.id, user?.role, onShowToast]);
+
+  React.useEffect(() => {
+    if (!isOpen || activeTab !== 'notes' || !user) return;
+    let active = true;
+    const localNotes = getAllReaderAnnotations(user.id);
+    setReaderNotes(localNotes);
+    setIsLoadingReaderNotes(true);
+
+    fetchAllReaderAnnotationsFromFirestore(user.id).then(async (cloudNotes) => {
+      if (!active || !cloudNotes) return;
+      const latestLocal = getAllReaderAnnotations(user.id);
+      const merged = mergeReaderAnnotations(latestLocal, cloudNotes);
+      saveAllReaderAnnotations(merged, user.id);
+      if (active) setReaderNotes(merged);
+
+      for (const pending of merged.filter((note) => note.syncStatus === 'pending')) {
+        const saved = await saveReaderAnnotationToFirestore(pending);
+        if (!saved || !active) continue;
+        const synced = { ...pending, syncStatus: 'synced' as const };
+        upsertReaderAnnotationLocal(synced, user.id);
+        if (active) setReaderNotes((current) => current.map((note) => note.id === synced.id ? synced : note));
+      }
+    }).finally(() => {
+      if (active) setIsLoadingReaderNotes(false);
+    });
+
+    return () => { active = false; };
+  }, [isOpen, activeTab, user?.id]);
 
   const handleSubmitAdminRequest = async () => {
     if (!user || !user.emailVerified || !adminRequestReason.trim()) return;
@@ -121,6 +156,30 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     })
     .filter((item): item is NonNullable<typeof item> => item !== null)
     .sort((a, b) => new Date(b.lastReadAt || 0).getTime() - new Date(a.lastReadAt || 0).getTime());
+
+  const handleOpenReaderNote = (note: ReaderAnnotation) => {
+    const book = books.find((item) => item.id === note.bookId);
+    const chapterExists = book?.chapters.some((chapter) => chapter.id === note.chapterId);
+    if (!book || !chapterExists || !onOpenReader) {
+      onShowToast?.('الكتاب أو الفصل المرتبط بهذا المقتطف لم يعد متاحاً.');
+      return;
+    }
+    onOpenReader(note.bookId, note.chapterId);
+    onClose();
+  };
+
+  const handleDeleteReaderNote = async (note: ReaderAnnotation) => {
+    if (user && note.syncStatus === 'synced') {
+      const deleted = await deleteReaderAnnotationFromFirestore(user.id, note);
+      if (!deleted) {
+        onShowToast?.('تعذر حذف المقتطف من السحابة؛ لم نحذفه من جهازك.');
+        return;
+      }
+    }
+    const next = removeReaderAnnotationLocal(note.id, user?.id);
+    setReaderNotes(next);
+    onShowToast?.('تم حذف المقتطف.');
+  };
 
   const handleResend = async () => {
     setIsResending(true);
@@ -212,6 +271,21 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           >
             <User className="h-3.5 w-3.5" />
             <span>بيانات الحساب</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('notes')}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-bold transition-all cursor-pointer ${
+              activeTab === 'notes'
+                ? 'bg-[#c59b27] text-[#070d1e] shadow-md'
+                : 'text-[#94a3b8] hover:text-white'
+            }`}
+          >
+            <StickyNote className="h-3.5 w-3.5" />
+            <span>ملاحظاتي</span>
+            <span className={`rounded-full px-1.5 text-[10px] font-black ${activeTab === 'notes' ? 'bg-[#070d1e] text-[#f0cb69]' : 'bg-white/10 text-[#f0cb69]'}`}>
+              {readerNotes.length}
+            </span>
           </button>
           <button
             type="button"
@@ -506,6 +580,82 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     ))}
                   </div>
                 )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: PRIVATE READING NOTEBOOK */}
+        {activeTab === 'notes' && (
+          <div className="space-y-3 mb-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h4 className="text-sm font-black text-white">دفتر مقتطفاتك وملاحظاتك</h4>
+                <p className="mt-1 text-[10px] text-[#94a3b8]">مقتطفاتك الخاصة من جميع الكتب، محفوظة لحسابك.</p>
+              </div>
+              <span className="rounded-lg border border-[#c59b27]/25 bg-[#c59b27]/10 px-2 py-1 text-[10px] font-bold text-[#f0cb69]">{readerNotes.length} مقتطف</span>
+            </div>
+
+            {isLoadingReaderNotes ? (
+              <div className="py-8 text-center text-xs text-[#94a3b8]">جاري تحميل دفتر الملاحظات...</div>
+            ) : readerNotes.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-[#070d1e]/50 p-7 text-center text-xs text-[#94a3b8] space-y-2">
+                <Highlighter className="mx-auto h-8 w-8 text-[#64748b]" />
+                <p className="font-bold text-white">دفترك ما زال فارغاً</p>
+                <p className="text-[11px] text-[#64748b]">أثناء القراءة، حدد أي مقتطف واضغط زر التمييز لحفظه هنا مع ملاحظتك الشخصية.</p>
+              </div>
+            ) : (
+              <>
+                {readerNotes.length >= 300 && (
+                  <p className="text-[10px] text-amber-300">نعرض أحدث 300 مقتطف في هذا العرض.</p>
+                )}
+                <div className="max-h-[48vh] overflow-y-auto space-y-2 no-scrollbar pr-1">
+                  {readerNotes.map((note) => {
+                    const book = books.find((item) => item.id === note.bookId);
+                    const chapter = book?.chapters.find((item) => item.id === note.chapterId);
+                    const colorClass = note.color === 'green'
+                      ? 'bg-emerald-300/60 text-[#123326]'
+                      : note.color === 'blue'
+                        ? 'bg-sky-300/70 text-[#102c46]'
+                        : note.color === 'rose'
+                          ? 'bg-rose-300/70 text-[#451a2a]'
+                          : 'bg-amber-300/70 text-[#1f2937]';
+                    return (
+                      <article key={note.id} className="rounded-xl border border-white/10 bg-[#070d1e] p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold text-[#f0cb69] truncate">{book?.title || 'كتاب غير متاح'}</p>
+                            <p className="text-[10px] text-[#64748b] truncate">{chapter?.title || 'فصل غير متاح'}</p>
+                          </div>
+                          <span className="shrink-0 text-[9px] text-[#64748b]">
+                            {note.syncStatus === 'pending' ? 'بانتظار المزامنة' : note.syncStatus === 'synced' ? 'سحابي' : 'محلي'}
+                          </span>
+                        </div>
+                        <blockquote className={`rounded-lg border-r-2 border-[#c59b27]/50 p-2 text-xs font-bold leading-relaxed ${colorClass}`}>«{note.selectedText}»</blockquote>
+                        {note.note && <p className="text-[11px] leading-relaxed text-[#cbd5e1] whitespace-pre-wrap">{note.note}</p>}
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenReaderNote(note)}
+                            disabled={!book || !chapter || !onOpenReader}
+                            className="rounded-lg bg-[#c59b27]/15 px-3 py-1.5 text-[10px] font-bold text-[#f0cb69] hover:bg-[#c59b27]/25 disabled:opacity-40"
+                          >
+                            العودة إلى موضع النص
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReaderNote(note)}
+                            className="rounded-lg border border-rose-500/25 p-1.5 text-rose-400 hover:bg-rose-500/10"
+                            aria-label="حذف المقتطف"
+                            title="حذف المقتطف"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
               </>
             )}
           </div>
