@@ -214,6 +214,7 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
 
   const requestRef = adminDb.collection('adminRequests').doc(targetUid);
   const now = new Date().toISOString();
+  let processingLockAcquired = false;
 
   try {
     const lock = await adminDb.runTransaction(async (transaction) => {
@@ -241,6 +242,8 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
       });
     }
 
+    processingLockAcquired = true;
+
     if (action === 'reject') {
       await requestRef.update({
         status: 'rejected',
@@ -249,6 +252,7 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
         reviewNote,
         processingAt: null,
       });
+      processingLockAcquired = false;
       return res.json({ success: true, message: 'تم رفض الطلب. لم تُمنح أي صلاحيات إدارية.' });
     }
 
@@ -294,6 +298,7 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
         reviewNote,
         processingAt: null,
       });
+      processingLockAcquired = false;
       return res.json({ success: true, message: 'تمت الموافقة على الطلب ومنح صلاحيات المدير بنجاح. سيحتاج المستخدم إلى تحديث جلسة الدخول.' });
     } catch (approvalError: any) {
       let rollbackSucceeded = true;
@@ -337,6 +342,13 @@ authClaimsRouter.post('/admin-requests/:uid/review', authenticateToken, requireO
       });
     }
   } catch (err: any) {
+    if (processingLockAcquired) {
+      try {
+        await requestRef.update({ status: 'pending', processingAt: null, lastError: String(err?.message || 'Review failed').slice(0, 500) });
+      } catch (recoveryError) {
+        console.error('Admin request lock recovery failed:', recoveryError);
+      }
+    }
     console.error('Review admin request error:', err);
     return res.status(500).json({ success: false, message: 'تعذرت مراجعة الطلب حالياً.' });
   }
