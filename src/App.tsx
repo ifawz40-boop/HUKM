@@ -501,6 +501,16 @@ export default function App() {
           <span>{toastMessage}</span>
         </div>
       )}
+      {isLoadingBook && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#050a16]/85 backdrop-blur-sm" role="status" aria-live="polite">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#c59b27]/30 bg-[#0a1329] px-8 py-7 text-center shadow-2xl">
+            <BookOpen className="h-9 w-9 animate-pulse text-[#d4af37]" />
+            <p className="text-sm font-bold text-white">جاري تحميل الكتاب من ملفات الموقع...</p>
+            <p className="text-[11px] text-[#94a3b8]">لا يتم جلب محتوى الكتاب من Firebase</p>
+          </div>
+        </div>
+      )}
+
 
       {/* Navigation Bar */}
       {currentView !== 'reader' && currentView !== 'overview' && (
