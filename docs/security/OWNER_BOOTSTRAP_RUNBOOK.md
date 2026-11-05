@@ -25,15 +25,17 @@ The script deliberately refuses to:
 
 ## Deploy the hardened Firestore rules
 
-The committed `firestore.rules` now denies all browser/client writes to `/admins/{uid}`. Role registry mutations must go through the trusted Firebase Admin SDK API or the local first-owner bootstrap. This is required to prevent an additional owner from changing their own `isFounder` field.
+The committed `firestore.rules` now denies all browser/client writes to `/admins/{uid}`. Role registry mutations must go through the trusted Firebase Admin SDK API or the local first-owner bootstrap. This prevents an additional owner from changing their own `isFounder` field.
 
-After pulling the latest `main`, deploy the rules separately (Vercel deployment does not deploy Firestore rules):
+**Important database-target correction:** the server, bootstrap CLI and verifier all use the named Firestore database `ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96`, not `(default)`. The root `firebase.json` now explicitly binds `firestore.rules` to that exact database ID. Do not remove the `database` property or deploy these rules against `(default)` by assumption.
+
+After pulling the latest `main`, deploy the configured Firestore database rules separately (Vercel deployment does not deploy Firestore rules):
 
 ```powershell
-firebase deploy --only firestore:rules --project gen-lang-client-0492732633
+firebase deploy --only firestore --project gen-lang-client-0492732633
 ```
 
-Run this from the repository root with the Firebase CLI installed and an authorized Firebase account selected. Confirm the deployment result in Firebase CLI output or Firebase Console → Firestore Database → Rules. Do not assume the repository change is active in production until this deployment succeeds.
+Run this from the repository root with the Firebase CLI installed and an authorized Firebase account selected. Before confirming, check the CLI output names the database `ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96`. If it names `(default)`, stop; do not proceed. Confirm the release in Firebase Console / Google Cloud Firestore rules for the same named database. Do not assume the repository change is active in production until deployment succeeds.
 
 ## Local execution (Windows PowerShell)
 
