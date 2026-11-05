@@ -344,7 +344,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
     if (currentUser?.id) {
       const saved = await saveReadingProgressToFirestore({
-        id: formatReadingProgressId(currentUser.id, book.id, currentChapter.id),
+        id: '',
         userId: currentUser.id,
         bookId: book.id,
         chapterId: currentChapter.id,
