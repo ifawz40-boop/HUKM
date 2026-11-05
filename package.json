@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test tests/security.test.ts tests/readerSync.test.ts tests/adminSubscribers.test.ts tests/draftIsolation.test.ts tests/emailTemplateSecurity.test.ts tests/httpSecurity.test.ts",
+    "test": "tsx --test tests/security.test.ts tests/readerSync.test.ts tests/adminSubscribers.test.ts tests/draftIsolation.test.ts tests/emailTemplateSecurity.test.ts tests/httpSecurity.test.ts tests/apiErrorHandler.test.ts tests/emailRecipients.test.ts tests/requestProtection.test.ts src/utils/authStorage.test.ts src/utils/hukmEngine.test.ts",
     "test:security": "tsx --test tests/security.test.ts",
     "test:reader": "tsx --test tests/readerSync.test.ts",
     "test:admin": "tsx --test tests/adminSubscribers.test.ts",
