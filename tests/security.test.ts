@@ -314,6 +314,17 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(rulesContent, /data\.endOffset == previous\.endOffset/);
       assert.match(rulesContent, /affected\.hasOnly\(\['note', 'color', 'updatedAt'\]\)/);
     });
+
+    it('treats a missing remote annotation as already deleted before applying owner checks', () => {
+      const deleteBlock = firestoreServiceContent.slice(
+        firestoreServiceContent.indexOf('export async function deleteReaderAnnotationFromFirestore'),
+        firestoreServiceContent.indexOf('export async function fetchAllReaderAnnotationsFromFirestore')
+      );
+      assert.match(deleteBlock, /const existingAnnotation = await getDoc\(annotationRef\)/);
+      assert.match(deleteBlock, /if \(!existingAnnotation\.exists\(\)\) return true/);
+      assert.match(deleteBlock, /existingData\.userId !== userId/);
+      assert.match(deleteBlock, /await deleteDoc\(annotationRef\)/);
+    });
   });
 
   // Test 11: Unverified account cannot get administrative privileges (Phase 1.3)
