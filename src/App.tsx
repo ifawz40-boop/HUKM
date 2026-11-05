@@ -328,6 +328,20 @@ export default function App() {
     } catch {}
   }, [categories]);
 
+  // After auth resolves, remove non-public cached data from this browser session for non-admins.
+  // This only changes local cache/state; it never deletes Firestore documents.
+  useEffect(() => {
+    if (authLoading || isActualAdminOrOwner) return;
+    setBooks((current) =>
+      current
+        .filter((book) => ['published', 'completed', 'ongoing', 'ready'].includes(book.status))
+        .map((book) => ({
+          ...book,
+          chapters: (book.chapters || []).filter((chapter) => chapter.status === 'ready'),
+        }))
+    );
+  }, [authLoading, isActualAdminOrOwner]);
+
   // Initial Firestore Cloud Connection & Seed/Sync
   useEffect(() => {
     testFirestoreConnection();
@@ -369,8 +383,8 @@ export default function App() {
     }
   }, []);
 
-  // Never expose locally cached drafts to guests/readers while Firestore is loading.
-  // Firestore applies the same published-status filter; this is the client-side privacy boundary.
+  // Client-side cache guard only; Firestore Rules remain the authoritative access control.
+  // Do not render owner-cached drafts to readers while the public query is loading.
   const accessibleBooks = isOwner
     ? books
     : books
