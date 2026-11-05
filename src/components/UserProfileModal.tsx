@@ -26,7 +26,7 @@ import { UserProfile, AdminRequest } from '../types/auth';
 import { createAdminRequest, getMyAdminRequest } from '../services/adminClaimsClient';
 import { BookProject, ReaderAnnotation, ReaderAnnotationColor } from '../types/hukm';
 import { fetchAllReaderAnnotationsFromFirestore, saveReaderAnnotationToFirestore, deleteReaderAnnotationFromFirestore } from '../firebase/firestoreService';
-import { getAllReaderAnnotations, mergeReaderAnnotations, removeReaderAnnotationLocal, saveAllReaderAnnotations, upsertReaderAnnotationLocal } from '../utils/readerAnnotations';
+import { getAllReaderAnnotations, mergeReaderAnnotations, notifyReaderAnnotationsChanged, removeReaderAnnotationLocal, saveAllReaderAnnotations, upsertReaderAnnotationLocal } from '../utils/readerAnnotations';
 import { isOwner, isAdmin } from '../services/permissionService';
 import { resendVerificationEmail, reloadCurrentUserSession } from '../firebase/authService';
 import { getAllReadingProgress, getBookReadingProgress } from '../utils/readingTracker';
@@ -109,6 +109,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       const merged = mergeReaderAnnotations(latestLocal, cloudNotes)
         .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
       saveAllReaderAnnotations(merged, user.id);
+      notifyReaderAnnotationsChanged(user.id);
       if (active) setReaderNotes(merged);
 
       for (const pending of merged.filter((note) => note.syncStatus === 'pending')) {
@@ -198,6 +199,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       onShowToast?.('تعذر حفظ التعديل محلياً. لم نغيّر النسخة الحالية.');
       return;
     }
+    saveAllReaderAnnotations(nextLocal, user.id);
+    notifyReaderAnnotationsChanged(user.id);
     setReaderNotes([...nextLocal].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))));
     setEditingReaderNote(null);
 
