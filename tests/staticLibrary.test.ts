@@ -30,10 +30,8 @@ describe('HUKM — bundled heritage library architecture', () => {
   });
 
   it('must clear only obsolete book and category caches while preserving user reading data', () => {
-    assert.match(app, /localStorage\.removeItem\('hukm_books_v1'\)/);
-    assert.match(app, /localStorage\.removeItem\('hukm_books_v2'\)/);
-    assert.match(app, /localStorage\.removeItem\('hukm_books_v3'\)/);
-    assert.match(app, /localStorage\.removeItem\('hukm_categories_v1'\)/);
+    assert.match(app, /for \(const key of \['hukm_books_v1', 'hukm_books_v2', 'hukm_books_v3', 'hukm_categories_v1'\]\)/);
+    assert.match(app, /localStorage\.removeItem\(key\)/);
     assert.match(app, /getAllReadingProgress/);
     assert.match(app, /getStoredBookmarks/);
   });
