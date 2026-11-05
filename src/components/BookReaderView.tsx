@@ -45,6 +45,7 @@ import {
 } from '../firebase/firestoreService';
 import {
   createReaderAnnotationId,
+  getReaderAnnotationOffsets,
   getAllReaderAnnotations,
   getReaderAnnotationsForChapter,
   mergeReaderAnnotations,
@@ -695,32 +696,27 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     }
 
     const rawText = range.toString();
-    const selectedText = rawText.trim();
-    if (!selectedText) {
-      onShowToast?.('لم يتم العثور على نص صالح للحفظ.');
-      return;
-    }
-    if (selectedText.length > 2000) {
-      onShowToast?.('الحد الأقصى للمقتطف الواحد 2000 حرف.');
-      return;
-    }
-
     const prefixRange = range.cloneRange();
     prefixRange.selectNodeContents(paragraph);
     prefixRange.setEnd(range.startContainer, range.startOffset);
-    const leadingTrim = rawText.length - rawText.trimStart().length;
-    const startOffset = prefixRange.toString().length + leadingTrim;
-    const endOffset = startOffset + selectedText.length;
+    const anchor = getReaderAnnotationOffsets(
+      paragraph.textContent || '',
+      prefixRange.toString(),
+      rawText
+    );
     const paragraphIndex = Number(paragraph.getAttribute('data-paragraph-index'));
 
-    if (
-      !Number.isInteger(paragraphIndex) ||
-      paragraphIndex < 0 ||
-      paragraph.textContent?.slice(startOffset, endOffset) !== selectedText
-    ) {
-      onShowToast?.('تعذر تثبيت موضع المقتطف بدقة. حاول تحديده مرة أخرى.');
+    if (!anchor) {
+      onShowToast?.(rawText.trim().length > 2000
+        ? 'الحد الأقصى للمقتطف الواحد 2000 حرف.'
+        : 'تعذر تثبيت موضع المقتطف بدقة. حاول تحديده مرة أخرى.');
       return;
     }
+    if (!Number.isInteger(paragraphIndex) || paragraphIndex < 0) {
+      onShowToast?.('تعذر تحديد موضع الفقرة. حاول مرة أخرى.');
+      return;
+    }
+    const { selectedText, startOffset, endOffset } = anchor;
 
     setSelectedTextDraft(selectedText);
     setSelectedParagraphIndex(paragraphIndex);
