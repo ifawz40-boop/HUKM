@@ -318,7 +318,14 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       : currentBook.chapters.find((chapter) => chapter.id === selectedChapterId) || currentBook.chapters[0];
     setRecoverySnapshot(null);
     if (target) {
-      handleSelectChapter(target);
+      setIsCreatingChapter(false);
+      setSelectedChapterId(target.id);
+      setChapterNumber(target.chapterNumber);
+      setChapterTitle(target.title);
+      setChapterContent(target.content.join('\\n\\n'));
+      setChapterStatus(target.status);
+      editorBaseUpdatedAtRef.current = target.updatedAt || null;
+      setLastLocalAutosavedAt(null);
     } else {
       setIsCreatingChapter(false);
       setSelectedChapterId('');
@@ -327,6 +334,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       setChapterContent('');
       setChapterStatus('draft');
       editorBaseUpdatedAtRef.current = null;
+      setLastLocalAutosavedAt(null);
     }
     showNotification('تم تجاهل النسخة المحلية والعودة إلى النسخة الحالية.');
   };
@@ -481,9 +489,9 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
   // Delete chapter
   const handleDeleteChapter = async (chId: string) => {
     if (!currentBook || isSavingChapterRef.current) return;
+    if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الفصل؟')) return;
     const preservedSnapshot = selectedChapterId === chId ? preserveCurrentEditorDraft() : null;
     if (preservedSnapshot === false) return;
-    if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الفصل؟')) return;
 
     const remaining = currentBook.chapters.filter((c) => c.id !== chId);
     const updatedBook = {
@@ -501,7 +509,10 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
       if (currentUserId && !preservedSnapshot) removeWriterDraftSnapshot(currentUserId, currentBook.id, chId);
       if (recoverySnapshot?.chapterId === chId && !preservedSnapshot) setRecoverySnapshot(null);
       if (selectedChapterId === chId) {
-        if (remaining.length > 0) {
+        if (preservedSnapshot) {
+          // Keep the deleted chapter's editor text visible until the user restores it as a new draft or discards it.
+          setRecoverySnapshot(preservedSnapshot);
+        } else if (remaining.length > 0) {
           const nextChapter = remaining[0];
           setIsCreatingChapter(false);
           setSelectedChapterId(nextChapter.id);
@@ -511,7 +522,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
           setChapterStatus(nextChapter.status);
           editorBaseUpdatedAtRef.current = nextChapter.updatedAt || null;
           setLastLocalAutosavedAt(null);
-          setRecoverySnapshot(preservedSnapshot || null);
+          setRecoverySnapshot(null);
         } else {
           setIsCreatingChapter(false);
           setSelectedChapterId('');
@@ -520,7 +531,7 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
           setChapterContent('');
           editorBaseUpdatedAtRef.current = null;
           setLastLocalAutosavedAt(null);
-          setRecoverySnapshot(preservedSnapshot || null);
+          setRecoverySnapshot(null);
         }
       }
       showNotification('تم حذف الفصل بنجاح.');
