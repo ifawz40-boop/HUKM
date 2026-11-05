@@ -19,10 +19,12 @@ import {
   Highlighter,
   Trash2,
   Search,
+  Pencil,
+  Download,
 } from 'lucide-react';
 import { UserProfile, AdminRequest } from '../types/auth';
 import { createAdminRequest, getMyAdminRequest } from '../services/adminClaimsClient';
-import { BookProject, ReaderAnnotation } from '../types/hukm';
+import { BookProject, ReaderAnnotation, ReaderAnnotationColor } from '../types/hukm';
 import { fetchAllReaderAnnotationsFromFirestore, saveReaderAnnotationToFirestore, deleteReaderAnnotationFromFirestore } from '../firebase/firestoreService';
 import { getAllReaderAnnotations, mergeReaderAnnotations, removeReaderAnnotationLocal, saveAllReaderAnnotations, upsertReaderAnnotationLocal } from '../utils/readerAnnotations';
 import { isOwner, isAdmin } from '../services/permissionService';
@@ -62,6 +64,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [readerNotes, setReaderNotes] = useState<ReaderAnnotation[]>([]);
   const [readerNotesSearch, setReaderNotesSearch] = useState('');
   const [isLoadingReaderNotes, setIsLoadingReaderNotes] = useState(false);
+  const [editingReaderNote, setEditingReaderNote] = useState<ReaderAnnotation | null>(null);
+  const [editReaderNoteText, setEditReaderNoteText] = useState('');
+  const [editReaderNoteColor, setEditReaderNoteColor] = useState<ReaderAnnotationColor>('gold');
+  const [isSavingReaderNoteEdit, setIsSavingReaderNoteEdit] = useState(false);
   const [savedSubTab, setSavedSubTab] = useState<'favorites' | 'history'>('favorites');
   const [isResending, setIsResending] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
@@ -168,6 +174,79 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     })
     .filter((item): item is NonNullable<typeof item> => item !== null)
     .sort((a, b) => new Date(b.lastReadAt || 0).getTime() - new Date(a.lastReadAt || 0).getTime());
+
+  const handleStartEditReaderNote = (note: ReaderAnnotation) => {
+    setEditingReaderNote(note);
+    setEditReaderNoteText(note.note);
+    setEditReaderNoteColor(note.color);
+  };
+
+  const handleSaveEditedReaderNote = async () => {
+    if (!user || !editingReaderNote || editingReaderNote.userId !== user.id) return;
+    setIsSavingReaderNoteEdit(true);
+    const updated: ReaderAnnotation = {
+      ...editingReaderNote,
+      note: editReaderNoteText.trim(),
+      color: editReaderNoteColor,
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'pending',
+    };
+    const allLocal = getAllReaderAnnotations(user.id);
+    const nextLocal = allLocal.map((note) => note.id === updated.id ? updated : note);
+    if (!saveAllReaderAnnotations(nextLocal, user.id)) {
+      setIsSavingReaderNoteEdit(false);
+      onShowToast?.('تعذر حفظ التعديل محلياً. لم نغيّر النسخة الحالية.');
+      return;
+    }
+    setReaderNotes(nextLocal);
+    setEditingReaderNote(null);
+
+    const saved = await saveReaderAnnotationToFirestore(updated);
+    setIsSavingReaderNoteEdit(false);
+    if (saved) {
+      const synced = { ...updated, syncStatus: 'synced' as const };
+      upsertReaderAnnotationLocal(synced, user.id);
+      setReaderNotes(getAllReaderAnnotations(user.id));
+      onShowToast?.('تم تحديث الملاحظة ومزامنتها مع حسابك ✓');
+    } else {
+      onShowToast?.('حُفظ التعديل على هذا الجهاز، وستتم مزامنته عند عودة الاتصال.');
+    }
+  };
+
+  const handleExportReaderNotes = () => {
+    if (!user || visibleReaderNotes.length === 0) return;
+    const lines = [
+      '# دفتر ملاحظات حُكم',
+      '',
+      `تاريخ التصدير: ${new Date().toLocaleString('ar-EG')}`,
+      '',
+      ...visibleReaderNotes.flatMap((note) => {
+        const book = books.find((item) => item.id === note.bookId);
+        const chapter = book?.chapters.find((item) => item.id === note.chapterId);
+        return [
+          `## ${book?.title || 'كتاب غير متاح'} — ${chapter?.title || 'فصل غير متاح'}`,
+          '',
+          `> ${note.selectedText.replace(/\n/g, '\n> ')}`,
+          '',
+          note.note || '_لا توجد ملاحظة إضافية._',
+          '',
+          `لون التمييز: ${note.color} · تاريخ الحفظ: ${note.createdAt}`,
+          '',
+          '---',
+          '',
+        ];
+      }),
+    ];
+    const blob = new Blob(['\uFEFF', lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hukm-reading-notes-${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const handleOpenReaderNote = (note: ReaderAnnotation) => {
     const book = books.find((item) => item.id === note.bookId);
