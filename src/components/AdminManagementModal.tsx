@@ -274,7 +274,6 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
             isUserOwner ? (
               <div className="space-y-6">
                 {isFounder ? (
-                {/* Additional owners can be granted only by the current verified Owner. */}
                 <section className="rounded-2xl border border-amber-500/30 bg-[#151326] p-4 sm:p-5 space-y-3">
                   <div className="flex items-center gap-2 text-amber-200">
                     <Crown className="h-4 w-4" />
