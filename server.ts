@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { authClaimsRouter } from './src/server/authClaimsApi.ts';
 import { emailApiRouter } from './src/server/emailApi.ts';
+import { applySecurityHeaders } from './src/server/httpSecurity.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,7 @@ async function startServer() {
   const HOST = getHost();
   const isProd = process.env.NODE_ENV === 'production';
 
+  app.use(applySecurityHeaders);
   app.use(express.json());
 
   // Mount backend API routes for Custom Claims & Admin Management

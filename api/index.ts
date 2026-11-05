@@ -1,9 +1,11 @@
 import express from 'express';
 import { authClaimsRouter } from '../src/server/authClaimsApi.ts';
 import { emailApiRouter } from '../src/server/emailApi.ts';
+import { applySecurityHeaders } from '../src/server/httpSecurity.ts';
 
 const app = express();
 
+app.use(applySecurityHeaders);
 app.use(express.json());
 
 // Mount authentication claims and admin management endpoints
