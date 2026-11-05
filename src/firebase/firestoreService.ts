@@ -817,7 +817,7 @@ export async function deleteReaderAnnotationFromFirestore(
     !isSafeAnnotationSegment(annotation.chapterId)
   ) return false;
 
-  const path = `users/${userId}/readerAnnotations/${annotation.bookId}/chapters/${annotation.chapterId}/items/${annotation.id}`;
+  const path = `users/${userId}/readerAnnotations/${annotation.bookId}/chapters/${annotation.chapterId}/readerAnnotationEntries/${annotation.id}`;
   try {
     const annotationRef = doc(
       db,
