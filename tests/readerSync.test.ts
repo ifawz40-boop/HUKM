@@ -60,6 +60,15 @@ import {
 import { formatReadingProgressId } from '../src/firebase/firestoreService.ts';
 import type { UserProfile } from '../src/types/auth.ts';
 import type { ReaderAnnotation } from '../src/types/hukm.ts';
+import type { WriterDraftSnapshot } from '../src/types/hukm.ts';
+import {
+  getAllWriterDraftSnapshots,
+  getWriterDraftSnapshot,
+  saveWriterDraftSnapshot,
+  removeWriterDraftSnapshot,
+  MAX_WRITER_DRAFT_SNAPSHOTS,
+} from '../src/utils/writerDraftRecovery.ts';
+
 
 describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', () => {
   beforeEach(() => {
@@ -239,6 +248,61 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
 
       clearGuestReadingProgress();
       assert.notEqual(localStorage.getItem(LEGACY_STORAGE_KEY_PROGRESS), null, 'Legacy data must be preserved for explicit recovery');
+    });
+  });
+
+  describe('Writer draft recovery — local durability and account isolation', () => {
+    const snapshot = (overrides: Partial<WriterDraftSnapshot> = {}): WriterDraftSnapshot => ({
+      id: 'book-writer::chapter-1',
+      userId: 'owner-A',
+      bookId: 'book-writer',
+      chapterId: 'chapter-1',
+      chapterNumber: 1,
+      title: 'الفصل الأول',
+      content: 'مسودة محلية لم تُرفع بعد.',
+      status: 'draft',
+      baseUpdatedAt: '2026-11-01T10:00:00.000Z',
+      savedAt: '2026-11-02T10:00:00.000Z',
+      ...overrides,
+    });
+
+    it('isolates writer recovery snapshots by owner account', () => {
+      assert.equal(saveWriterDraftSnapshot(snapshot()), true);
+      assert.equal(getAllWriterDraftSnapshots('owner-A').length, 1);
+      assert.equal(getAllWriterDraftSnapshots('owner-B').length, 0);
+      assert.equal(getWriterDraftSnapshot('owner-A', 'book-writer', 'chapter-1')?.content, 'مسودة محلية لم تُرفع بعد.');
+    });
+
+    it('replaces the same chapter snapshot rather than creating duplicates', () => {
+      saveWriterDraftSnapshot(snapshot());
+      saveWriterDraftSnapshot(snapshot({ content: 'نسخة أحدث', savedAt: '2026-11-03T10:00:00.000Z' }));
+      assert.equal(getAllWriterDraftSnapshots('owner-A').length, 1);
+      assert.equal(getWriterDraftSnapshot('owner-A', 'book-writer', 'chapter-1')?.content, 'نسخة أحدث');
+    });
+
+    it('removes a recovered snapshot after a successful cloud save', () => {
+      saveWriterDraftSnapshot(snapshot());
+      assert.equal(removeWriterDraftSnapshot('owner-A', 'book-writer', 'chapter-1'), true);
+      assert.equal(getWriterDraftSnapshot('owner-A', 'book-writer', 'chapter-1'), null);
+    });
+
+    it('keeps only the newest bounded set of recovery snapshots', () => {
+      for (let index = 0; index < MAX_WRITER_DRAFT_SNAPSHOTS + 3; index += 1) {
+        saveWriterDraftSnapshot(snapshot({
+          id: `book-writer::chapter-${index}`,
+          chapterId: `chapter-${index}`,
+          chapterNumber: index + 1,
+          savedAt: new Date(Date.UTC(2026, 10, 1, 0, index)).toISOString(),
+        }));
+      }
+      const all = getAllWriterDraftSnapshots('owner-A');
+      assert.equal(all.length, MAX_WRITER_DRAFT_SNAPSHOTS);
+      assert.ok(all.some((item) => item.chapterId === `chapter-${MAX_WRITER_DRAFT_SNAPSHOTS + 2}`));
+      assert.ok(!all.some((item) => item.chapterId === 'chapter-0'));
+    });
+
+    it('rejects oversized local snapshots safely', () => {
+      assert.equal(saveWriterDraftSnapshot(snapshot({ content: 'x'.repeat(350_001) })), false);
     });
   });
 
