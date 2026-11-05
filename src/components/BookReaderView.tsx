@@ -683,7 +683,8 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   const handleSaveAnnotation = async () => {
     if (!currentChapter || selectedParagraphIndex === null || !selectedTextDraft) return;
     setIsSavingAnnotation(true);
-    if (readerAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
+    if (visibleReaderAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
+      setIsSavingAnnotation(false);
       onShowToast?.(`وصلت إلى الحد الأقصى وهو ${MAX_READER_ANNOTATIONS_PER_CHAPTER} مقتطفاً لهذا الفصل.`);
       return;
     }
@@ -1210,7 +1211,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
                 key={idx}
                 className={`text-justify tracking-wide rounded-lg transition-colors ${activeSpeechParagraph === idx ? 'bg-[#c59b27]/10 ring-1 ring-[#c59b27]/30 px-3 py-2' : ''}`}
               >
-                {renderAnnotatedParagraph(paragraph, idx, readerAnnotations, chapterSearchQuery)}
+                {renderAnnotatedParagraph(paragraph, idx, visibleReaderAnnotations, chapterSearchQuery)}
               </p>
             ))
           ) : (
