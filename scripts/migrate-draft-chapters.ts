@@ -62,7 +62,11 @@ function createDraftPayload(bookId: string, draft: any, draftId: string) {
 }
 
 function assertSafeDocumentSize(payload: Record<string, unknown>, label: string) {
-  const bytes = Buffer.byteLength(JSON.stringify(payload), 'utf8');
+  const serialized = JSON.stringify(payload);
+  if (typeof serialized !== 'string') {
+    throw new Error(`${label} could not be serialized safely. No migration writes were performed.`);
+  }
+  const bytes = Buffer.byteLength(serialized, 'utf8');
   if (bytes > SAFE_DOCUMENT_LIMIT_BYTES) {
     throw new Error(`${label} is ${bytes} bytes, above the conservative Firestore document budget of ${SAFE_DOCUMENT_LIMIT_BYTES} bytes. No migration writes were performed.`);
   }
