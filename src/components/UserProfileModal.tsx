@@ -270,7 +270,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   };
 
   const handleDeleteReaderNote = async (note: ReaderAnnotation) => {
-    if (user && note.syncStatus === 'synced') {
+    if (user) {
+      // Delete remotely even for pending/local-edited entries: a stale cloud copy may still exist.
+      // Firestore deleteDoc is safe when the document is already absent.
       const deleted = await deleteReaderAnnotationFromFirestore(user.id, note);
       if (!deleted) {
         onShowToast?.('تعذر حذف المقتطف من السحابة؛ لم نحذفه من جهازك.');
