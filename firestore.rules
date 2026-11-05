@@ -185,7 +185,7 @@ service cloud.firestore {
              incomingData.userId == existingData.userId &&
              incomingData.bookId == existingData.bookId &&
              incomingData.chapterId == existingData.chapterId &&
-             affected.hasOnly(['chapterIndex', 'scrollPercent', 'lastReadAt', 'completed', 'updatedAt']) &&
+             affected.hasOnly(['id', 'chapterIndex', 'scrollPercent', 'lastReadAt', 'completed', 'updatedAt']) &&
              (!('chapterIndex' in incomingData) || (incomingData.chapterIndex is int && incomingData.chapterIndex >= 0)) &&
              (!('scrollPercent' in incomingData) || (incomingData.scrollPercent is number && incomingData.scrollPercent >= 0 && incomingData.scrollPercent <= 100)) &&
              (!('completed' in incomingData) || incomingData.completed is bool);
