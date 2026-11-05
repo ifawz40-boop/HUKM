@@ -112,8 +112,19 @@ This cleanup endpoint is an Admin SDK server action and is unaffected by client 
 
 ## Static Arabic library source and licensing
 
-The selected text corpus is assembled at build/maintenance time from [Bayanat Labs — Arabic Wikisource Public-Domain Works](https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd), v0.1.0, using only `works-pd-core`. The site imports the committed JSON files under `src/data/library/books/`; no Hugging Face or Firebase book-content request occurs in the deployed reader.
+The static catalogue is built from [Bayanat Labs — Open Arabic Books](https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books), version 0.1.0, pinned to revision `39876c0e7f28c2d16887c7c139800e0df9f87263`. The dataset contains 1,545 complete Arabic books from Hindawi Foundation, with separate metadata and chapter records, footnotes, source hashes and per-book colophon statements.
 
-The included transcriptions are attributed to Arabic Wikisource contributors and distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Each book JSON retains source pages, revision history, author/source metadata and license information. See `src/data/library/NOTICE.md` for the exact generated inventory and quality limitations.
+HUKM's initial selection is intentionally narrower than the upstream corpus. It accepts only records where:
+- `translation_covered === true`;
+- `original_text_status === 'public-domain'`;
+- the exact colophon quote explicitly identifies the Arabic translation under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
+- author credits, source URL, source SHA-256, minimum word count and chapter count are present;
+- extracted chapter text meets the configured completeness threshold against the metadata word count.
 
-To refresh the curated corpus, edit `src/data/library/manifest.json` and push to `main`. The workflow `.github/workflows/sync-public-library.yml` fetches only listed works, rejects non-core/incorrect-license/short/poetry/incomplete records, and commits the validated full text files. Inspect its logs and generated notice before treating the sync as successful. The workflow needs repository Actions permission to push with `GITHUB_TOKEN`.
+The full text is stored in one JSON file per book under `src/data/library/books/`. The lightweight `catalog.json` contains metadata only. Vite lazy-loads each full-text file only when a reader opens that book. The deployed site does not fetch book text from Firebase, Hugging Face or another external API at runtime.
+
+Each book file retains its author/translator/editor credits, publisher URL, source hash, exact colophon quotation, attribution statement, source dataset revision and omitted-image/SVG/table counts. The reader displays the per-book license and attribution and preserves footnotes. The dataset omits some non-text images/SVGs; this is disclosed and counted, so the app must not claim that visual elements were reproduced.
+
+The upstream dataset's own public-domain statement is not legal advice and copyright terms vary by jurisdiction. HUKM's initial filter avoids relying only on that statement: it requires an explicit CC BY 4.0 license for the Arabic translation and a public-domain original-text status. Do not broaden the filter to ambiguous or reserved-rights books without a separate rights review.
+
+To refresh the curated corpus, edit `src/data/library/manifest.json` and push to `main`. The workflow `.github/workflows/sync-public-library.yml` pages through metadata, chooses a balanced category subset, fetches complete chapter rows, validates the text and rights, and commits both the metadata catalogue and individual full-text JSON files. Inspect the workflow log, generated `NOTICE.md`, source hashes and inventory before treating the sync as successful. The workflow requires repository Actions permission to push with `GITHUB_TOKEN`.
