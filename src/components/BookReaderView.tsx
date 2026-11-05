@@ -47,6 +47,7 @@ import {
   createReaderAnnotationId,
   getReaderAnnotationOffsets,
   getAllReaderAnnotations,
+  notifyReaderAnnotationsChanged,
   getReaderAnnotationsForChapter,
   mergeReaderAnnotations,
   removeReaderAnnotationLocal,
@@ -271,6 +272,17 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     annotation.chapterId === currentChapter?.id &&
     (currentUser?.id ? annotation.userId === currentUser.id : !annotation.userId)
   );
+  // Keep the open reader in sync when notes are edited or removed from the profile notebook or another tab.
+  useEffect(() => {
+    const handleAnnotationUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: string | null }>).detail;
+      if ((detail?.userId || undefined) !== currentUser?.id) return;
+      setReaderAnnotations(getReaderAnnotationsForChapter(book.id, currentChapter?.id || '', currentUser?.id));
+    };
+    window.addEventListener('hukm:reader-annotations-updated', handleAnnotationUpdate);
+    return () => window.removeEventListener('hukm:reader-annotations-updated', handleAnnotationUpdate);
+  }, [book.id, currentChapter?.id, currentUser?.id]);
+
   // Load chapter annotations from the current account's private local/cloud partitions.
   useEffect(() => {
     if (!currentChapter?.id) {
