@@ -445,7 +445,11 @@ export default function App() {
       }
     }
 
-    showToast(`تم نشر كتاب «${newBook.title}» ومزامنته سحابياً مع قاعدة البيانات! ☁️`);
+    if (isPublished && readyChapters.length > 0) {
+      showToast(`تم نشر كتاب «${newBook.title}» ومزامنته سحابياً مع قاعدة البيانات! ☁️`);
+    } else {
+      showToast(`تم حفظ مسودة «${newBook.title}» في الاستوديو دون إتاحتها للقراء.`);
+    }
     setCurrentView('writer');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     return true;
