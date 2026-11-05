@@ -535,6 +535,10 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(writerStudioContent, /if \(!editingNovelId && preserveCurrentEditorDraft\(\) === false\) return/);
       assert.match(writerStudioContent, /const preservedSnapshot = selectedChapterId === chId \? preserveCurrentEditorDraft\(\) : null/);
       assert.match(writerStudioContent, /setRecoverySnapshot\(preservedSnapshot\)/);
+      assert.match(writerStudioContent, /const handlePreviewBookSafely = \(bookId: string, chapterId\?: string\) => \{/);
+      assert.match(writerStudioContent, /isSavingChapterRef\.current \|\| preserveCurrentEditorDraft\(\) === false\) return;[\s\S]*?onPreviewBook\(bookId, chapterId\)/);
+      assert.equal(writerStudioContent.includes('onClick={() => onPreviewBook(book.id)}'), false);
+      assert.equal(writerStudioContent.includes('onClick={() => onPreviewBook(currentBook.id, currentChapter?.id)}'), false);
     });
 
     it('uses real paragraph separators when loading deleted-chapter recovery or discard targets', () => {
