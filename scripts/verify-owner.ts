@@ -2,7 +2,7 @@
  * HUKM MEDIA — Read-only first-owner verification.
  *
  * Usage:
- *   $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\\secure\\firebase-admin.json"
+ *   $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\secure\\firebase-admin.json"
  *   $env:OWNER_EMAIL = "the-verified-account@example.com"
  *   bun run owner:verify
  *
@@ -18,7 +18,7 @@ const DATABASE_ID = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
 
 function getOwnerEmail(): string {
   const email = process.env.OWNER_EMAIL?.trim().toLowerCase();
-  if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('Set OWNER_EMAIL to the exact verified Firebase Auth email.');
   }
   return email;
