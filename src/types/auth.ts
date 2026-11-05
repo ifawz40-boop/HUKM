@@ -14,6 +14,20 @@ export interface UserProfile {
   customClaims?: Record<string, any>;
 }
 
+export type AdminRequestStatus = 'pending' | 'processing' | 'approved' | 'rejected' | 'needs_attention';
+
+export interface AdminRequest {
+  uid: string;
+  email: string;
+  displayName: string;
+  reason: string;
+  status: AdminRequestStatus;
+  submittedAt: string;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  reviewNote?: string | null;
+}
+
 export interface AdminAccount {
   id: string; // Firebase UID
   uid: string; // Explicit Firebase UID
