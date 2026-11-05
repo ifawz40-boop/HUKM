@@ -272,11 +272,13 @@ export const AdminManagementModal: React.FC<AdminManagementModalProps> = ({
                               <p className="text-[11px] text-[#94a3b8]">{request.email}</p>
                               <p className="text-[10px] text-[#64748b] mt-1">{new Date(request.submittedAt).toLocaleString('ar-EG')}</p>
                             </div>
-                            <span className="rounded-md bg-amber-500/10 border border-amber-500/25 px-2 py-1 text-[10px] text-amber-200">قيد المراجعة</span>
+                            <span className={`rounded-md border px-2 py-1 text-[10px] ${request.status === 'needs_attention' ? 'bg-rose-500/10 border-rose-500/25 text-rose-200' : 'bg-amber-500/10 border-amber-500/25 text-amber-200'}`}>
+                              {request.status === 'needs_attention' ? 'يتطلب فحصًا يدويًا' : request.status === 'processing' ? 'جارٍ التنفيذ' : 'قيد المراجعة'}
+                            </span>
                           </div>
                           <p className="rounded-lg bg-white/5 p-3 text-xs text-[#cbd5e1] leading-relaxed whitespace-pre-wrap">{request.reason}</p>
                           <div className="flex flex-wrap gap-2">
-                            <button type="button" disabled={reviewingRequestUid === request.uid} onClick={async () => {
+                            <button type="button" disabled={reviewingRequestUid === request.uid || request.status === 'needs_attention' || (request.status === 'processing' && (!request.processingAt || Date.now() - Date.parse(request.processingAt) <= 5 * 60 * 1000))} onClick={async () => {
                               setReviewingRequestUid(request.uid);
                               const result = await reviewAdminRequest(request.uid, 'approve');
                               setReviewingRequestUid(null);
