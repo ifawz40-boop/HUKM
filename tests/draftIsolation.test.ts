@@ -46,6 +46,16 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.equal(draftMatch.includes('allow write: if true'), false);
     });
 
+    it('must bind draft document identity on create and keep it immutable on update', () => {
+      assert.match(rulesContent, /function isValidDraftChapterCreate\(draftId\)/);
+      assert.match(rulesContent, /data\.id == draftId/);
+      assert.match(rulesContent, /function isValidDraftChapterUpdate\(draftId\)/);
+      assert.match(rulesContent, /data\.bookId == previous\.bookId/);
+      assert.match(rulesContent, /data\.chapterId == previous\.chapterId/);
+      assert.match(rulesContent, /allow create: if isValidDraftChapterCreate\(draftId\)/);
+      assert.match(rulesContent, /allow update: if isValidDraftChapterUpdate\(draftId\)/);
+    });
+
     it('must define BookDraftChapter entity and firestore path in firebase-blueprint.json', () => {
       const blueprint = JSON.parse(blueprintContent);
       assert.ok(blueprint.entities.BookDraftChapter, 'BookDraftChapter entity must be declared in blueprint');
