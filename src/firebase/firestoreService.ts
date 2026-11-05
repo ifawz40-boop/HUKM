@@ -473,7 +473,8 @@ export async function toggleSubscriberInFirestore(
 
 /**
  * Format a stable, rules-compliant document ID for reading progress.
- * Pattern: prog_<userId>_<bookId>_<chapterId> sanitized to [a-zA-Z0-9_-], max 128 chars.
+ * Safe historical IDs remain unchanged; unsafe or overlong inputs are rejected
+ * to prevent lossy normalization and collisions between different records.
  */
 export function formatReadingProgressId(userId: string, bookId: string, chapterId: string): string {
   if (!userId || !bookId || !chapterId) {
