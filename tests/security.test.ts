@@ -689,10 +689,10 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
         hasCatalogLink: true,
         hasAllCategoriesDropdown: true,
         hasBookmarksLink: isReader,
-        hasWriterStudioLink: isOwner,
-        hasNewBookCTA: isOwner,
-        hasManageCategoriesCTA: isOwner,
-        hasAdminManagementCTA: isOwner,
+        hasWriterStudioLink: false,
+        hasNewBookCTA: false,
+        hasManageCategoriesCTA: false,
+        hasAdminManagementCTA: isAdmin,
         hasEmailModalCTA: isOwner,
       };
     }
@@ -718,27 +718,27 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(readerItems.hasAdminManagementCTA, false);
     });
 
-    it('Admin should see the catalog, but NOT owner-only publishing, category management, or Admin Management', () => {
+    it('Admin should see the catalog and moderation management, but no book-publishing controls', () => {
       const adminItems = getNavbarItemsForRole('admin');
       assert.equal(adminItems.hasCatalogLink, true);
       assert.equal(adminItems.hasWriterStudioLink, false);
       assert.equal(adminItems.hasNewBookCTA, false);
       assert.equal(adminItems.hasManageCategoriesCTA, false);
-      assert.equal(adminItems.hasAdminManagementCTA, false);
+      assert.equal(adminItems.hasAdminManagementCTA, true);
     });
 
-    it('Owner should see all Admin tools AND Owner Admin Management', () => {
+    it('Owner retains platform administration but no longer sees cloud book-publishing controls', () => {
       const ownerItems = getNavbarItemsForRole('owner');
       assert.equal(ownerItems.hasCatalogLink, true);
-      assert.equal(ownerItems.hasWriterStudioLink, true);
-      assert.match(navbarContent, /isEffectiveOwner && \([\s\S]*?onNavigate\('writer'\)/);
-      assert.match(navbarContent, /isEffectiveOwner && \([\s\S]*?onOpenNewBook/);
-      assert.match(navbarContent, /isEffectiveOwner && \([\s\S]*?onOpenManageCategories/);
-      assert.match(navbarContent, /isEffectiveOwner && onOpenEmailModal/);
-      assert.equal(ownerItems.hasNewBookCTA, true);
-      assert.equal(ownerItems.hasManageCategoriesCTA, true);
+      assert.equal(ownerItems.hasWriterStudioLink, false);
+      assert.equal(ownerItems.hasNewBookCTA, false);
+      assert.equal(ownerItems.hasManageCategoriesCTA, false);
       assert.equal(ownerItems.hasAdminManagementCTA, true);
       assert.equal(ownerItems.hasEmailModalCTA, true);
+      assert.match(navbarContent, /isEffectiveOwner && onOpenEmailModal/);
+      assert.equal(navbarContent.includes('onOpenNewBook'), false);
+      assert.equal(navbarContent.includes('onOpenManageCategories'), false);
+      assert.equal(navbarContent.includes("onNavigate('writer')"), false);
     });
   });
 
