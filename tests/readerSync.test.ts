@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // Mock localStorage for Node.js test environment
+const userProfileModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/UserProfileModal.tsx'), 'utf-8');
+
 const mockStorage: Record<string, string> = {};
 (globalThis as any).localStorage = {
   getItem: (key: string) => mockStorage[key] || null,
@@ -366,6 +368,15 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
       assert.equal(getAllReaderAnnotations('user-upsert')[0].note, 'تم التعديل');
       removeReaderAnnotationLocal('ann_test_1', 'user-upsert');
       assert.equal(getAllReaderAnnotations('user-upsert').length, 0);
+    });
+
+    it('deletes pending local edits from cloud too so older remote copies cannot reappear', () => {
+      const deleteBlock = userProfileModalContent.slice(
+        userProfileModalContent.indexOf('const handleDeleteReaderNote'),
+        userProfileModalContent.indexOf('const handleResend')
+      );
+      assert.match(deleteBlock, /if \(user\) \{[\s\S]*?deleteReaderAnnotationFromFirestore\(user\.id, note\)/);
+      assert.equal(deleteBlock.includes("note.syncStatus === 'synced'"), false);
     });
 
     it('computes stable offsets for Arabic text and trims selected edge whitespace', () => {
