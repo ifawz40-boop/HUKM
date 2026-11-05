@@ -13,6 +13,7 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
   const firestoreServiceContent = fs.readFileSync(path.resolve(process.cwd(), 'src/firebase/firestoreService.ts'), 'utf-8');
   const newBookModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/NewBookModal.tsx'), 'utf-8');
   const writerStudioContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/BookWriterStudio.tsx'), 'utf-8');
+  const researchPanelContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/BookResearchPanel.tsx'), 'utf-8');
   const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
 
   describe('Invariant 0: Draft ID collision protection', () => {
@@ -472,4 +473,21 @@ describe('HUKM MEDIA — Milestone 1: Critical Data Integrity & Draft Isolation 
       assert.match(migrationScriptContent, /Strip legacy drafts only after every private copy/);
     });
   });
+  describe('Milestone 2: Writer save concurrency and recovery safety', () => {
+    it('prevents duplicate chapter submissions and always releases the save lock', () => {
+      assert.match(writerStudioContent, /if \(!currentBook \|\| isSavingChapterRef\.current\) return/);
+      assert.match(writerStudioContent, /isSavingChapterRef\.current = true/);
+      assert.match(writerStudioContent, /finally \{[\s\S]*?isSavingChapterRef\.current = false[\s\S]*?setIsSavingChapter\(false\)/);
+      assert.equal((writerStudioContent.match(/disabled=\{!currentBook \|\| isSavingChapter\}/g) || []).length, 2);
+    });
+
+    it('locks research inputs while saving and rejects duplicate save submissions', () => {
+      assert.match(researchPanelContent, /if \(isSavingRef\.current\) return/);
+      assert.match(researchPanelContent, /isSavingRef\.current = true/);
+      assert.match(researchPanelContent, /finally \{[\s\S]*?isSavingRef\.current = false[\s\S]*?setIsSaving\(false\)/);
+      assert.match(researchPanelContent, /<fieldset disabled=\{isSaving\}/);
+      assert.match(researchPanelContent, /disabled=\{isSaving\}/);
+    });
+  });
+
 });
