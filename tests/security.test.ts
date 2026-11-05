@@ -665,6 +665,15 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.match(adminModalContent, /if \(remote !== null\) \{\s*setBansList\(remote\)/);
       assert.match(adminModalContent, /else \{\s*setBansList\(getStoredBans\(\)\)/);
     });
+
+    it('refreshes owner request state after both successful and failed reviews', () => {
+      const requestReviewUi = adminModalContent.slice(
+        adminModalContent.indexOf('pendingRequests.map'),
+        adminModalContent.indexOf('{/* Admins Table */')
+      );
+      assert.equal((requestReviewUi.match(/finally \{[\\s\\S]*?await loadPendingRequests\(\)/g) || []).length, 2);
+      assert.match(requestReviewUi, /if \(result\.success\) await loadAdmins\(\)/);
+    });
   });
   describe('Audit: owner bootstrap claim compensation', () => {
     it('marks claims as changed before token revocation', () => {
