@@ -11,6 +11,19 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const libraryIndex = read('src/data/library/index.ts');
   const syncScript = read('scripts/sync-public-library.mjs');
   const serverApi = read('src/server/authClaimsApi.ts');
+  const firebaseConfig = JSON.parse(read('firebase.json'));
+  const bootstrapScript = read('scripts/bootstrap-owner.ts');
+  const verifyScript = read('scripts/verify-owner.ts');
+  const firebaseAdmin = read('src/server/firebaseAdmin.ts');
+
+  it('must bind Firestore rules to the exact named database used by every Admin SDK entry point', () => {
+    const expectedDatabase = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
+    assert.equal(firebaseConfig.firestore.database, expectedDatabase);
+    assert.equal(firebaseConfig.firestore.rules, 'firestore.rules');
+    for (const source of [bootstrapScript, verifyScript, firebaseAdmin]) {
+      assert.match(source, new RegExp(expectedDatabase));
+    }
+  });
 
   it('must not load or persist the public book catalogue through Firestore', () => {
     for (const forbidden of [
@@ -45,7 +58,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(libraryIndex, /PUBLIC_LIBRARY_BOOKS/);
   });
 
-  it('must accept only explicit CC BY 4.0 Arabic translations of public-domain originals', () => {
+  it('must enforce the explicit per-book CC BY or conservative public-domain rights paths', () => {
     assert.match(syncScript, /Bayanat-Labs\/open-arabic-books/);
     assert.match(syncScript, /translation_covered/);
     assert.match(syncScript, /original_text_status === 'public-domain'/);
