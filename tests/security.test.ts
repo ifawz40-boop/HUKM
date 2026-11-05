@@ -7,19 +7,64 @@ import {
   isAdmin,
   isReader,
   canManageAdmins,
+  canManageCategories,
   canEditBooks,
   canModerate,
   canAccessWriterStudio,
+  isEffectiveOwner,
   getUserPermissions,
 } from '../src/services/permissionService.ts';
 import type { UserProfile } from '../src/types/auth.ts';
 
 describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
 
+  const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
   const rulesContent = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf-8');
   const firestoreServiceContent = fs.readFileSync(path.resolve(process.cwd(), 'src/firebase/firestoreService.ts'), 'utf-8');
   const adminModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/AdminManagementModal.tsx'), 'utf-8');
   const bootstrapOwnerContent = fs.readFileSync(path.resolve(process.cwd(), 'scripts/bootstrap-owner.ts'), 'utf-8');
+
+  describe('Owner-only authorization boundaries', () => {
+    const verifiedAdmin: UserProfile = {
+      id: 'admin-test-uid',
+      name: 'Verified Admin',
+      email: 'admin@example.test',
+      role: 'admin',
+      emailVerified: true,
+      joinedDate: '2026-01-01',
+      bookmarks: [],
+      readHistory: [],
+    };
+    const verifiedOwner: UserProfile = {
+      id: 'owner-test-uid',
+      name: 'Verified Owner',
+      email: 'owner@example.test',
+      role: 'owner',
+      emailVerified: true,
+      joinedDate: '2026-01-01',
+      bookmarks: [],
+      readHistory: [],
+    };
+
+    it('denies Admin access to owner-only Writer Studio and category management', () => {
+      assert.equal(canAccessWriterStudio(verifiedAdmin), false);
+      assert.equal(canManageCategories(verifiedAdmin), false);
+      assert.equal(isEffectiveOwner(verifiedAdmin), false);
+    });
+
+    it('allows only a verified Owner outside reader-preview mode', () => {
+      assert.equal(canAccessWriterStudio(verifiedOwner), true);
+      assert.equal(canManageCategories(verifiedOwner), true);
+      assert.equal(isEffectiveOwner(verifiedOwner), true);
+      assert.equal(isEffectiveOwner(verifiedOwner, true), false);
+      assert.equal(isEffectiveOwner({ ...verifiedOwner, emailVerified: false }), false);
+    });
+
+    it('keeps the App owner-only gate tied to the verified Owner check', () => {
+      assert.match(appContent, /const isOwner = isEffectiveOwner\\(currentUser, isReaderPreviewMode\\);/);
+      assert.doesNotMatch(appContent, /const isOwner = isActualAdminOrOwner/);
+    });
+  });
 
   // =========================================================================
   // SECTION 1: Static Rules Invariant Audit (firestore.rules)
@@ -635,7 +680,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(readerItems.hasAdminManagementCTA, false);
     });
 
-    it('Admin should see Catalog, New Book and Manage Categories, but NOT owner-only Writer Studio or Admin Management', () => {
+    it('Admin should see the catalog, but NOT owner-only publishing, category management, or Admin Management', () => {
       const adminItems = getNavbarItemsForRole('admin');
       assert.equal(adminItems.hasCatalogLink, true);
       assert.equal(adminItems.hasWriterStudioLink, false);

@@ -8,8 +8,8 @@ import { UserProfile, UserRole } from '../types/auth';
  * 2. No role assignment or permission check is ever based on an email address.
  * 3. Administrative privileges require verified accounts (`user.emailVerified === true`).
  * 4. OWNER and ADMIN roles have strictly segregated permissions:
- *    - OWNER has platform-wide authority, including granting/revoking admin roles.
- *    - ADMIN can edit books and moderate, but CANNOT manage administrators or grant roles.
+ *    - OWNER controls the Writer Studio, category management, and administrator roles.
+ *    - ADMIN can use approved moderation and administrative workflows, but cannot use owner-only publishing tools.
  * 5. Client-side checks are for UI visibility only; Firestore Security Rules enforce actual access.
  */
 
@@ -32,6 +32,17 @@ export interface UserPermissions {
 export function isOwner(user: UserProfile | null | undefined): boolean {
   if (!user) return false;
   return user.role === 'owner' && Boolean(user.emailVerified);
+}
+
+/**
+ * Owner-only UI access after applying the optional reader-preview restriction.
+ * Admin status is deliberately insufficient for owner-only publishing controls.
+ */
+export function isEffectiveOwner(
+  user: UserProfile | null | undefined,
+  isReaderPreviewMode = false
+): boolean {
+  return isOwner(user) && !isReaderPreviewMode;
 }
 
 /**
@@ -69,7 +80,7 @@ export function canEditBooks(user: UserProfile | null | undefined): boolean {
  * ADMIN & OWNER: Create or delete book categories
  */
 export function canManageCategories(user: UserProfile | null | undefined): boolean {
-  return isAdmin(user);
+  return isOwner(user);
 }
 
 /**
@@ -90,7 +101,7 @@ export function canBroadcastAnnouncement(user: UserProfile | null | undefined): 
  * ADMIN & OWNER: Open writer studio
  */
 export function canAccessWriterStudio(user: UserProfile | null | undefined): boolean {
-  return isAdmin(user);
+  return isOwner(user);
 }
 
 /**

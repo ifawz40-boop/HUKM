@@ -85,7 +85,7 @@ import {
   hasGuestReadingProgress,
 } from './utils/readingTracker';
 import { subscribeToAuthState, logoutUser } from './firebase/authService';
-import { isOwner as checkIsOwner, isAdmin as checkIsAdmin } from './services/permissionService';
+import { isEffectiveOwner, isAdmin as checkIsAdmin } from './services/permissionService';
 import { generateNewReleaseEmailHtml } from './utils/emailTemplateGenerator';
 
 export default function App() {
@@ -103,9 +103,9 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   // Authoritative permissions derived strictly from Firebase Custom Claims & verified state
-  const isUserOwner = checkIsOwner(currentUser);
   const isActualAdminOrOwner = checkIsAdmin(currentUser);
-  const isOwner = isActualAdminOrOwner && !isReaderPreviewMode;
+  // Owner-only UI gates must never inherit the broader Admin-or-Owner check.
+  const isOwner = isEffectiveOwner(currentUser, isReaderPreviewMode);
 
   // Session tracking to completely eliminate async race conditions during account switching
   const authSessionIdRef = useRef<number>(0);

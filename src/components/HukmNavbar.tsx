@@ -545,7 +545,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
             <span className="hidden md:inline text-xs">ابحث...</span>
           </button>
 
-          {/* Admin & Owner: Quick Publish Book CTA */}
+          {/* Owner-only: Quick Publish Book CTA */}
           {isEffectiveOwner && (
             <button
               type="button"
