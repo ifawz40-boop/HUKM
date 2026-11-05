@@ -673,6 +673,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   const handleSaveAnnotation = async () => {
     if (!currentChapter || selectedParagraphIndex === null || !selectedTextDraft) return;
+    setIsSavingAnnotation(true);
     if (readerAnnotations.length >= MAX_READER_ANNOTATIONS_PER_CHAPTER) {
       onShowToast?.(`وصلت إلى الحد الأقصى وهو ${MAX_READER_ANNOTATIONS_PER_CHAPTER} مقتطفاً لهذا الفصل.`);
       return;
@@ -698,6 +699,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     const allLocal = getAllReaderAnnotations(currentUser?.id);
     const nextLocal = [...allLocal, annotation];
     if (!saveAllReaderAnnotations(nextLocal, currentUser?.id)) {
+      setIsSavingAnnotation(false);
       onShowToast?.('تعذر حفظ المقتطف على هذا الجهاز. قد تكون مساحة التخزين ممتلئة.');
       return;
     }
@@ -721,6 +723,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       return;
     }
 
+    setIsSavingAnnotation(false);
     onShowToast?.('تم حفظ المقتطف على هذا الجهاز فقط.');
   };
 
