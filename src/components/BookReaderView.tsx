@@ -1255,7 +1255,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           </div>
           {book.rights && (
             <p className="border-t border-current/10 pt-3 text-[10px] leading-6 opacity-70">
-              النص من <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="underline">مؤسسة هنداوي</a>، مرخص وفق <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="underline">CC BY-SA 4.0</a>. <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="underline">بيانات المصدر والترخيص</a>.
+              النص من <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="underline">مؤسسة هنداوي</a>، مرخص وفق <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="underline">{book.rights.license}</a>. <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="underline">بيانات المصدر والترخيص</a>.
             </p>
           )}
         </div>
