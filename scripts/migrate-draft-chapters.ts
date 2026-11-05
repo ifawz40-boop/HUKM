@@ -93,6 +93,38 @@ async function runMigration() {
       }
     }
 
+    // Preflight every planned ID globally before the first write. The legacy ID
+    // formatter sanitizes and truncates strings, so checking one book at a time is insufficient.
+    const plannedDraftOwners = new Map<string, string>();
+    for (const plan of migrationPlan) {
+      for (const draft of plan.draftChapters) {
+        const draftId = formatDraftChapterId(plan.bookId, draft.id);
+        const ownerKey = `${plan.bookId}::${draft.id}`;
+        const previousOwner = plannedDraftOwners.get(draftId);
+        if (previousOwner && previousOwner !== ownerKey) {
+          throw new Error(`Global draft ID collision detected for "${draftId}" across planned chapters. No migration writes were performed.`);
+        }
+        plannedDraftOwners.set(draftId, ownerKey);
+      }
+    }
+
+    // In apply mode, verify any pre-existing destination belongs to the exact same
+    // book/chapter. Complete this preflight before writing any migration chunk.
+    if (!isDryRun) {
+      for (const plan of migrationPlan) {
+        for (const draft of plan.draftChapters) {
+          const draftId = formatDraftChapterId(plan.bookId, draft.id);
+          const existingDraft = await db.collection('bookDraftChapters').doc(draftId).get();
+          if (existingDraft.exists) {
+            const existingData = existingDraft.data() || {};
+            if (existingData.bookId !== plan.bookId || existingData.chapterId !== draft.id) {
+              throw new Error(`Existing draft ID collision at "${draftId}". No migration writes were performed.`);
+            }
+          }
+        }
+      }
+    }
+
     // Detailed Audit Report
     if (migrationPlan.length === 0) {
       console.log('✅ All books are cleanly isolated! No embedded draft chapters found.');
