@@ -1015,16 +1015,49 @@ export const BookWriterStudio: React.FC<BookWriterStudioProps> = ({
                       </select>
                     </div>
 
+                    <span className="hidden sm:inline text-[10px] text-[#94a3b8]">
+                      {lastLocalAutosavedAt
+                        ? `حُفظت نسخة محلية ${new Date(lastLocalAutosavedAt).toLocaleTimeString('ar-EG')}`
+                        : isEditorDirty ? 'تعديلاتك ستُحفظ محلياً تلقائياً' : 'لا توجد تعديلات محلية'}
+                    </span>
                     <button
                       onClick={handleSaveChapter}
                       disabled={!currentBook}
                       className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 px-4 py-2 text-xs font-bold text-white shadow-md transition-all cursor-pointer disabled:opacity-50"
                     >
                       <Save className="h-4 w-4" />
-                      <span>حفظ ونشر الفصل</span>
+                      <span>{chapterStatus === 'draft' ? 'حفظ المسودة' : 'حفظ ونشر الفصل'}</span>
                     </button>
                   </div>
                 </div>
+
+                {recoverySnapshot &&
+                  recoverySnapshot.userId === currentUserId &&
+                  recoverySnapshot.bookId === currentBook?.id && (
+                    <section className="mb-5 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-black text-amber-200">وجدنا نسخة كتابة محلية غير متزامنة</h3>
+                          <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
+                            حُفظت هذه النسخة تلقائياً على هذا الجهاز بتاريخ {new Date(recoverySnapshot.savedAt).toLocaleString('ar-EG')}.
+                            {recoverySnapshot.chapterId && currentBook.chapters.some((chapter) => chapter.id === recoverySnapshot.chapterId) &&
+                              recoverySnapshot.baseUpdatedAt !== currentBook.chapters.find((chapter) => chapter.id === recoverySnapshot.chapterId)?.updatedAt
+                              ? ' توجد نسخة سحابية أحدث؛ راجع النسختين قبل اعتماد التغييرات المحلية.'
+                              : ' لم تُرفع هذه التعديلات إلى السحابة بعد.'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <button type="button" onClick={handleDiscardWriterDraft} className="rounded-lg border border-white/15 px-3 py-2 text-[11px] font-bold text-[#cbd5e1] hover:bg-white/5">
+                          تجاهل النسخة المحلية
+                        </button>
+                        <button type="button" onClick={handleRestoreWriterDraft} className="rounded-lg bg-amber-300 px-3 py-2 text-[11px] font-black text-[#1f2937] hover:bg-amber-200">
+                          استعادة النسخة المحلية
+                        </button>
+                      </div>
+                    </section>
+                  )}
 
                 {/* Chapter Title */}
                 <div>
