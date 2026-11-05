@@ -476,8 +476,17 @@ export async function toggleSubscriberInFirestore(
  * Pattern: prog_<userId>_<bookId>_<chapterId> sanitized to [a-zA-Z0-9_-], max 128 chars.
  */
 export function formatReadingProgressId(userId: string, bookId: string, chapterId: string): string {
+  if (!userId || !bookId || !chapterId) {
+    throw new Error('Reading progress userId, bookId, and chapterId must all be non-empty.');
+  }
   const raw = `prog_${userId}_${bookId}_${chapterId}`;
-  return raw.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 128);
+  if (!/^[a-zA-Z0-9_-]+$/.test(raw)) {
+    throw new Error('Reading progress IDs may contain only letters, numbers, underscores, and hyphens. Refusing lossy ID normalization.');
+  }
+  if (raw.length > 128) {
+    throw new Error('Reading progress ID exceeds Firestore’s 128-character document ID limit. Refusing lossy truncation.');
+  }
+  return raw;
 }
 
 /**
