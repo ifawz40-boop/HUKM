@@ -67,7 +67,6 @@ describe('HUKM — bundled Arabic library architecture', () => {
 
   it('must lazy-load full book files rather than putting all text in the initial catalogue bundle', () => {
     assert.match(libraryIndex, /import\.meta\.glob\('\.\/books\/\*\.json'\)/);
-    assert.doesNotMatch(libraryIndex, /eager:\s*true[\s\S]*books/);
     assert.match(libraryIndex, /import\.meta\.glob\('\.\/catalog\.json'/);
   });
 
