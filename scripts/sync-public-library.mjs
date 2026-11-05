@@ -29,9 +29,9 @@ async function fetchWork(title, attempt = 1) {
   });
   if (!response.ok) {
     const body = (await response.text()).slice(0, 500);
-    if (response.status === 500 && /index is loading|dataset index/i.test(body) && attempt < 12) {
-      const waitMs = 15000;
-      console.log(`Dataset index is still loading for "${title}" (attempt ${attempt}/12); retrying in 15s.`);
+    if ((response.status >= 500 || response.status === 429) && attempt < 12) {
+      const waitMs = response.status === 429 ? 30000 : Math.min(20000, attempt * 2500);
+      console.log(`Dataset Viewer temporary HTTP ${response.status} for "${title}" (attempt ${attempt}/12); retrying in ${waitMs / 1000}s.`);
       await sleep(waitMs);
       return fetchWork(title, attempt + 1);
     }
