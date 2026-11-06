@@ -189,6 +189,7 @@ def public_summary(row):
         "source_pages": source_pages,
         "persons": row.get("persons") or [],
         "categories": row.get("categories") or [],
+        "source_record_fields": sorted(str(key) for key in row.keys()),
         "is_incomplete": row.get("is_incomplete"),
         "text_preview": str(row.get("text_raw") or "")[:1200],
         "raw_text_characters": len(str(row.get("text_raw") or "")),
