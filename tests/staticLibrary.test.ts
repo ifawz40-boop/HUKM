@@ -50,6 +50,23 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
   });
 
+  it('keeps all four editorial category paths visible during an empty public catalogue', () => {
+    assert.match(app, /const categories: CategoryItem\\[\\] = PUBLIC_LIBRARY_CATEGORIES;/);
+    assert.match(hero, /totalBooksCount > 0 \\?/);
+    assert.match(hero, /مكتبة قيد الانتقاء والمراجعة/);
+    assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
+  });
+
+  it('uses HUKM knowledge-platform language rather than the retired novel-platform branding', () => {
+    const landing = read('src/components/HukmLandingView.tsx');
+    const authModal = read('src/components/AuthModal.tsx');
+    const html = read('index.html');
+    assert.match(landing, /منصة معرفية للبحث والقراءة/);
+    assert.match(authModal, /منصة حُكم للبحث والقراءة والمعرفة/);
+    assert.doesNotMatch(authModal, /منصة الروايات/);
+    assert.match(html, /منصة معرفية للبحث والقراءة/);
+  });
+
   it('must support keyboard-only operation, restore focus and lock background scrolling', () => {
     assert.match(curationPanel, /closeButtonRef\.current\?\.focus\(\)/);
     assert.match(curationPanel, /event\.key === 'Escape'/);
