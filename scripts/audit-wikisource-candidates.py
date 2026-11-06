@@ -197,6 +197,12 @@ def public_summary(row):
         "history_url": row.get("history_url"),
         "source_license": row.get("source_license"),
         "source_license_url": row.get("source_license_url"),
+        "text_attribution": "Arabic Wikisource contributors; transcribed text licensed CC BY-SA 4.0.",
+        "dataset_name": "Arabic Wikisource Public-Domain Works",
+        "dataset_version": "0.1.0",
+        "dataset_url": "https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd",
+        "dataset_revision": DATASET_REVISION,
+        "dataset_citation": "Bayanat Labs (2026). Arabic Wikisource Public-Domain Works, version 0.1.0. Text by Arabic Wikisource contributors, CC BY-SA 4.0.",
     }
 
 
