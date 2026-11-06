@@ -5,7 +5,7 @@
 - Date: 2026-11-06
 - Repository: ifawz40-boop/HUKM
 - Latest feature merge: PR #14 — Islamic editorial curation, merge commit 175356b3632f1f054c6280e5c986761cf2d07059.
-- Current main HEAD after documentation and candidate metadata updates: 4ae7b4ad6aba58a658f82c2cdcb7c576377bbd36.
+- Latest library code/data checkpoint (candidate metadata): 4ae7b4ad6aba58a658f82c2cdcb7c576377bbd36. Subsequent main commits are documentation-only checkpoints.
 - Main CI run #42219582761 passed 286 tests (1 skipped), TypeScript and production build on the PR #14 merge commit.
 - Main CI run #42219696273 passed 286 tests (1 skipped), TypeScript and production build on the workflow-guard HEAD.
 - Legacy automatic Hindawi sync run #42219582591 failed safely at dataset revision preflight (manifest.datasetRevision is intentionally absent); it did not reach the commit step and did not repopulate the catalogue.
