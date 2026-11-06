@@ -46,6 +46,6 @@ export const PUBLIC_LIBRARY_SOURCE = {
   name: 'Bayanat Labs — Open Arabic Books',
   version: '0.1.0',
   datasetUrl: 'https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books',
-  license: 'Per-book rights: CC BY 4.0 Arabic translation or public-domain original (see each book metadata)',
+  license: 'Dataset metadata: CC BY 4.0; book texts follow per-book rights metadata',
   licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
 } as const;
