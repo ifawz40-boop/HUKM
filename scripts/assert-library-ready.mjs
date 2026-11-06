@@ -46,6 +46,18 @@ try {
   const files = fs.existsSync(booksDir)
     ? fs.readdirSync(booksDir).filter((name) => name.endsWith('.json')).sort()
     : [];
+  if (files.length === 0 && manifest.allowEmptyDuringCuration === true) {
+    if (catalog.length !== 0) stop('The empty-curation mode requires an empty public catalogue.');
+    const curationPath = path.join(root, 'src/data/library/curation.json');
+    if (!fs.existsSync(curationPath)) stop('The curation allowlist is required when the public catalogue is intentionally empty.');
+    const curation = JSON.parse(fs.readFileSync(curationPath, 'utf8'));
+    if (!Array.isArray(curation.approvedBookIds) || curation.approvedBookIds.length !== 0) {
+      stop('An empty public catalogue cannot declare approved book IDs.');
+    }
+    console.log('[HUKM deployment gate] PASS: public catalogue intentionally empty during editorial curation; no unapproved books are exposed.');
+    process.exit(0);
+  }
+
   if (files.length < manifest.minimumBooks) {
     stop(`Expected at least ${manifest.minimumBooks} complete books; found ${files.length}. Refusing to publish an empty or incomplete library.`);
   }
