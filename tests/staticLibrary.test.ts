@@ -184,13 +184,13 @@ describe('HUKM — bundled Arabic library architecture', () => {
     const files = fs.existsSync(directory)
       ? fs.readdirSync(directory).filter((file) => file.endsWith('.json'))
       : [];
-    if (files.length === 0) {
-      context.skip('The source-library sync has not committed full-text books yet.');
-      return;
-    }
     const gatePath = path.resolve(process.cwd(), 'scripts/assert-library-ready.mjs');
     const result = spawnSync(process.execPath, [gatePath], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr || result.stdout);
+    if (files.length === 0) {
+      assert.match(result.stdout, /intentionally empty during editorial curation/);
+      return;
+    }
     assert.match(result.stdout, /PASS:/);
   });
 
