@@ -108,7 +108,7 @@ export function subscribeToPublicNotifications(
           targetRole: 'all' as const,
         };
       })
-      .filter((item): item is AppNotification => item !== null)
+      .filter(isNonNull)
       .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
     onChange(notifications);
   }, (error) => {
