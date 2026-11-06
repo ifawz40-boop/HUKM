@@ -470,3 +470,20 @@
 - Reviewed the 38-file diff: 27 deletions (24 full-text JSON files + 3 archive index/notice files), 11 modified files. The tree contains no archive paths and no public book JSON files (only `.gitkeep`); the API core from PR #39 and checkpoint PR #41 remain present.
 - Confirmed `vercel.json` is unchanged and retains `git.deploymentEnabled: {"*": false, "main": true}`; `firestore.rules` is unchanged. No secrets, user records, reading progress or production configuration are part of this PR.
 - PR #40 was closed unmerged as superseded. PR #42 is ready for squash merge after the final exact-head CI check; no deployment is requested.
+
+
+## PR #42 merged and post-merge verification — 2026-11-06
+
+- PR #42 merged by squash at `db17f43c0a42ec9fa543ea0072053ed46957ee6e`.
+- Pre-merge CI run #42242386380 passed on exact PR head `abecc683e9a66a16b4e78e9e9390834b732b233a`: 318 passed, 0 failed, 1 skipped; TypeScript and production build passed.
+- Post-merge main CI run #42242488156 passed on exact merge commit `db17f43c0a42ec9fa543ea0072053ed46957ee6e`; legacy sync workflow was skipped as intended because the merge was not a manual dispatch.
+- Re-read the main tree: no `src/data/library/archive/` entries remain; public books folder contains only `.gitkeep`; `approvedBookIds` is empty and the quarantine registry no longer exists.
+- `vercel.json` remains unchanged with Git deployment enabled only for `main`. Vercel commit status remains `build-rate-limit`; no deployment is confirmed.
+- PR #40 was closed unmerged as superseded by PR #42.
+
+## Firestore review rules emulator work — rebased after PR #42
+
+- PR #43 original head `2f44f2e36622023c079d149c7b542e3629b4d1c2` passed run #42243164732: test suite, Firestore Emulator security tests, TypeScript and production build all succeeded.
+- PR #43 was based on pre-PR-42 main `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`, so its same six-file diff was reapplied without force-push onto latest main `db17f43c0a42ec9fa543ea0072053ed46957ee6e`.
+- Current rebased branch: `feat/firestore-review-rules-emulator-v2`, based on exact current main; CI must pass again on the rebased PR before merge.
+- The explicit collection denies remain additive to the default-deny catch-all. Review API remains unmounted and no client write path is enabled.

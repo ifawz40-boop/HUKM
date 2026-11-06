@@ -2,6 +2,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Editorial/rights review records are server-only. Client SDK access is denied
+    // for every role, including the owner; trusted server code uses the Admin SDK.
+    match /libraryEditorialStates/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /libraryRightsStates/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /libraryReviewEvents/{document=**} {
+      allow read, write: if false;
+    }
+
     // Default deny catch-all
     match /{document=**} {
       allow read, write: if false;

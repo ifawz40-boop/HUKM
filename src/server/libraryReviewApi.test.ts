@@ -221,6 +221,10 @@ test('review API is not mounted in the production or development entry points ye
 
   const firestoreRules = readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
   assert.match(firestoreRules, /match \/\{document=\*\*\}[\s\S]*?allow read, write: if false;/);
+  for (const collectionName of ['libraryEditorialStates', 'libraryRightsStates', 'libraryReviewEvents']) {
+    assert.ok(firestoreRules.includes(`match /${collectionName}/{document=**} {`));
+    assert.ok(firestoreRules.includes(`match /${collectionName}/{document=**} {\n      allow read, write: if false;\n    }`));
+  }
 });
 
 test('repository conflicts are mapped to safe HTTP conflicts', async () => {
