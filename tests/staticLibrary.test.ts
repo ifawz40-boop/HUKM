@@ -232,7 +232,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('must keep UI category IDs identical to the upstream source category IDs', () => {
-    const uiCategoryIds = [...libraryIndex.matchAll(/\\{ id: '([^']+)'/g)].map((match) => match[1]);
+    const uiCategoryIds = [...libraryIndex.matchAll(/\{ id: '([^']+)'/g)].map((match) => match[1]);
     const sourceCategoryIds = new Set([
       ...libraryManifest.categories.map((category: { id: string }) => category.id),
       ...(libraryManifest.fallbackCategories || []),
@@ -245,7 +245,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.ok(uiCategoryIds.includes('social.sciences'));
     assert.ok(uiCategoryIds.includes('religions'));
     assert.equal(uiCategoryIds.some((id) => ['travel', 'social_sciences', 'religion'].includes(id)), false);
-    assert.match(app, /book\\.category === category\\.id/);
+    assert.match(app, /book\.category === category\.id/);
   });
 
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
