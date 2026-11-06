@@ -31,22 +31,19 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const curationPanel = read('src/components/LibraryCurationPanel.tsx');
   const navbar = read('src/components/HukmNavbar.tsx');
 
-  it('must quarantine the legacy batch and expose no book before editorial approval', () => {
+  it('must delete rejected legacy book assets completely and expose no unapproved book', () => {
     const catalog = JSON.parse(read('src/data/library/catalog.json'));
     const curation = JSON.parse(read('src/data/library/curation.json'));
-    const archivedCatalog = JSON.parse(read('src/data/library/archive/catalog.json'));
     const activeFiles = fs.readdirSync(path.resolve(process.cwd(), 'src/data/library/books')).filter((file) => file.endsWith('.json'));
-    const archivedFiles = fs.readdirSync(path.resolve(process.cwd(), 'src/data/library/archive/books')).filter((file) => file.endsWith('.json'));
     assert.equal(catalog.length, 0);
     assert.equal(activeFiles.length, 0);
-    assert.equal(archivedCatalog.length, 24);
-    assert.equal(archivedFiles.length, 24);
+    assert.equal(fs.existsSync(path.resolve(process.cwd(), 'src/data/library/archive')), false);
     assert.equal(curation.approvedBookIds.length, 0);
-    assert.equal(curation.quarantinedBookIds.length, 24);
+    assert.equal(curation.quarantinedBookIds.length, 0);
     assert.deepEqual(curation.allowedCategories, ['religious', 'self-development', 'travel', 'islamic-philosophy-critique']);
     assert.ok(libraryNotice.includes('لا توجد حاليًا كتب معتمدة للعرض العام'));
-    assert.ok(libraryNotice.includes('archive/books/'));
-    assert.ok(libraryNotice.includes('حقوق الكتب المرشحة لم تُحسم بعد'));
+    assert.ok(libraryNotice.includes('حُذفت ملفات الدفعة القديمة الأربعة والعشرين'));
+    assert.doesNotMatch(libraryNotice, /archive\\//);
     assert.match(libraryIndex, /selectCuratedPublicBooks/);
     assert.match(libraryIndex, /approvedBookIds/);
     assert.match(app, /المكتبة قيد إعادة الانتقاء/);
