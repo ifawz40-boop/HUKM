@@ -140,7 +140,7 @@ export function banUser(params: {
   }
 
   // Prevent banning Founder or protected admins
-  if (normalizedEmail === 'dr.islam.mohamed@hukm.media' || normalizedEmail === 'ifawz40@gmail.com') {
+  if (normalizedEmail === 'ifawz40@gmail.com') {
     return { success: false, message: 'لا يمكن حظر حساب المؤسس أو المدير التنفيذي!' };
   }
 
