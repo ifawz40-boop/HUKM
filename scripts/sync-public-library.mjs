@@ -221,6 +221,14 @@ function getRoleNames(credits, matcher) {
   return credits.filter((credit) => matcher.test(credit.role)).map((credit) => credit.name);
 }
 
+function hasAuthorMetadata(row) {
+  if (getRoleNames(getCredits(row), /^author$/i).length > 0) return true;
+  const fallbackAuthors = Array.isArray(row.authors)
+    ? row.authors.map((person) => safeText(typeof person === 'string' ? person : person?.name)).filter(Boolean)
+    : [safeText(row.original_author || row.authors)].filter(Boolean);
+  return fallbackAuthors.length > 0;
+}
+
 function isPublicDomainByLife70(row) {
   const isExplicitlyOriginal = row.is_translation === false;
   const isExplicitlyTranslated = row.is_translation === true;
@@ -299,6 +307,7 @@ export function selectBooks(metadata, manifest) {
     const chapters = Number(row.n_chapters || 0);
     return (
       getRightsKind(row) !== null &&
+      hasAuthorMetadata(row) &&
       Boolean(isSafeBookId(row.book_id) && safeText(row.title) && isSafeHttpUrl(row.book_url) && safeText(row.attribution) && /^[a-f0-9]{64}$/i.test(safeText(row.source_file_sha256))) &&
       words >= manifest.minimumWords &&
       words <= manifest.maximumWordsPerBook &&
