@@ -184,20 +184,43 @@ def public_summary(row):
             "unresolved_transclusions": _integer(proofreading.get("unresolved_transclusions")),
             "quality_levels": _quality_levels(proofreading),
         },
-        "source_pages": [
-            {
-                "title": page.get("title"),
-                "url": page.get("url"),
-                "revision_id": page.get("revision_id"),
-                "quality_level": page.get("quality_level"),
-            }
-            for page in source_pages[:5]
-        ],
+        # Preserve every source-page revision and all credited people for review.
+        # The previous five-page preview was insufficient for complete provenance checks.
+        "source_pages": source_pages,
+        "persons": row.get("persons") or [],
+        "categories": row.get("categories") or [],
+        "source_record_fields": sorted(str(key) for key in row.keys()),
+        "is_incomplete": row.get("is_incomplete"),
+        "text_preview": str(row.get("text_raw") or "")[:1200],
+        "raw_text_characters": len(str(row.get("text_raw") or "")),
+        "tier": row.get("tier"),
+        "pd_reason": row.get("pd_reason"),
+        "first_publication_year": row.get("first_publication_year"),
+        "publication_year": row.get("publication_year"),
+        "author_death_year": row.get("author_death_year"),
+        "author_qid": row.get("author_qid"),
+        "wikidata_qid": row.get("wikidata_qid"),
+        "diacritization_ratio": row.get("diacritization_ratio"),
+        "footnotes": _integer(row.get("footnotes")),
+        "chars": _integer(row.get("chars")),
+        "poetry_lines": _integer(row.get("poetry_lines")),
+        "century_ah_ce": row.get("century_ah_ce"),
+        "death_century_ah": row.get("death_century_ah"),
+        "death_century_ce": row.get("death_century_ce"),
+        "genre_labels": row.get("genre_labels") or [],
+        "language_labels": row.get("language_labels") or [],
+        "dump_date": row.get("dump_date"),
         "n_source_pages": len(source_pages),
         "url": row.get("url"),
         "history_url": row.get("history_url"),
         "source_license": row.get("source_license"),
         "source_license_url": row.get("source_license_url"),
+        "text_attribution": "Arabic Wikisource contributors; transcribed text licensed CC BY-SA 4.0.",
+        "dataset_name": "Arabic Wikisource Public-Domain Works",
+        "dataset_version": "0.1.0",
+        "dataset_url": "https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd",
+        "dataset_revision": DATASET_REVISION,
+        "dataset_citation": "Bayanat Labs (2026). Arabic Wikisource Public-Domain Works, version 0.1.0. Text by Arabic Wikisource contributors, CC BY-SA 4.0.",
     }
 
 
@@ -236,6 +259,12 @@ def main():
         group = [row for row in unique if row.get("genre") == genre]
         group.sort(key=candidate_score, reverse=True)
         report.extend(public_summary(row) for row in group[:MAX_PER_GENRE])
+
+    report_path = "wikisource-candidate-report.jsonl"
+    with open(report_path, "w", encoding="utf-8") as report_file:
+        for item in report:
+            report_file.write(json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n")
+    print("WIKISOURCE_CANDIDATE_REPORT_FILE=" + report_path)
 
     print("WIKISOURCE_CANDIDATE_REPORT_BEGIN")
     for item in report:

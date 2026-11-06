@@ -7,6 +7,12 @@ on:
       - 'scripts/audit-wikisource-candidates.py'
       - 'tests/test_wikisource_audit.py'
       - '.github/workflows/audit-wikisource-candidates.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/audit-wikisource-candidates.py'
+      - 'tests/test_wikisource_audit.py'
+      - '.github/workflows/audit-wikisource-candidates.yml'
   workflow_dispatch:
 
 permissions:
@@ -37,3 +43,11 @@ jobs:
 
       - name: Audit pinned Arabic Wikisource corpus
         run: python scripts/audit-wikisource-candidates.py
+
+      - name: Upload complete candidate provenance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: wikisource-candidate-report
+          path: wikisource-candidate-report.jsonl
+          if-no-files-found: error
+          retention-days: 14
