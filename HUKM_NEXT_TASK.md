@@ -2,7 +2,7 @@
 
 **Current branch:** `main`  
 **Previous verified code/data HEAD:** `8368cf9825aeee8847ecc3113dbe9ef3ec39101b`  
-**Latest documentation checkpoint commit:** `355957d0db6d6362555eb98d389eccd48d9897a6`  
+**Documentation-only commits since that code/data HEAD:** `355957d0db6d6362555eb98d389eccd48d9897a6`, `feae1b40674f58b2117372ee47f68424c4de85ca`, `acdb59691ba4e6316da452c0561aa33367d889b3`  
 **Start by re-fetching main. Do not assume either SHA is still HEAD.**
 
 ## Immediate task: complete the Arabic Wikisource candidate audit safely
