@@ -15,41 +15,61 @@
   "categories": [
     {
       "id": "history",
-      "quota": 4
+      "quota": 3
     },
     {
       "id": "literature",
-      "quota": 4
-    },
-    {
-      "id": "detective.fiction",
-      "quota": 4
+      "quota": 3
     },
     {
       "id": "novels",
-      "quota": 4
+      "quota": 3
+    },
+    {
+      "id": "detective.fiction",
+      "quota": 2
     },
     {
       "id": "biographies",
-      "quota": 3
+      "quota": 2
     },
     {
       "id": "children.stories",
-      "quota": 3
+      "quota": 2
     },
     {
       "id": "science",
-      "quota": 1
+      "quota": 2
     },
     {
       "id": "philosophy",
-      "quota": 1
+      "quota": 2
+    },
+    {
+      "id": "religions",
+      "quota": 3
+    },
+    {
+      "id": "social.sciences",
+      "quota": 2
     }
   ],
   "fallbackCategories": [
-    "travel",
-    "social_sciences",
-    "religion",
+    "travel.literature",
+    "science.fiction",
+    "politics",
+    "psychology",
+    "economics",
+    "linguistics",
+    "technology",
+    "arts",
+    "poetry",
+    "plays",
+    "geography",
+    "environmental.sciences",
+    "health",
+    "business",
+    "literary.criticism",
     "other"
   ]
 }
