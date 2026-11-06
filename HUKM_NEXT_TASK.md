@@ -725,3 +725,87 @@ Open PRs at checkpoint creation: none
 - Vercel Git status on `e6c949c357be2cc75cb1907f07f4d693bb168caf`: SUCCESS; public production alias smoke test not completed.
 - Historical PR #14 sync-library: FAIL (missing pinned dataset revision in the old manifest); current ingestion path is disabled and guarded.
 - No manual deployment, source ingestion, or copyrighted full-text upload performed.
+
+
+---
+
+# CURRENT VERIFIED CHECKPOINT — 2026-11-06 (after PR #56 merge)
+
+Repository: `ifawz40-boop/HUKM`  
+Default / Google AI Studio branch: `main`  
+Main HEAD: `3e737673bd4f577031a6cf8ee8c5704adc304b8d`  
+Checkpoint branch: `docs/checkpoint-after-pr56`  
+Latest merged PR: #56 at `3e737673bd4f577031a6cf8ee8c5704adc304b8d`  
+Open PRs at checkpoint creation: none
+
+## CI and Vercel
+
+- PR #55 final exact-head run #42252848089: PASS; post-merge main run #42253029679: PASS.
+- PR #56 final exact-head run #42253308882: PASS; post-merge main run #42253524142: PASS on exact SHA `3e737673bd4f577031a6cf8ee8c5704adc304b8d`.
+- Test suite, Firestore Emulator security-rules tests, TypeScript and production build all passed.
+- Latest Vercel status on exact main SHA `3e737673bd4f577031a6cf8ee8c5704adc304b8d`: **failure — build-rate-limit**.
+- Previous main SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf` had Vercel status success; subsequent docs-only main merge again hit the build-rate limit. Treat this as a platform quota issue, not an application test failure.
+- `vercel.json` remains `git.deploymentEnabled: {"*": false, "main": true}`.
+- No manual deployment, Vercel settings change or public production smoke test performed.
+- Google AI Studio synchronization remains unverified.
+
+## Library state
+
+- 28 hidden candidate records; 0 approved public IDs (`approvedBookIds: []`). The public book library remains empty until complete editorial review and rights approval.
+- Category counts: religious 15, self-development 6, philosophy critique 4, travel 3.
+- Candidate #25 `الشرح الممتع على زاد المستقنع`: complete text, methodology, editorial layers and rights pending.
+- Candidate #26 `شرح عقيدة أهل السنة والجماعة`: complete text, recording comparison, editorial layers and rights pending.
+- Candidate #27 `الرحلة الحجازية`: full text not retrieved; edition records conflict; Khedive praise, shrines, local practices and historical/political content require review.
+- Candidate #28 `درء تعارض العقل والنقل`: second edition 1411 AH/1991, editor Muhammad Rashad Salim, publisher Imam Muhammad ibn Saud Islamic University; 10-part/11-volume discrepancy unresolved; full text and context review pending.
+- No PDF/full text copied. No archive/quarantine created. Confirmed non-compliant books must be deleted from the current tree, not isolated.
+
+## PR #14 sync diagnosis
+
+- PR #14 is merged at `175356b3632f1f054c6280e5c986761cf2d07059`; its source branch remains historical at `5a3e0eb9da0920c54494abbfab2cef61e54bc2ba`.
+- The old merge-time `sync-library` workflow failed because the historical manifest lacked `datasetRevision`.
+- Current main is fail-closed: manual-dispatch/non-main workflow guard, `syncEnabled: false`, empty source allowlist, and script aborts before external requests when disabled.
+- Do not enable ingestion or pin a revision just to turn the old check green. Future sync requires exact approved IDs, full editorial review, rights screening and a pinned dataset revision through a PR.
+
+## Security and UI
+
+- `api/index.ts` mounts auth, email and health only; library review router is not mounted.
+- Firestore rules deny client access to editorial/rights/review event collections and retain default deny.
+- Review API/repository are scaffolding, not a live feature.
+- Curation panel has code-level focus trap, Escape handling and focus restoration; manual keyboard/mobile/screen-reader QA remains outstanding.
+
+## Next actions
+
+1. Prioritize full-text review of existing candidates rather than adding more titles for count.
+2. Obtain and inspect a complete, precisely identified edition of `الرحلة الحجازية`; if it fails policy, delete its record and report from the current tree without archiving.
+3. Resolve Ibn Jubayr only from full context and the owner's actual standard for disputed tabarruk; do not label shirk without evidence. Delete if confirmed non-compliant.
+4. Complete full-text and edition review of candidates #25 and #26, including rights.
+5. Complete full-text, quotation/context and edition reconciliation for candidate #28; avoid adding more Ibn Taymiyyah works until author balance improves.
+6. Complete manual keyboard/mobile/screen-reader QA of the curation panel.
+7. Keep review API unmounted and Firestore client writes denied until a production Admin adapter and verified-owner middleware are implemented and reviewed.
+8. Resolve Vercel build-rate quota and independently verify the public production URL; do not manually deploy or alter settings without explicit authorization.
+9. Confirm Google AI Studio remains connected to `main`.
+
+## Files to inspect
+
+- `src/data/library/candidates.json`
+- `src/data/library/curation.json`
+- `docs/library/CANDIDATE_REVIEWS/al-batnuni-al-rihla-al-hijaziyya.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-al-sharh-al-mumti.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md`
+- `api/index.ts`
+- `src/server/libraryReviewApi.ts`
+- `firestore.rules`
+- `scripts/sync-public-library.mjs`
+- `.github/workflows/sync-public-library.yml`
+- `HUKM_DEVELOPMENT_LOG.md`
+- `HUKM_NEXT_TASK.md`
+- `vercel.json`
+
+## Validation truth
+
+- PR #56 exact-head CI: PASS; post-merge main CI: PASS on `3e737673bd4f577031a6cf8ee8c5704adc304b8d`.
+- Vercel on latest main SHA: `build-rate-limit`, production deployment not confirmed.
+- Historical PR #14 sync-library: FAIL in old workflow; current sync is disabled and guarded.
+- No manual deployment, source ingestion or copyrighted full-text upload performed.
