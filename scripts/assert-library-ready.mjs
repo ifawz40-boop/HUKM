@@ -76,7 +76,7 @@ try {
     if (!rightsPathIsValid || rights.originalTextStatus !== 'public-domain') {
       stop(`Book ${entry.id} does not meet an approved per-book rights path.`);
     }
-    if (!/CC BY 4\\.0|الملكية العامة/.test(String(rights.license || '')) ||
+    if (!/CC BY 4\.0|الملكية العامة/.test(String(rights.license || '')) ||
         !rights.bookUrl ||
         !rights.historyUrl ||
         !/^[a-f0-9]{64}$/i.test(String(rights.sourceHash || '')) ||
