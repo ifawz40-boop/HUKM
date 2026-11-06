@@ -352,8 +352,15 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /historyUrl/);
   });
 
-  it('must lazy-load full book files rather than putting all text in the initial catalogue bundle', () => {
-    assert.match(libraryIndex, /import\.meta\.glob\('\.\/books\/\*\.json'\)/);
+  it('must lazy-load full book text as independent static JSON assets, not JavaScript modules', () => {
+    assert.match(libraryIndex, /import\.meta\.glob\('\.\/books\/\*\.json'/);
+    assert.ok(libraryIndex.includes("query: '?url'"));
+    assert.ok(libraryIndex.includes('eager: true'));
+    assert.ok(libraryIndex.includes('const response = await fetch(assetUrl);'));
+    assert.ok(libraryIndex.includes('const loadedBooks = new Map<string, BookProject>();'));
+    assert.ok(libraryIndex.includes('const pendingBookLoads = new Map<string, Promise<BookProject>>();'));
+    assert.ok(libraryIndex.includes('if (!response.ok)'));
+    assert.equal(libraryIndex.includes("const bookLoaders = import.meta.glob"), false);
     assert.match(libraryIndex, /import\.meta\.glob\('\.\/catalog\.json'/);
   });
 
