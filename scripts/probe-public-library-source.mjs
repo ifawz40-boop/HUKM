@@ -178,7 +178,6 @@ async function inspectSelectedMetadata() {
   console.log('\n[eligible-candidate-report]');
   console.log(JSON.stringify({ eligibleTotal: eligible.length, usableTotal: usable.length, categories: candidateReport }, null, 2));
 }
-}
 
 const results = await Promise.all([
   probe('parquet', parquetUrl),
