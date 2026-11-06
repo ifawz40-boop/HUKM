@@ -664,3 +664,12 @@
 - `api/index.ts` mounts auth, email and health only; library review router remains unmounted.
 - Firestore rules explicitly deny client read/write access to editorial/rights/review event collections and retain default deny.
 - Curation keyboard behavior is verified by code inspection only; manual keyboard, mobile and screen-reader QA remains outstanding.
+
+
+## New philosophy-critique candidate — درء تعارض العقل والنقل (2026-11-06)
+
+- Added `ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql` as hidden candidate 28 in the philosophy-critique category.
+- Bibliographic sources agree on the second edition (1411 AH/1991), editor Muhammad Rashad Salim and publisher Imam Muhammad ibn Saud Islamic University.
+- Volume records conflict: Waqfeya/CiNii list 11 volumes, while other digital catalogues list 10 parts. The inventory deliberately omits a definitive volume count until the physical set is identified.
+- The editor's first-volume introduction describes comparison of 12 manuscripts with two printed copies and another manuscript from Riyadh University; the first volume also introduces the book's argument on alleged conflict between transmitted and rational evidence.
+- Full-text review, quotation/context audit, editorial-layer review and digital rights remain pending. Candidate is hidden and unapproved; no PDF/full text copied.
