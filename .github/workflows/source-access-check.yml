@@ -133,6 +133,35 @@ jobs:
               } | {'text_chars': len(row.get('text') or '')}
               for row in rows[:3]
           ])
+          targets = [
+              'history', 'literature', 'novels', 'detective.fiction',
+              'biographies', 'philosophy', 'science', 'poetry',
+              'children.stories', 'politics', 'plays', 'travel.literature',
+              'psychology', 'social.sciences', 'arts', 'linguistics'
+          ]
+          for category in targets:
+              candidates = [
+                  row for row in rows
+                  if row.get('category.main') == category
+                  and 8000 <= int(row.get('wc') or 0) <= 120000
+                  and row.get('text')
+              ]
+              candidates.sort(key=lambda row: (
+                  bool(row.get('translation')),
+                  abs(int(row.get('wc') or 0) - 30000),
+                  int(row.get('booknr') or 0)
+              ))
+              print('CANDIDATES', category, [
+                  {
+                      'booknr': row.get('booknr'),
+                      'title': row.get('title'),
+                      'author': row.get('author'),
+                      'wc': row.get('wc'),
+                      'origpubdate': row.get('origpubdate.full') or row.get('origpubdate'),
+                      'translation': row.get('translation'),
+                  }
+                  for row in candidates[:5]
+              ])
           assert len(rows) == 1745, f'Expected 1745 source books, got {len(rows)}'
           assert all(row.get('text') for row in rows), 'At least one source book has no full text'
           PY
