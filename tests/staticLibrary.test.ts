@@ -74,23 +74,25 @@ describe('HUKM — bundled Arabic library architecture', () => {
         minimumChapters: 3,
         maximumTotalWords: 100,
       });
-      write(validRoot, 'src/data/library/catalog.json', [{ id: 'book-1' }]);
+      write(validRoot, 'src/data/library/catalog.json', [{ id: 'book-1', chapterCount: 3 }]);
       write(validRoot, 'src/data/library/books/book-1.json', {
         id: 'book-1',
         title: 'كتاب تجريبي',
         author: 'مؤلف تجريبي',
         status: 'completed',
-        wordCount: 10,
+        wordCount: 12,
+        chapterCount: 3,
         chapters: [
-          { status: 'ready', content: ['نص الفصل الأول'] },
-          { status: 'ready', content: ['نص الفصل الثاني'] },
-          { status: 'ready', content: ['نص الفصل الثالث'] },
+          { id: 'book-1-chapter-1', chapterNumber: 1, wordCount: 4, status: 'ready', content: ['نص الفصل الأول هنا'] },
+          { id: 'book-1-chapter-2', chapterNumber: 2, wordCount: 4, status: 'ready', content: ['نص الفصل الثاني هنا'] },
+          { id: 'book-1-chapter-3', chapterNumber: 3, wordCount: 4, status: 'ready', content: ['نص الفصل الثالث هنا'] },
         ],
         rights: {
           tier: 'cc-by-4-translation',
           translationCovered: true,
           originalTextStatus: 'public-domain',
           license: 'CC BY 4.0 — الترجمة العربية',
+          licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
           bookUrl: 'https://example.org/book',
           historyUrl: 'https://example.org/revision',
           sourceHash: 'a'.repeat(64),
