@@ -33,7 +33,9 @@ function buildRequestUrl(endpoint, params) {
 async function requestJson(endpoint, params, label) {
   const url = buildRequestUrl(endpoint, params);
   let lastError = '';
+  let attemptsMade = 0;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    attemptsMade = attempt;
     try {
       const response = await fetch(url, {
         headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
@@ -71,7 +73,7 @@ async function requestJson(endpoint, params, label) {
       await sleep(waitMs);
     }
   }
-  throw new Error(`Dataset Viewer failed for ${label} after ${MAX_ATTEMPTS} attempts: ${lastError}`);
+  throw new Error(`Dataset Viewer failed for ${label} after ${attemptsMade} attempt(s): ${lastError}`);
 }
 
 async function verifyDatasetRevision(expectedRevision) {
@@ -143,7 +145,7 @@ function isTranslationExplicitlyLicensed(row) {
 
 function getCredits(row) {
   return Array.isArray(row.credits)
-    ? row.credits.map((credit) => {
+    ? row.credits.filter((credit) => credit && typeof credit === 'object').map((credit) => {
         const rawDeathYear = credit.death_year;
         const deathYear = rawDeathYear === null || rawDeathYear === undefined || rawDeathYear === ''
           ? null
@@ -162,10 +164,17 @@ function getRoleNames(credits, matcher) {
 }
 
 function isPublicDomainByLife70(row) {
-  const latestDeathYear = Number(row.latest_death_year);
-  if (Number.isFinite(latestDeathYear) && latestDeathYear > 0 && latestDeathYear <= 1955) return true;
+  const translationFlag = String(row.translation).trim().toLowerCase();
+  const isExplicitlyOriginal = row.translation === false || row.translation === 0 || translationFlag === 'false';
+  const isExplicitlyTranslated = row.translation === true || row.translation === 1 || translationFlag === 'true';
   const rawCredits = Array.isArray(row.credits) ? row.credits : [];
   const credits = getCredits(row);
+  const translatorCredits = getRoleNames(credits, /translat|مترجم|ترجمة/i);
+
+  // A translated work must identify its translator; an unknown translation flag is not proof of an original Arabic work.
+  if (!isExplicitlyOriginal && !(isExplicitlyTranslated && translatorCredits.length > 0)) return false;
+
+  // Never use an author-only latest-death-year shortcut: every credited rights-relevant contributor must be identified and pass.
   return rawCredits.length > 0 &&
     credits.length === rawCredits.length &&
     credits.every((credit) => credit.deathYear !== null && credit.deathYear <= 1955);
