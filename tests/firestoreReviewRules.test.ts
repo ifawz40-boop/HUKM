@@ -1,24 +1,22 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
   collection,
-  connectFirestoreEmulator,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
-  getFirestore,
   setDoc,
-  terminate,
   updateDoc,
 } from 'firebase/firestore';
 import { after, before, test } from 'node:test';
 
 const PROJECT_ID = 'demo-hukm-library-review-rules';
-const DATABASE_ID = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
 const REVIEW_COLLECTIONS = [
   'libraryEditorialStates',
   'libraryRightsStates',
@@ -26,14 +24,6 @@ const REVIEW_COLLECTIONS = [
 ] as const;
 
 let testEnvironment: RulesTestEnvironment;
-const namedFirestoreClients: ReturnType<typeof getFirestore>[] = [];
-
-function namedDatabase(context: { firestore: () => ReturnType<typeof getFirestore> }) {
-  const database = getFirestore(context.firestore().app, DATABASE_ID);
-  connectFirestoreEmulator(database, '127.0.0.1', 8080);
-  namedFirestoreClients.push(database);
-  return database;
-}
 
 async function assertPermissionDenied(operation: Promise<unknown>, label: string): Promise<void> {
   await assert.rejects(
@@ -52,13 +42,15 @@ before(async () => {
     firestore: {
       host: '127.0.0.1',
       port: 8080,
+      rules: readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8'),
     },
   });
 
-  // firebase.json binds firestore.rules to the project's named production database ID;
-  // the CLI emulator loads that same rules file for this named database at startup.
+  // The rules match /databases/{database}/documents, so this isolated demo database
+  // exercises the same collection rules used by the production named database.
+  await testEnvironment.clearFirestore();
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
-    const adminDb = namedDatabase(context);
+    const adminDb = context.firestore();
     for (const collectionName of REVIEW_COLLECTIONS) {
       await setDoc(doc(adminDb, `${collectionName}/existing`), {
         candidateId: 'sample-book',
@@ -73,7 +65,6 @@ before(async () => {
 });
 
 after(async () => {
-  await Promise.all(namedFirestoreClients.map((database) => terminate(database).catch(() => undefined)));
   await testEnvironment.cleanup();
 });
 
@@ -86,7 +77,7 @@ test('all direct client reads and writes to review collections are denied for ev
   ];
 
   for (const { name, context } of contexts) {
-    const clientDb = namedDatabase(context);
+    const clientDb = context.firestore();
 
     for (const collectionName of REVIEW_COLLECTIONS) {
       const existingDocument = doc(clientDb, `${collectionName}/existing`);
