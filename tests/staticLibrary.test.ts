@@ -149,11 +149,12 @@ describe('HUKM — bundled Arabic library architecture', () => {
         wordCount: 12,
         chapterCount: 3,
         chapters: [
-          { id: 'book-1-chapter-1', bookId: 'book-1', chapterNumber: 1, wordCount: 4, status: 'ready', content: ['نص الفصل الأول هنا'] },
-          { id: 'book-1-chapter-2', bookId: 'book-1', chapterNumber: 2, wordCount: 4, status: 'ready', content: ['نص الفصل الثاني هنا'] },
-          { id: 'book-1-chapter-3', bookId: 'book-1', chapterNumber: 3, wordCount: 4, status: 'ready', content: ['نص الفصل الثالث هنا'] },
+          { id: 'book-1-chapter-1', bookId: 'book-1', chapterNumber: 1, exactDuplicateGroup: null, nearDuplicateGroup: null, wordCount: 4, status: 'ready', content: ['نص الفصل الأول هنا'] },
+          { id: 'book-1-chapter-2', bookId: 'book-1', chapterNumber: 2, exactDuplicateGroup: null, nearDuplicateGroup: null, wordCount: 4, status: 'ready', content: ['نص الفصل الثاني هنا'] },
+          { id: 'book-1-chapter-3', bookId: 'book-1', chapterNumber: 3, exactDuplicateGroup: null, nearDuplicateGroup: null, wordCount: 4, status: 'ready', content: ['نص الفصل الثالث هنا'] },
         ],
         rights: {
+          nearDuplicateGroup: null,
           tier: 'cc-by-4-translation',
           translationCovered: true,
           originalTextStatus: 'public-domain',
@@ -169,6 +170,15 @@ describe('HUKM — bundled Arabic library architecture', () => {
       const result = runGate(validRoot);
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.match(result.stdout, /PASS: 1 complete, rights-screened books/);
+
+      const validBook = JSON.parse(fs.readFileSync(path.join(validRoot, 'src/data/library/books/book-1.json'), 'utf8'));
+      const invalidDuplicateBook = structuredClone(validBook);
+      invalidDuplicateBook.chapters[0].exactDuplicateGroup = 123;
+      write(validRoot, 'src/data/library/books/book-1.json', invalidDuplicateBook);
+      const invalidDuplicateMarker = runGate(validRoot);
+      assert.equal(invalidDuplicateMarker.status, 1);
+      assert.match(invalidDuplicateMarker.stderr, /duplicate metadata/);
+      write(validRoot, 'src/data/library/books/book-1.json', validBook);
 
       write(validRoot, 'src/data/library/catalog.json', [{
         id: 'book-1',
@@ -494,10 +504,13 @@ describe('HUKM — bundled Arabic library architecture', () => {
       assert.ok(book.rights.sourceHash);
       assert.ok(book.rights.licenseQuote);
       assert.ok(book.rights.attribution);
-      assert.ok(book.rights.nearDuplicateGroup === undefined || book.rights.nearDuplicateGroup === null || typeof book.rights.nearDuplicateGroup === 'string');
+      assert.ok(Object.hasOwn(book.rights, 'nearDuplicateGroup'));
+      assert.ok(book.rights.nearDuplicateGroup === null || typeof book.rights.nearDuplicateGroup === 'string');
       for (const chapter of book.chapters) {
-        assert.ok(chapter.exactDuplicateGroup === undefined || chapter.exactDuplicateGroup === null || typeof chapter.exactDuplicateGroup === 'string');
-        assert.ok(chapter.nearDuplicateGroup === undefined || chapter.nearDuplicateGroup === null || typeof chapter.nearDuplicateGroup === 'string');
+        assert.ok(Object.hasOwn(chapter, 'exactDuplicateGroup'));
+        assert.ok(Object.hasOwn(chapter, 'nearDuplicateGroup'));
+        assert.ok(chapter.exactDuplicateGroup === null || typeof chapter.exactDuplicateGroup === 'string');
+        assert.ok(chapter.nearDuplicateGroup === null || typeof chapter.nearDuplicateGroup === 'string');
       }
       const nearDuplicateGroup = book.rights.nearDuplicateGroup;
       if (nearDuplicateGroup) {
