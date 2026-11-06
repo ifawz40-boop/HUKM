@@ -29,7 +29,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const libraryNotice = read('src/data/library/NOTICE.md');
 
   it('must describe CC BY 4.0 accurately without adding a ShareAlike condition', () => {
-    assert.match(libraryNotice, /CC BY 4\\.0 does not impose a ShareAlike condition/);
+    assert.match(libraryNotice, /CC BY 4\.0 does not impose a ShareAlike condition/);
     assert.doesNotMatch(libraryNotice, /share-alike-compatible/i);
   });
 
