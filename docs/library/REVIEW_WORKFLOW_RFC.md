@@ -1,6 +1,6 @@
 # HUKM Library Review Workflow — Architecture RFC
 
-**Status:** Design approved for staged implementation; no review write endpoint or status-changing UI is enabled yet.  
+**Status:** Architecture proposal for staged implementation; no review write endpoint or status-changing UI is enabled yet.  
 **Date:** 2026-11-06  
 **Baseline:** `main` at `c50822f4e71aa52597e126ffce00c14f8dcf020d`
 
