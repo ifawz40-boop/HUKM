@@ -108,6 +108,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     try {
       write(validRoot, 'src/data/library/manifest.json', {
         minimumBooks: 1,
+        allowedCategories: ['religious'],
         minimumWords: 10,
         maximumWordsPerBook: 100,
         minimumChapters: 3,
@@ -126,7 +127,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
         title: 'كتاب تجريبي',
         author: 'مؤلف تجريبي',
         status: 'completed',
-        category: 'literature',
+        category: 'religious',
         wordCount: 12,
         chapterCount: 3,
         chapters: [
