@@ -30,7 +30,7 @@ jobs:
           bun-version: latest
 
       - name: Install locked dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Run test suite
         run: bun run test
