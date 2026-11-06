@@ -77,6 +77,24 @@ service cloud.firestore {
              data.status == 'draft';
     }
 
+    function isValidPublicNotificationCreate(notificationId) {
+      let data = incoming();
+      return isOwner() &&
+             isValidId(notificationId) &&
+             data.keys().hasOnly(['id', 'title', 'message', 'type', 'timestamp', 'bookId', 'chapterId', 'targetRole', 'createdBy', 'createdAt']) &&
+             data.keys().hasAll(['id', 'title', 'message', 'type', 'timestamp', 'targetRole', 'createdBy', 'createdAt']) &&
+             data.id == notificationId &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 120 &&
+             data.message is string && data.message.size() > 0 && data.message.size() <= 2000 &&
+             data.type in ['announcement', 'new_chapter', 'new_book', 'milestone'] &&
+             data.timestamp is string && data.timestamp.size() > 0 && data.timestamp.size() <= 40 &&
+             data.targetRole == 'all' &&
+             data.createdBy == request.auth.uid &&
+             data.createdAt is timestamp &&
+             (!('bookId' in data) || isValidId(data.bookId)) &&
+             (!('chapterId' in data) || isValidId(data.chapterId));
+    }
+
     // Reader annotations are private user-owned excerpts and notes.
     function isValidReaderAnnotationCreate(userId, bookId, chapterId, annotationId) {
       let data = incoming();
@@ -224,11 +242,13 @@ service cloud.firestore {
     }
 
     // 7. Notifications Collection:
-    // Public announcements can be read by anyone. Private notifications only by recipient or Admin.
+    // Public announcements are readable by everyone; only the verified founder/owner may publish.
+    // Notification content is immutable after publication. Per-user read state stays client-local.
     match /notifications/{notificationId} {
-      allow read: if (resource.data.targetRole == 'all') || 
+      allow read: if (resource.data.targetRole == 'all') ||
                      (isSignedIn() && (request.auth.uid == resource.data.targetUid || isAdmin()));
-      allow create, update, delete: if isAdmin() && isValidId(notificationId);
+      allow create: if isValidPublicNotificationCreate(notificationId);
+      allow update, delete: if false;
     }
 
     // 8. Subscribers Collection:
