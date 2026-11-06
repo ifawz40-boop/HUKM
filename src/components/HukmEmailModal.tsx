@@ -417,7 +417,7 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
               <div>
                 <p className="font-bold text-amber-300">خدمة إرسال البريد الإلكتروني غير مهيأة على الخادم</p>
                 <p className="text-[11px] text-[#94a3b8] mt-0.5 leading-relaxed">
-                  لم يتم ضبط مفتاح مزود البريد <code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">RESEND_API_KEY</code> في متغيرات بيئة الخادم. تم إيقاف المحاكاة الوهمية، ولن يتم تسجيل أي إرسال كـ Delivered دون تأكيد مزود البريد.
+                  يجب ضبط <code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">RESEND_API_KEY</code> و<code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">EMAIL_FROM</code> معًا في متغيرات بيئة الخادم. لن يتم الإرسال بعنوان افتراضي أو غير موثّق.
                 </p>
               </div>
             </div>
