@@ -35,5 +35,6 @@
   "fallbackCategories": [],
   "targetWordsPerBook": 50000,
   "editorialPolicy": "docs/library/EDITORIAL_POLICY.md",
-  "curationFile": "src/data/library/curation.json"
+  "curationFile": "src/data/library/curation.json",
+  "allowEmptyDuringCuration": true
 }
