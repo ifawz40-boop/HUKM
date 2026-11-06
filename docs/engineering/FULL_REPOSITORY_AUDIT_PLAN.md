@@ -47,6 +47,11 @@ The large deployment branch has many commits ahead but its inspected key files (
 - No Firestore fetch/write is wired for announcements, although Firestore rules contain a public-notification read path.
 - This is a confirmed false-success and multi-user isolation defect. Phase 2 must persist announcements to the shared notifications collection (or a verified server API), fetch only public announcements with a query matching the Firestore rule, and keep read/unread state partitioned per user/device. Modal must await success and retain form content on failure.
 
+### P1 — Bookmark cloud-write failures are not recoverable across reload
+- The current toggle now waits for Firestore and reports local-only success accurately when cloud sync fails.
+- However, the auth bootstrap merges guest bookmarks with cloud bookmarks and overwrites the per-user local cache; it does not yet preserve a pending per-user desired bookmark set. A failed write can therefore be lost after reload/sign-in.
+- Phase 4 must add an explicit per-user pending-sync record, replay it before replacing local cache, and clear it only after confirmed cloud persistence.
+
 ### P1 — Writer Studio is present but not reachable
 - `src/components/BookWriterStudio.tsx`, `BookResearchPanel.tsx`, `NewBookModal.tsx`, and `ManageCategoriesModal.tsx` exist.
 - `src/App.tsx` does not import or render `BookWriterStudio`; there is no writer-view branch. The footer maps writer navigation back to home.
@@ -81,12 +86,13 @@ The large deployment branch has many commits ahead but its inspected key files (
 9. Vercel must fail closed until the complete minimum library is committed. Do not weaken the gate to make an empty library deploy.
 
 ### Phase 2 — Real multi-user notifications and state isolation
-1. Persist public announcements to a shared backend record with server/client authorization and validation.
-2. Fetch only records that satisfy Firestore public-read rules.
-3. Partition read/unread state by authenticated UID and guest; prevent account A's state from appearing for account B.
-4. Modal must have pending/error/success states; never show success before confirmed write.
-5. Test guest, account A, account B, owner and admin separately, including account switching and failed network writes.
-6. Commit after focused + full tests and a second independent review.
+<badge>Implemented in repository; live Firebase behavior still requires production rules deployment and two-account verification.</badge>
+1. Public announcements now use Firestore documents, owner-only validated immutable writes, and a real-time listener constrained to `targetRole == 'all'`.
+2. Per-user and guest read state is stored under separate local keys; the old global fake welcome/pseudo-broadcast cache is removed.
+3. The announcement modal awaits the Firestore write and preserves the draft on failure; success is shown only after a confirmed write.
+4. Bookmark toggles now await cloud sync and no longer claim success before Firestore confirms it; pending retry persistence remains Phase 4.
+5. Tests cover notification storage isolation, removal of fake defaults, public-read query shape, owner-only immutable publishing, and no shared `read` field.
+6. CI run `42172633996` for commit `edfae2b89600abc2aa249c211114a2ff60797e1f` passed the full test suite, TypeScript check and Vite production build. Live Firestore deployment/emulator verification is not yet complete.
 
 ### Phase 3 — Complete or retire orphaned publishing/editor features
 1. Inventory all routes, buttons and component imports; find every route with no render branch.
@@ -120,3 +126,4 @@ The large deployment branch has many commits ahead but its inspected key files (
 - CI: https://github.com/ifawz40-boop/HUKM/actions/runs/42170693668 — SUCCESS.
 - Static library sync: https://github.com/ifawz40-boop/HUKM/actions/runs/42170669881 — inspect current status; it was still running at last check.
 - First next action: inspect sync result/logs, then correct the next exact source/API/schema issue without weakening rights checks.
+- Notification implementation commits: `dc420681`, `c7a80420`, `e334a2ec`, `d5e9562a`, `07a1df5d`, `f9d72fcd`, `673ca23f`, `928fe524`, `091baba2`, `168ad837`, `331de1b0`, `695f9202`, `a8c9a3dd`, `edfae2b8`. Latest CI on `edfae2b8`: https://github.com/ifawz40-boop/HUKM/actions/runs/42172633996 — SUCCESS.
