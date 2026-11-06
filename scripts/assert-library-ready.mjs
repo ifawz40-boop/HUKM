@@ -70,6 +70,15 @@ try {
     if (book.id !== entry.id || !book.title || !book.author || book.status !== 'completed') {
       stop(`Book ${entry.id} has incomplete or mismatched identity metadata.`);
     }
+    if (
+      entry.title !== book.title ||
+      entry.author !== book.author ||
+      entry.category !== book.category ||
+      entry.wordCount !== book.wordCount ||
+      entry.chapterCount !== book.chapterCount
+    ) {
+      stop(`Catalogue metadata does not match the full-text record for book ${entry.id}.`);
+    }
     if (!Array.isArray(book.chapters) || book.chapters.length < manifest.minimumChapters ||
         book.chapterCount !== book.chapters.length || entry.chapterCount !== book.chapters.length) {
       stop(`Book ${entry.id} does not contain the expected number of complete sections.`);
@@ -78,9 +87,10 @@ try {
     const chapterNumbers = book.chapters.map((chapter) => chapter.chapterNumber);
     if (chapterIds.some((id) => typeof id !== 'string' || !id) ||
         new Set(chapterIds).size !== chapterIds.length ||
-        chapterNumbers.some((number) => !Number.isSafeInteger(number) || number < 1) ||
-        new Set(chapterNumbers).size !== chapterNumbers.length) {
-      stop(`Book ${entry.id} has missing or duplicate chapter identifiers/order.`);
+        chapterNumbers.some((number, index) => !Number.isSafeInteger(number) || number !== index + 1) ||
+        new Set(chapterNumbers).size !== chapterNumbers.length ||
+        book.chapters.some((chapter) => chapter.bookId !== book.id)) {
+      stop(`Book ${entry.id} has missing, mismatched or non-contiguous chapter identifiers/order.`);
     }
     if (!book.chapters.every((chapter) =>
       chapter.status === 'ready' &&
