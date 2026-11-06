@@ -37,6 +37,10 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(deploymentGate, /sourceHash/);
     assert.match(deploymentGate, /historyUrl/);
     assert.match(deploymentGate, /chapterCount !== book\.chapters\.length/);
+    assert.match(deploymentGate, /entry\.title !== book\.title/);
+    assert.match(deploymentGate, /entry\.wordCount !== book\.wordCount/);
+    assert.match(deploymentGate, /number !== index \+ 1/);
+    assert.match(deploymentGate, /chapter\.bookId !== book\.id/);
     assert.match(deploymentGate, /countWords\(\(chapter\.content \|\| \[\]\)\.join\(' '\)\)/);
     assert.match(deploymentGate, /isSafeBookId/);
     assert.match(deploymentGate, /isSafeHttpUrl/);
