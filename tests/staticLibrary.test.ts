@@ -51,8 +51,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('keeps all four editorial category paths visible during an empty public catalogue', () => {
-    assert.match(app, /const categories: CategoryItem\\[\\] = PUBLIC_LIBRARY_CATEGORIES;/);
-    assert.match(hero, /totalBooksCount > 0 \\?/);
+    assert.ok(app.includes('const categories: CategoryItem[] = PUBLIC_LIBRARY_CATEGORIES;'));
+    assert.ok(hero.includes('totalBooksCount > 0 ? ('));
     assert.match(hero, /مكتبة قيد الانتقاء والمراجعة/);
     assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
   });
