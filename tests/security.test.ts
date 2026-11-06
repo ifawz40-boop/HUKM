@@ -50,6 +50,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.ok(emailApiContent.includes('resolveEmailProviderConfig(process.env)'));
       assert.ok(providerContent.includes("host: 'smtp.gmail.com'"));
       assert.ok(providerContent.includes('port: 465'));
+      assert.ok(emailApiContent.includes("bcc: recipientTarget.kind === 'individual' ? undefined : batch"));
       assert.equal(emailApiContent.includes('updates@hukm.media'), false);
     });
   });
