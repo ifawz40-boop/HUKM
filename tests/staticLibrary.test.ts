@@ -165,7 +165,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
 
   it('must preserve absolute Hugging Face Hub URLs when building dataset revision preflight requests', () => {
     assert.match(syncScript, /function buildRequestUrl\(endpoint, params\)/);
-    assert.match(syncScript, /const base = \/\^https\?:\\\\\/\\\\\/i\.test\(endpoint\) \? endpoint/);
+    assert.match(syncScript, /endpoint\.startsWith\('https:\/\/'\)/);
+    assert.match(syncScript, /endpoint\.startsWith\('http:\/\/'\)/);
     assert.match(syncScript, /const url = buildRequestUrl\(endpoint, params\)/);
     assert.match(syncScript, /https:\/\/huggingface\.co\/api\/datasets\/\$\{DATASET\}/);
   });
