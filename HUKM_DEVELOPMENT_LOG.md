@@ -4,8 +4,8 @@
 - Date: 2026-11-06
 - Repository: `ifawz40-boop/HUKM`
 - Google AI Studio target branch (user-provided): `main`
-- Verified current `main` HEAD: `8368cf9825aeee8847ecc3113dbe9ef3ec39101b`
-- Verification method: GitHub commit search plus `compare_commits(8368cf9... , main)` returned `identical`.
+- Last verified code/data HEAD: `8368cf9825aeee8847ecc3113dbe9ef3ec39101b` (subsequent commits in this session are documentation-only).
+- Verification method: GitHub commit search plus `compare_commits(8368cf9... , main)` returned `identical` before this session's documentation-only commits; the docs-only commits were separately verified on `main`.
 - Repository permissions on connected account: Admin / Push.
 - Default branch: `main`.
 - Latest known PR: #8, merged. PRs #1–#8 are closed and merged.
@@ -52,11 +52,11 @@
 ## Work completed in this session
 1. Verified repository metadata, default branch, visibility and write permissions.
 2. Enumerated branches (14 total from the connector's paginated search) and reviewed recent PR history (#1–#8).
-3. Confirmed current `main` HEAD exactly as `8368cf9...`.
+3. Confirmed code/data HEAD `8368cf9...`; later documentation-only checkpoint commits were verified on `main`.
 4. Inspected `package.json`, `vercel.json`, CI workflow, library sync workflow, Wikisource audit workflow, deployment gate, manifest, catalogue, one full-text book, deployment guide and the existing engineering checkpoint.
 5. Confirmed the old deployment checkpoint is stale: it still describes an empty library and must not be used as current state.
 6. Compared `main` with `deploy/vercel-preparation`; found severe divergence and explicitly deferred merging.
-7. Created this durable project-level log and a precise next-task file.
+7. Created this durable project-level log and a precise next-task file; marked the earlier deployment checkpoint as historical.
 
 ## HUKM_CHECKPOINT
 - LAST_COMPLETED_MILESTONE: Repository intelligence / current-state verification (partial; not a full file-by-file source audit)
@@ -67,4 +67,4 @@
 - MAIN_SYNC_STATUS: main is current GitHub default branch; Google AI Studio sync itself unverified
 - PENDING_TASKS: Obtain candidate audit workflow output; review candidate list and rights; run/verify CI on current main; full application/security/UI audit remains pending
 - NEXT_ACTION: Read HUKM_NEXT_TASK.md and inspect the actual Wikisource audit output before any book ingestion
-- KNOWN_ISSUES: Vercel build-rate-limit status; main/preparation branch divergence; outdated docs/deployment/CONTINUATION_CHECKPOINT.md; no independently confirmed live deployment
+- KNOWN_ISSUES: Vercel build-rate-limit status; main/preparation branch divergence; no independently confirmed live deployment; exact-head CI still pending.
