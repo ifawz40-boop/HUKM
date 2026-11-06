@@ -69,6 +69,10 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
       assert.ok(appContent.includes("fetch('/api/auth/account-status'"));
       assert.ok(appContent.includes('setActiveBan(accountBan)'));
+      assert.ok(
+        appContent.indexOf("fetch('/api/auth/account-status'") <
+        appContent.indexOf('STEP 1: BOOKMARKS MIGRATION')
+      );
     });
   });
 
