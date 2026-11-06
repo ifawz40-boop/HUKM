@@ -691,3 +691,13 @@
 - The latest main SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf` now has a successful Vercel status check.
 - `vercel.json` still sets Git deployment eligibility to `{"*":false,"main":true}`.
 - No manual deployment or Vercel setting change was performed.
+
+
+## PR #56 merged — current checkpoint and latest Vercel status (2026-11-06)
+
+- PR #56 merged by squash at `3e737673bd4f577031a6cf8ee8c5704adc304b8d`.
+- Final exact PR head `ced046b42d6721b345662d2f9a18ebdb3587a9b2` passed run #42253308882: tests, Firestore Emulator security-rules tests, TypeScript and production build.
+- Post-merge main run #42253524142 passed on exact SHA `3e737673bd4f577031a6cf8ee8c5704adc304b8d`.
+- Latest Vercel status on this exact main SHA is `failure` with `build-rate-limit`. The immediately previous main SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf` had a successful Vercel status; the later docs-only merge encountered the rate limit again. No production deployment is confirmed.
+- Re-read main: 28 candidates; `approvedBookIds` remains empty; candidate #28 and its report are present.
+- No source ingestion, manual deployment, or Vercel settings change performed.
