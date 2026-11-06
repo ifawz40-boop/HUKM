@@ -347,6 +347,28 @@
       "authorBiographyUrl": "https://app.alreq.com/ar/Authors/Author/8702db57-0fe1-46db-041f-08d7902f2e13",
       "reviewReportUrl": "https://github.com/ifawz40-boop/HUKM/blob/main/docs/library/CANDIDATE_REVIEWS/al-batnuni-al-rihla-al-hijaziyya.md",
       "initialSpotCheck": "توثيق ببليوغرافي أولي من NYU وQNL واتحاد مكتبات الإمارات ومكتبة البابطين. يصف الفهرس الرحلة بأنها توثيق لرحلة حج الخديوي، والجغرافيا والتاريخ والمناسك والصور والخرائط. تصنيف NYU يتضمن موضوع المزارات الإسلامية، وهو موضوع فهرسة لا دليل بذاته على تبني المؤلف لممارساتها. لم تتم قراءة النص الكامل؛ لم يتمكن العارض من جلب ملف PDF من NYU في جلسة الفحص. يبقى مرشحًا مخفيًا غير معتمد."
+    },
+    {
+      "id": "ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql",
+      "title": "درء تعارض العقل والنقل (بيان موافقة صريح المعقول لصحيح المنقول)",
+      "author": "شيخ الإسلام أحمد بن عبد الحليم بن تيمية الحراني (661–728هـ)",
+      "category": "islamic-philosophy-critique",
+      "sourceUrl": "https://www.ibntaymea.com/handle/1234/9222",
+      "source": "جامعة الإمام محمد بن سعود الإسلامية؛ منصة مخطوطات شيخ الإسلام ابن تيمية؛ فهارس مكتبية",
+      "publisher": "جامعة الإمام محمد بن سعود الإسلامية",
+      "editor": "الدكتور محمد رشاد سالم",
+      "edition": "الطبعة الثانية، 1411هـ/1991م. تختلف الفهارس بين 10 أجزاء و11 مجلدًا؛ لا يُثبت عدد نهائي قبل مطابقة المجموعة الورقية المحددة.",
+      "status": "candidate",
+      "reason": "عمل موسع في مناقشة دعوى تعارض العقل والنقل ونقد حجج الفلاسفة والمتكلمين؛ مناسب مبدئيًا لقسم نقد الفلسفات والأفكار المخالفة للإسلام، مع ضرورة فحص الاستدلالات والنقول والسياق الجدلي كاملًا.",
+      "publisherUrl": "https://usul.ai/ar/t/dar-tacarud/1",
+      "bibliographicSources": [
+        "https://waqfeya.net/books/%D8%AF%D8%B1%D8%A1-%D8%AA%D8%B9%D8%A7%D8%B1%D8%B6-%D8%A7%D9%84%D8%B9%D9%82%D9%84-%D9%88%D8%A7%D9%84%D9%86%D9%82%D9%84-9c9495aab7d44502a363895a76ea0514",
+        "https://ci.nii.ac.jp/ncid/BA79101253",
+        "https://www.ibntaymea.com/handle/1234/9222",
+        "https://d1.islamhouse.com/data/ar/ih_books/chain_01/Dra_Altaearud/ar_01_Dra_taearud_aleaql_walnaql.pdf"
+      ],
+      "reviewReportUrl": "https://github.com/ifawz40-boop/HUKM/blob/main/docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql.md",
+      "initialSpotCheck": "فحصت بيانات الطبعة الثانية وتحقيق محمد رشاد سالم من سجل جامعة الإمام محمد بن سعود ومن فهارس متعددة. مقدمة الجزء الأول المنشور لدى إسلام هاوس تذكر مقابلة المحقق اثنتي عشرة نسخة خطية مع نسختين مطبوعتين ونسخة أخرى من مكتبة جامعة الرياض، وتشرح موضوع الكتاب في دعوى تعارض الأدلة السمعية والعقلية ومناقشة حجج الفلاسفة والمتكلمين. تختلف الفهارس بين 10 أجزاء و11 مجلدًا، ولا يثبت عدد قبل مطابقة النسخة. لم تتم مراجعة المجلدات كاملة، ولم يُنسخ أي نص أو PDF؛ يبقى مرشحًا مخفيًا غير معتمد."
     }
   ]
 }
