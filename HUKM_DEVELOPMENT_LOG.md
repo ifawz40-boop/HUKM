@@ -460,4 +460,13 @@
 - Added regression coverage requiring no archive path, no quarantine registry, empty public catalogue, disabled source sync and explicit source-ID allowlisting.
 - Candidate list remains 23 bibliographic records, all still pending full editorial review; none is approved or publicly visible. No candidate is declared compliant solely from its title/category.
 - Git history was not rewritten (no force-push); deleted files are absent from the current tree and future main snapshots, while historical commits remain immutable.
-- PR #42 CI on final recorded head `320c1c92e9df0d6d9b9c4b30c08cd0450f9dc2b1` passed 318 tests, 1 skipped, TypeScript and production build. Re-run after this checkpoint correction before merge. No deployment was requested or performed.
+- PR #42 CI run #42242233011 passed on exact final head `f5b64d7eead432d6370238e1f980433a5a66d7fd`: 318 passed, 0 failed, 1 skipped; TypeScript and production build passed. No deployment was requested or performed.
+
+
+## PR #42 final pre-merge review — 2026-11-06
+
+- Exact PR head: `f5b64d7eead432d6370238e1f980433a5a66d7fd`; base: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`; zero commits behind main.
+- CI run #42242233011 succeeded on the exact head: 319 tests total, 318 passed, 0 failed, 1 skipped; TypeScript check passed; production build passed.
+- Reviewed the 38-file diff: 27 deletions (24 full-text JSON files + 3 archive index/notice files), 11 modified files. The tree contains no archive paths and no public book JSON files (only `.gitkeep`); the API core from PR #39 and checkpoint PR #41 remain present.
+- Confirmed `vercel.json` is unchanged and retains `git.deploymentEnabled: {"*": false, "main": true}`; `firestore.rules` is unchanged. No secrets, user records, reading progress or production configuration are part of this PR.
+- PR #40 was closed unmerged as superseded. PR #42 is ready for squash merge after the final exact-head CI check; no deployment is requested.
