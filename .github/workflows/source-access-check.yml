@@ -79,23 +79,41 @@ jobs:
           echo "SHA256=$actual"
           test "$actual" = "$expected"
           python -m pip install --quiet pyarrow
+          file /tmp/hukm-arrow-00000.arrow /tmp/hukm-arrow-00001.arrow
           python - <<'PY'
+          import pyarrow as pa
           import pyarrow.ipc as ipc
+          import pyarrow.parquet as pq
           from collections import Counter
-          import os
 
+          paths = ('/tmp/hukm-arrow-00000.arrow', '/tmp/hukm-arrow-00001.arrow')
           rows = []
-          for name in ('/tmp/hukm-arrow-00000.arrow', '/tmp/hukm-arrow-00001.arrow'):
-              reader = ipc.open_file(name)
-              print('SCHEMA', name, reader.schema)
-              table = reader.read_all()
+          for name in paths:
+              with open(name, 'rb') as stream:
+                  first = stream.read(16)
+                  stream.seek(-16, 2)
+                  last = stream.read(16)
+              print('MAGIC', name, first.hex(), last.hex())
+              table = None
+              for label, opener in (
+                  ('ipc-file', lambda: ipc.open_file(name).read_all()),
+                  ('ipc-stream', lambda: ipc.open_stream(name).read_all()),
+                  ('parquet', lambda: pq.read_table(name)),
+              ):
+                  try:
+                      table = opener()
+                      print('FORMAT', name, label)
+                      break
+                  except Exception as error:
+                      print('FORMAT_ERROR', name, label, type(error).__name__, str(error)[:180])
+              if table is None:
+                  raise RuntimeError(f'No supported Arrow/Parquet reader for {name}')
+              print('SCHEMA', table.schema)
               print('ROWS', name, table.num_rows)
-              rows.extend(table.select([
-                  'booknr', 'category', 'title', 'author', 'wc',
-                  'origpubdate', 'translation', 'category.main', 'text'
-              ]).to_pylist())
+              rows.extend(table.to_pylist())
 
           print('TOTAL_ROWS', len(rows))
+          print('COLUMNS', list(rows[0].keys()) if rows else [])
           print('CATEGORY_COUNTS', Counter(
               category.strip()
               for row in rows
@@ -104,14 +122,9 @@ jobs:
           ).most_common(25))
           print('SAMPLE', [
               {
-                  'booknr': row.get('booknr'),
-                  'title': row.get('title'),
-                  'author': row.get('author'),
-                  'category': row.get('category'),
-                  'wc': row.get('wc'),
-                  'translation': row.get('translation'),
-                  'text_chars': len(row.get('text') or ''),
-              }
+                  key: row.get(key)
+                  for key in ('booknr', 'category', 'title', 'author', 'wc', 'origpubdate', 'translation', 'category.main')
+              } | {'text_chars': len(row.get('text') or '')}
               for row in rows[:3]
           ])
           assert len(rows) == 1745, f'Expected 1745 source books, got {len(rows)}'
