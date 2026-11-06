@@ -1,18 +1,18 @@
 # HUKM MEDIA — Exact Next Task
 
 **Current branch:** `main`  
-**Last verified code merge:** `92b1251dd3dece8323cb32f9997e7817c5bc826d` (docs have advanced since; always re-fetch `main` before writing)  
-**Last stable code merge:** `92b1251dd3dece8323cb32f9997e7817c5bc826d`  
-**Latest CI on code merge:** run #42188045609 — SUCCESS  
+**Last verified code merge:** `205211ab6238fdbf6835884bb5f3936d488e8a0b` (PR #11; re-fetch `main` before every write)  
+**Last stable code merge:** `205211ab6238fdbf6835884bb5f3936d488e8a0b`  
+**Latest CI on provenance UI PR:** run #42190539425 — SUCCESS (tests, TypeScript, build)  
 **Latest pinned + live page-category audit:** run #42189138412 — SUCCESS  
 **Google AI Studio sync:** not independently verified.
 
-## Phase A — verify latest docs checkpoint
+## Phase A — completed on 2026-11-06\n- PR #11 merged as `205211ab6238fdbf6835884bb5f3936d488e8a0b`; `main` confirmed identical.\n- PR CI run #42190539425 passed full tests, TypeScript and production build.\n- Multi-source attribution helpers and regression tests are in `src/utils/bookProvenance.ts` and `src/utils/bookProvenance.test.ts`.\n- Reader source footer is dynamic; overview labels source links correctly and discloses the 12-page preview.\n\n## Phase A — verify latest docs checkpoint
 1. Re-fetch `main` and confirm the current HEAD.
 2. Verify CI for the documentation-only HEAD `1951fcb...`; do not treat a prior successful code commit as proof for a later commit.
 3. Confirm the current candidate report is present and links to the latest successful audit run.
 
-## Phase B — complete manual review of the 38 Arabic Wikisource candidates
+## Phase B — manual review status\n- First candidate scan reviewed: Commons identifies 1891 edition, author 1850–1896, 79-page/2.35 MB scan, and marks the mechanical scan public domain.\n- Wikisource index says all pages corrected but some not proofread; full transclusion. The text includes editorial/paratext notes and historical copyright wording.\n- Commons scan rights and Wikisource transcription CC BY-SA 4.0 are separate. Scan is reader fixture only; no transcription import is approved.\n\n## Phase B — complete manual review of the 38 Arabic Wikisource candidates
 Read `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md` and download artifact `wikisource-candidate-report` from run #42188045492 (artifact ID `13487204922`, expiry 2026-11-20).
 
 Verified facts:

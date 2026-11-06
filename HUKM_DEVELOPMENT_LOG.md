@@ -126,3 +126,39 @@
 - PENDING_TASKS: Manually review the revised three-book shortlist and source text/edition; design and test a separate CC BY-SA 4.0 rights tier only after human allowlist; make source labels/provenance UI generic; full application/security/UI audit remains pending
 - NEXT_ACTION: Re-fetch main; manually review the three remaining candidates against source-page texts, edition provenance and contributor records. Then implement the PDF.js reader spike and compare EPUB.js/Foliate/Readium for Arabic RTL, CSP, progress and annotation. Do not import until a per-book allowlist and rights evidence are complete.
 - KNOWN_ISSUES: Vercel daily deployment quota (>100/day); main/preparation branch divergence; no independently confirmed live deployment or Google AI Studio sync; current docs-only HEAD CI pending; candidate text quality/provenance still needs human review.
+
+
+## Multi-source library attribution UI — 2026-11-06
+
+- PR #11 merged: https://github.com/ifawz40-boop/HUKM/pull/11
+- Merge commit: `205211ab6238fdbf6835884bb5f3936d488e8a0b`.
+- Verified `main` is identical to the merge commit after merge.
+- PR CI run #42190539425 passed the full test suite, TypeScript check and production build on exact PR head `5e2fb0b2bab4e17da8b6ac9348e44673ae80b1f9`.
+- Added `src/utils/bookProvenance.ts` and tests `src/utils/bookProvenance.test.ts`; full test script includes the new test file.
+- Added optional `BookRights.sourceNameAr` for explicit Arabic source labels.
+- Book overview now identifies Hindawi, Wikisource, Wikimedia Commons, Internet Archive and Open Library sources without mislabeling all sources as a publisher.
+- Reader footer now resolves source name from rights metadata/host instead of hardcoding Hindawi.
+- Source-page disclosure now explicitly states when it displays only the first 12 of a larger source-page list.
+- No dependencies, book content, rights tiers, source hashes, or deployment-gate rules were changed.
+- Independent diff review: six files changed; no changes outside the typed provenance helper, tests, source attribution UI, and test script.
+- Current Vercel combined status remains a free-plan daily deployment quota failure; not a CI/code failure. Google AI Studio synchronization and production deployment remain unverified.
+
+## Manual review — first candidate scan/source — 2026-11-06
+
+- Wikimedia Commons file page for `كتاب لسان غصن لبنان في انتقاد العربية العصرية.pdf` identifies an 1891 Arabic edition, publisher `المطبعة العثمانية في بعبدا`, author Shakir Shuqayr (1850–1896), 79 pages, approximately 2.35 MB.
+- Commons marks the mechanical scan of the public-domain original as Public Domain / Public Domain Mark 1.0. This evidence applies to the scan/original, not automatically to a separate Wikisource transcription.
+- Wikisource index identifies the same 1891 edition and says all pages are corrected, but some are not proofread; it reports full transclusion. The work text includes editorial/paratext material (for example, a note that chapter headings are not in the original) and the title page contains the historical statement "حق الطبع محفوظ". These require collation against the scan before import.
+- Wikisource text is a separate CC BY-SA 4.0 rights path; do not confuse the transcription licence with the Commons scan's public-domain status.
+- The scan is approved as a reader test fixture only, not yet imported into the library. No text/transcription import is approved.
+- Sources reviewed: Commons file page https://commons.wikimedia.org/wiki/File:كتاب_لسان_غصن_لبنان_في_انتقاد_العربية_العصرية.pdf ; Wikisource index https://ar.wikisource.org/wiki/فهرس:كتاب_لسان_غصن_لبنان_في_انتقاد_العربية_العصرية.pdf ; Wikisource work https://ar.wikisource.org/wiki/لسان_غصن_لبنان_في_انتقاد_العربية_العصرية .
+
+## HUKM_CHECKPOINT
+- LAST_COMPLETED_MILESTONE: Multi-source library provenance UI and independent CI verification
+- LAST_COMPLETED_TASK: Merge PR #11; verify full tests, TypeScript and production build; replace hardcoded source attribution; clarify partial source-page disclosure
+- CURRENT_BRANCH: main
+- LAST_STABLE_COMMIT: 205211ab6238fdbf6835884bb5f3936d488e8a0b
+- TEST_STATUS: PR CI run #42190539425 passed full tests, TypeScript and production build on the exact PR head; main confirmed identical to merge commit. Vercel status remains quota-limited, not code CI.
+- MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
+- PENDING_TASKS: Design and test a distinct CC BY-SA 4.0 transcription rights tier only after human-approved allowlist; continue PDF.js integration spike; EPUB engine still unselected; full application/security/UI audit remains pending
+- NEXT_ACTION: Review the exact Wikisource scan against the transcription page by page for additions/omissions, then implement a PDF.js-based reader route for legally cleared PDF files using a locally pinned worker. Do not add a package until the lockfile can be regenerated and CI validates it. Keep existing text reader intact.
+- KNOWN_ISSUES: Vercel daily deployment quota; no verified production deployment or Google AI Studio sync; Wikisource text needs collation and CC BY-SA rights workflow before import; PDF/EPUB reader paths are not implemented.
