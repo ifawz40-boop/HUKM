@@ -151,7 +151,8 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const batch = recipients.slice(i, i + BATCH_SIZE);
 
-      if (providerConfig.kind === 'gmail' && gmailTransporter) {
+      if (providerConfig.kind === 'gmail') {
+        if (!gmailTransporter) throw new Error('Gmail SMTP transporter was not initialized.');
         let acceptedCount = 0;
         let messageId = '';
         try {
@@ -188,7 +189,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
         response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${providerConfig.kind === 'resend' ? providerConfig.apiKey : ''}`,
+            Authorization: `Bearer ${providerConfig.apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
