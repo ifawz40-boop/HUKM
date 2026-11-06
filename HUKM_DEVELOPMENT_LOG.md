@@ -165,3 +165,48 @@
 - PENDING_TASKS: Design and test a distinct CC BY-SA 4.0 transcription rights tier only after human-approved allowlist; continue PDF.js integration spike; EPUB engine still unselected; full application/security/UI audit remains pending
 - NEXT_ACTION: Review the exact Wikisource scan against the transcription page by page for additions/omissions, then implement a PDF.js-based reader route for legally cleared PDF files using a locally pinned worker. Do not add a package until the lockfile can be regenerated and CI validates it. Keep existing text reader intact.
 - KNOWN_ISSUES: Vercel daily deployment quota; no verified production deployment or Google AI Studio sync; Wikisource text needs collation and CC BY-SA rights workflow before import; PDF/EPUB reader paths are not implemented.
+
+
+## PDF.js reader, scan fixture, bookmarks and notes — 2026-11-06
+
+### PDF.js reader
+- PR #12 merged: https://github.com/ifawz40-boop/HUKM/pull/12
+- Merge commit: `ab754d8048312dbcca17fa81054a00089fe1bda7`; `main` verified identical immediately after merge.
+- Push CI run #42192349189 passed on the exact merge commit: full tests, TypeScript and production build.
+- Added exact dependency `pdfjs-dist@6.5.438` with a regenerated Bun v2 lockfile.
+- Added `src/components/PdfReaderView.tsx`, a lazy-loaded reader route and a separate scanned-PDF shelf. Existing structured-text reader and 24-book text catalogue were not changed.
+- Features: one-page-at-a-time canvas rendering, page navigation, fit-width, bounded zoom, and local resume progress per document/user.
+- Vite output: PDF.js vendor chunk 443.06 KB (133.32 KB gzip), reader chunk 9.53 KB (3.51 KB gzip), worker 1,271.91 KB, loaded only with the reader route.
+- CORS smoke run #42192077727 confirmed Wikimedia PDF returns HTTP 206 for a byte range, `Access-Control-Allow-Origin: *`, and exposes `Content-Range`.
+- Test fixture: `لسان غصن لبنان في انتقاد العربية العصرية`, 1891 scan, 79 pages, 2,459,452 bytes; Commons source page pinned to revision `1186958260`; Commons marks the mechanical scan Public Domain / PDM 1.0. The separate Wikisource transcription is not bundled or imported.
+
+### PDF bookmarks, notes and search
+- PR #13 merged: https://github.com/ifawz40-boop/HUKM/pull/13
+- Merge commit: `efe2847232762dfde37970223324573d06f65897`; `main` verified identical immediately after merge.
+- Push CI run #42192746029 passed on the exact merge commit: 284 tests, 0 failures, TypeScript and production build.
+- Added per-page bookmarks and notes, with 5,000-character note cap.
+- Progress, bookmarks and notes are stored locally, scoped by document and account/guest. No cloud sync is implemented or claimed.
+- Added sequential full-document search for PDFs marked as having an extractable text layer; Arabic normalization handles common alef/ya variants and tashkeel, search progress is visible and the scan can be cancelled.
+- The current image-only Commons scan correctly remains `searchAvailable: false`; no OCR is claimed.
+
+### EPUB engine research decision
+- `@readium/navigator` 2.14.0 is actively published and BSD-3-Clause, with a maintained TypeScript toolkit.
+- Readium Web is not a drop-in raw-EPUB browser component: its TS toolkit consumes Readium Web Publication Manifests/resources; the Go toolkit converts packaged EPUBs into web publications and serves their resources. A static pre-processing pipeline at ingestion time is the preferred architecture candidate for HUKM, avoiding a permanent Go server on Vercel.
+- `epubjs` 0.3.93 remains widely downloaded but the npm version history shows the stable release is about five years old.
+- `foliate-js` supports EPUB but its own README describes the API as unstable and the demo as incomplete.
+- No EPUB dependency has been added. Prototype Readium preprocessing with a legally cleared sample before choosing the runtime.
+
+### Current deployment state
+- Vercel combined status on the PDF reader merge still reports `build-rate-limit` (free-plan quota), not a code-build failure.
+- GitHub Actions passed; production deployment and Google AI Studio synchronization remain unverified.
+
+## HUKM_CHECKPOINT
+- LAST_COMPLETED_MILESTONE: PDF.js reader v1, local bookmarks/notes, Arabic text search, and source-rights fixture
+- LAST_COMPLETED_TASK: Merge PR #12 and PR #13; verify exact merge CI runs #42192349189 and #42192746029
+- CURRENT_BRANCH: main
+- LAST_STABLE_COMMIT: efe2847232762dfde37970223324573d06f65897
+- TEST_STATUS: 284 tests passed, 0 failed; TypeScript and production build passed on exact main merge commit in run #42192746029
+- MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
+- PENDING_TASKS: browser runtime smoke test when Vercel deployment quota permits; EPUB Readium preprocessing prototype; optional Firestore sync for PDF progress after rules review; OCR feasibility for scanned works; continue security/accessibility/mobile audit
+- NEXT_ACTION: Prototype a Readium Go-toolkit EPUB-to-WebPub ingestion step in an isolated feature branch using a public-domain EPUB fixture. Generate a manifest and static resources, test the TS navigator with Arabic RTL/TOC/CFI, measure bundle and storage size, and do not import the EPUB into the public library until its source and redistribution rights are documented.
+- KNOWN_ISSUES: Vercel daily build quota; no verified production deployment or Google AI Studio sync; PDF progress/bookmarks/notes are local-only; current scanned PDF has no OCR/search; EPUB reader not implemented.
