@@ -1,12 +1,12 @@
 # HUKM MEDIA — Exact Continuation Checkpoint
 
-Last refreshed: 2026-11-06 — PR #37 review workflow core merged
+Last refreshed: 2026-11-06 — PR #39 review repository/API core merged
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-library-review-workflow-core` (checkpoint PR pending)
-Verified application/data HEAD after PR #37: `dfbe36e57b1804e3c9007adb1ffce50975c9d106`
+Current documentation branch: `docs/checkpoint-review-api-core-merged` (checkpoint PR pending)
+Verified application/data HEAD after PR #39: `e619ab711ea2682479c1789b4e720aa4512fd044`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #37: `dfbe36e57b1804e3c9007adb1ffce50975c9d106`.
+Latest main HEAD after PR #39: `e619ab711ea2682479c1789b4e720aa4512fd044`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -30,6 +30,8 @@ At the start of every continuation, re-fetch the live `main` HEAD; later documen
 - PR #34 — regression assertions for dialog role/modal semantics/accessible labels — merged at `d2596bfbeb4ceff76f4b6459ebf0e446b7e978f3`; PR and post-merge CI run #42239193028 passed.
 - PR #35 — checkpoint for PRs #33/#34 — merged at `c50822f4e71aa52597e126ffce00c14f8dcf020d`; post-merge CI run #42239379696 passed.
 - PR #37 — pure editorial/rights review workflow core and RFC — merged at `dfbe36e57b1804e3c9007adb1ffce50975c9d106`; PR CI run #42239633204 and post-merge main CI run #42239741378 passed.
+- PR #38 — checkpoint for PR #37 — merged at `b8b6f2fb5de1bd1d418ef94d8b1d1d4028c7f798`; post-merge CI run #42240089917 passed.
+- PR #39 — inert owner-only review repository/API core — merged at `e619ab711ea2682479c1789b4e720aa4512fd044`; PR CI run #42240951392 and post-merge main CI run #42241115451 passed.
 - PR #23 CI run #42235061723 and post-merge run #42235175548 succeeded.
 - PR #24 CI run #42235339268 succeeded.
 - PR #25 CI run #42235610950 and post-merge main run #42235696201 succeeded.
@@ -109,7 +111,7 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 4. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, focus restoration, screen-reader labels, 320px layout, long Arabic titles and touch scrolling. The code-level focus restoration and background scroll lock are implemented in merged PR #28; do not mark the manual audit complete.
 5. Verify Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled; do not manually deploy or change settings without required access/approval.
 6. Continue with the next candidate only after the first review workflow is documented and repeatable.
-7. Implement the next RFC stage: an unmounted/inert server-side review repository/API with dependency injection, verified-owner middleware, Firestore transaction boundaries, expected-version checks, idempotency and failure-injection tests. Keep routes unmounted and writes disabled until explicit Firestore deny rules and emulator-backed security tests are ready. Do not add status-changing UI.
+7. Implement RFC Stage 3: add explicit deny rules for `libraryEditorialStates`, `libraryRightsStates`, and `libraryReviewEvents`, then configure Firestore Emulator tests proving that unauthenticated users, readers, admins and owners cannot access these collections directly. The existing default-deny catch-all remains in place. Keep the review API factory unmounted and writes disabled until the emulator-backed security suite passes. In parallel, verify the production repository adapter against Firebase Admin Firestore transaction types and inject the real verified-owner middleware/server timestamp only in a separate, still-unmounted composition module. Do not add status-changing UI.
 
 ## Safety and continuation rules
 
