@@ -9,9 +9,9 @@ export const PUBLIC_LIBRARY_CATEGORIES: CategoryItem[] = [
   { id: 'children.stories', name: 'قصص الأطفال', description: 'القصص الموجهة للأطفال والناشئة' },
   { id: 'science', name: 'العلوم', description: 'العلوم والمعرفة' },
   { id: 'philosophy', name: 'الفلسفة', description: 'الفكر والفلسفة' },
-  { id: 'travel', name: 'الرحلات', description: 'أدب الرحلات والأسفار' },
-  { id: 'social_sciences', name: 'العلوم الاجتماعية', description: 'المجتمع والإنسان' },
-  { id: 'religion', name: 'الدراسات الدينية', description: 'الدراسات والموضوعات الدينية' },
+  { id: 'travel.literature', name: 'الرحلات', description: 'أدب الرحلات والأسفار' },
+  { id: 'social.sciences', name: 'العلوم الاجتماعية', description: 'المجتمع والإنسان' },
+  { id: 'religions', name: 'الدراسات الدينية', description: 'الدراسات والموضوعات الدينية' },
   { id: 'other', name: 'متنوع', description: 'موضوعات متنوعة' },
 ];
 
