@@ -1,3 +1,14 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  toggleUserBookmark,
+  getStoredCurrentUser,
+  getStoredNotifications,
+  saveStoredNotifications,
+  getNotificationStorageKey,
+} from './authStorage.ts';
+import type { UserProfile } from '../types/auth.ts';
+
 function withIsolatedLocalStorage<T>(callback: (storage: Storage) => T): T {
   const values = new Map<string, string>();
   const storage = {
@@ -17,17 +28,6 @@ function withIsolatedLocalStorage<T>(callback: (storage: Storage) => T): T {
     else Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: previous });
   }
 }
-
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
-import {
-  toggleUserBookmark,
-  getStoredCurrentUser,
-  getStoredNotifications,
-  saveStoredNotifications,
-  getNotificationStorageKey,
-} from './authStorage.ts';
-import type { UserProfile } from '../types/auth.ts';
 
 describe('authStorage Utility Tests', () => {
   it('guarantees getStoredCurrentUser returns null (no mock owner bypass in local storage)', () => {
