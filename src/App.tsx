@@ -74,6 +74,8 @@ import {
 import { subscribeToAuthState, logoutUser } from './firebase/authService';
 import { isEffectiveOwner, isAdmin as checkIsAdmin } from './services/permissionService';
 
+const PdfReaderView = React.lazy(() => import('./components/PdfReaderView'));
+
 export default function App() {
   // Default entry view is landing: Platform Introduction & Sign-in Portal
   const [currentView, setCurrentView] = useState<string>('landing');
