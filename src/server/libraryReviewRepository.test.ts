@@ -11,6 +11,7 @@ interface StoredDocument {
 }
 
 class MemoryFirestore {
+  failNextCommit = false;
   private readonly collections = new Map<string, Map<string, StoredDocument>>();
 
   private getCollection(name: string) {
@@ -73,6 +74,10 @@ class MemoryFirestore {
     };
 
     const result = await update(transaction);
+    if (this.failNextCommit) {
+      this.failNextCommit = false;
+      throw new Error('INJECTED_COMMIT_FAILURE');
+    }
     for (const write of writes) {
       if (write.kind === 'create' && this.getCollection(write.reference.collectionName).has(write.reference.id)) {
         throw new Error('DOCUMENT_ALREADY_EXISTS');
@@ -143,6 +148,20 @@ test('editorial events and state projections are written together with monotonic
   assert.equal(history.editorial?.version, 2);
   assert.equal(history.events.length, 2);
   assert.deepEqual(history.events.map((event) => event.version), [1, 2]);
+});
+
+test('injected transaction commit failure leaves neither event nor state partially written', async () => {
+  const { db, repository } = makeRepository();
+  db.failNextCommit = true;
+  await assert.rejects(
+    () => repository.appendEvent(makeInput()),
+    /INJECTED_COMMIT_FAILURE/,
+  );
+  const history = await repository.getCandidateHistory('sample-book');
+  assert.equal(history.editorial, null);
+  assert.equal(history.rights, null);
+  assert.equal(history.events.length, 0);
+  assert.equal((await repository.listCurrentStates()).length, 0);
 });
 
 test('idempotent retries return the original event without duplicating state', async () => {
