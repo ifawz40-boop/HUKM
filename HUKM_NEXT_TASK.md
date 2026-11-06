@@ -2,7 +2,7 @@
 
 Repository: ifawz40-boop/HUKM
 Target branch: main (connected to Google AI Studio)
-Latest main HEAD: 4ae7b4ad6aba58a658f82c2cdcb7c576377bbd36
+Latest library code/data checkpoint: 4ae7b4ad6aba58a658f82c2cdcb7c576377bbd36 (later commits update documentation only)
 Latest main CI: run 42219696273 — SUCCESS (286 tests, 1 skipped; TypeScript and production build).
 Vercel check: FAILURE — build-rate-limit (free-plan quota). No new production deployment is confirmed.
 Google AI Studio synchronization: not independently verified.
