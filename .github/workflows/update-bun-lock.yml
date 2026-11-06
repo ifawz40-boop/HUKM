@@ -6,6 +6,7 @@ on:
       - 'deploy/**'
     paths:
       - 'package.json'
+      - '.github/workflows/update-bun-lock.yml'
 
 permissions:
   contents: write
