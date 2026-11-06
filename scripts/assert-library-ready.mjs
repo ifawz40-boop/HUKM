@@ -89,7 +89,11 @@ try {
         new Set(chapterIds).size !== chapterIds.length ||
         chapterNumbers.some((number, index) => !Number.isSafeInteger(number) || number !== index + 1) ||
         new Set(chapterNumbers).size !== chapterNumbers.length ||
-        book.chapters.some((chapter) => chapter.bookId !== book.id)) {
+        book.chapters.some((chapter) => chapter.bookId !== book.id) ||
+        book.chapters.some((chapter) =>
+          (chapter.exactDuplicateGroup != null && typeof chapter.exactDuplicateGroup !== 'string') ||
+          (chapter.nearDuplicateGroup != null && typeof chapter.nearDuplicateGroup !== 'string')
+        )) {
       stop(`Book ${entry.id} has missing, mismatched or non-contiguous chapter identifiers/order.`);
     }
     if (!book.chapters.every((chapter) =>
