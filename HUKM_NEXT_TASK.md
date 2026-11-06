@@ -220,3 +220,72 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Report: `docs/library/CANDIDATE_REVIEWS/abd-al-ghani-al-maqdisi-umdat-al-ahkam.md`.
 - Remains hidden and unapproved pending full text, exact edition and rights review. No PDF is copied.
 - Next: CI and merge the candidate report; continue author/content audits. Keep approved IDs at zero until a complete review and rights clearance.
+
+
+---
+
+# CURRENT VERIFIED CHECKPOINT — 2026-11-06 (after PR #50)
+
+Repository: `ifawz40-boop/HUKM`  
+Default / Google AI Studio branch: `main`  
+Last verified main HEAD at checkpoint creation: `342ac0bad42c7610099fdc5383f401ec91f32adb`  
+Working branch for next reviewed change: `docs/review-al-sharh-al-mumti-candidate`  
+Latest merged PR at checkpoint creation: #50 (`342ac0bad42c7610099fdc5383f401ec91f32adb`)
+
+## Live state
+
+- All PRs #1–#50 are closed; no open PR was returned by the live repository query.
+- 65 remote branches were enumerated (one page; page 2 empty). Branches include historical feature branches, backups and research branches; do not assume they are current or safe to merge.
+- PR #14 is merged at `175356b3632f1f054c6280e5c986761cf2d07059`; its source branch `feat/islamic-library-curation` still exists at `5a3e0eb9da0920c54494abbfab2cef61e54bc2ba` and is historical, not an unmerged change.
+- PR #50 merged at `342ac0bad42c7610099fdc5383f401ec91f32adb`. Exact PR head `e26e49ea758673ebb5b86651742379cb4ffa604d` passed the test/typecheck/build workflow; post-merge main workflow #42246576624 passed on the exact merge SHA.
+- The main commit's Vercel status is still `failure` with `build-rate-limit`. Do not claim production deployment success. No manual deploy was requested or performed.
+- `vercel.json` still contains `git.deploymentEnabled: {"*": false, "main": true}`.
+- Google AI Studio synchronization and effective Vercel dashboard project settings remain unverified.
+
+## Library state
+
+- Candidate inventory before this branch: 24 entries, all `metadata-verified-content-review-pending`; none approved.
+- `src/data/library/curation.json` has `approvedBookIds: []`.
+- Public text book directory contains only `.gitkeep`; no archive or quarantine registry exists.
+- Legacy source sync is disabled by default and requires an explicit source-ID allowlist.
+- Non-compliant books confirmed by editorial review must be deleted from the current tree, including full text, scans, candidate metadata and reports; retain only a title/reason audit record where required. Never move them into an archive or quarantine.
+- Do not infer non-compliance from a title or isolated mention of a false belief in a critical/historical context. Review the author's actual stance and surrounding context.
+- Do not approve any candidate based on metadata, snippets, or an initial spot check.
+
+## New candidate research — الشرح الممتع على زاد المستقنع
+
+- Added metadata-only candidate `ibn-uthaymeen-al-sharh-al-mumti` (inventory 25) on branch `docs/review-al-sharh-al-mumti-candidate`.
+- The candidate targets the latest 10-volume edition marketed by مؤسسة الشيخ محمد بن صالح العثيمين الخيرية.
+- The report separately records the official digital library's 15-volume record and the older Waqfeya/Dar Ibn al-Jawzi 15-volume edition; do not merge their pagination or edition metadata.
+- Report: `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-al-sharh-al-mumti.md`.
+- The author biography and publication metadata are sourced, but the complete text, editorial layers, detailed methodology and digital rights remain pending.
+- No PDF or full text was copied. The candidate remains hidden and unapproved.
+
+## Exact next actions
+
+1. Re-fetch live `main` and confirm it is still `342ac0bad42c7610099fdc5383f401ec91f32adb` before any further write. If it moved, rebase the work by recreating the branch from the new main and reapply only this small change.
+2. Finish the candidate metadata/report PR; inspect the exact diff and run CI on the exact PR head. Do not merge without successful tests, TypeScript and production build.
+3. Continue the candidate-by-candidate audit from a lawful complete edition. Start with works whose full editions and reliable source records can be obtained. Keep all unreviewed books hidden.
+4. Resolve the Ibn Jubayr travelogue only from its full text and the owner's published editorial standard; its recorded passage positively describes a disputed tabarruk practice, not an invocation of the relic. Do not label it shirk without evidence. If the complete work fails the owner's standard, delete its candidate record and report from the current tree (no archive).
+5. Complete the manual keyboard/mobile/screen-reader accessibility audit of the curation dialog; code-level focus management is implemented, but manual QA remains outstanding.
+6. Verify Vercel dashboard Git deployment settings and the build-rate quota separately. Do not change settings or manually deploy without explicit authorization.
+7. Keep the Firestore review API unmounted and write paths disabled until a production Admin adapter and verified-owner middleware are separately implemented and reviewed.
+
+## Files to inspect on continuation
+
+- `src/data/library/candidates.json`
+- `src/data/library/curation.json`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-al-sharh-al-mumti.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md`
+- `docs/library/CANDIDATE_REVIEWS/ibrahim-rifaat-mirat-al-haramayn.md`
+- `HUKM_DEVELOPMENT_LOG.md`
+- `HUKM_NEXT_TASK.md`
+- `vercel.json`
+- `firestore.rules`
+
+## Validation record for this checkpoint
+
+- This checkpoint records repository/API evidence only. The new candidate change must still pass CI on its exact PR head.
+- Last verified main GitHub Actions run: #42246576624, success on `342ac0bad42c7610099fdc5383f401ec91f32adb`.
+- Vercel status: `build-rate-limit`, failure; deployment not confirmed.
+- No production deployment, Google AI Studio sync, or dashboard setting change was performed.
