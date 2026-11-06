@@ -80,6 +80,7 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
       setPageNumber(saved.page);
       setPageInput(String(saved.page));
       setZoom(saved.zoom);
+      setFitToWidth(saved.fitToWidth);
       setRenderedPage(0);
       setIsDocumentReady(true);
       setIsLoading(false);
@@ -121,11 +122,11 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
   useEffect(() => {
     if (!isDocumentReady || totalPages < 1) return;
     try {
-      window.localStorage.setItem(progressKey, serializePdfReaderProgress(pageNumber, zoom));
+      window.localStorage.setItem(progressKey, serializePdfReaderProgress(pageNumber, zoom, fitToWidth));
     } catch {
       // Private browsing or storage limits must not interrupt reading.
     }
-  }, [isDocumentReady, progressKey, pageNumber, zoom, totalPages]);
+  }, [isDocumentReady, progressKey, pageNumber, zoom, fitToWidth, totalPages]);
 
   useEffect(() => {
     const pdf = documentRef.current;
