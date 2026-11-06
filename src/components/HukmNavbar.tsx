@@ -48,6 +48,7 @@ interface HukmNavbarProps {
   onOpenSendAnnouncement: () => void;
   onOpenEmailModal?: () => void;
   onOpenAdminManagement?: () => void;
+  onOpenCurationPanel?: () => void;
   onLogout?: () => void;
   onUserRefreshed?: (user: UserProfile) => void;
   onShowToast?: (msg: string) => void;
@@ -70,6 +71,7 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
   onOpenSendAnnouncement,
   onOpenEmailModal,
   onOpenAdminManagement,
+  onOpenCurationPanel,
   onLogout,
   onUserRefreshed,
   onShowToast,
@@ -236,6 +238,18 @@ export const HukmNavbar: React.FC<HukmNavbarProps> = ({
                 >
                   <Mail className="h-3 w-3 text-[#d4af37]" />
                   <span>هوية البريد ✉️</span>
+                </button>
+              )}
+
+              {isEffectiveOwner && onOpenCurationPanel && (
+                <button
+                  type="button"
+                  onClick={onOpenCurationPanel}
+                  className="flex items-center gap-1 rounded-lg bg-[#0e1935] hover:bg-[#162752] border border-[#c59b27]/40 px-2.5 py-0.5 text-[11px] font-bold text-[#f0cb69] transition-all cursor-pointer"
+                  title="مراجعة الكتب المرشحة وسياسة اعتماد المكتبة"
+                >
+                  <BookOpen className="h-3 w-3 text-[#d4af37]" />
+                  <span className="hidden xs:inline">مراجعة الكتب</span>
                 </button>
               )}
 
