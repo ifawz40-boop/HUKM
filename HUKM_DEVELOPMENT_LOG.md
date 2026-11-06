@@ -62,6 +62,21 @@
 - The later candidate audit workflow #3 also passed its 11 dedicated filter tests and full pinned scan.
 - Vercel combined status remains `failure` with target `build-rate-limit`; this is a provider quota/rate-limit indicator, not evidence of a source build failure and not a successful deployment.
 
+## Latest continuation — 2026-11-06
+
+- PR #9, `Improve Arabic Wikisource candidate audit provenance`, was merged by squash: https://github.com/ifawz40-boop/HUKM/pull/9
+- Merge commit: `92b1251dd3dece8323cb32f9997e7817c5bc826d`; verified `main` was identical to that commit immediately after merge.
+- CI run #42188045609 on the merge commit passed the full test suite, TypeScript check, and production build: https://github.com/ifawz40-boop/HUKM/actions/runs/42188045609
+- Candidate audit run #42188045492 on the merge commit succeeded, including the candidate filter tests, full pinned scan, and upload-artifact step: https://github.com/ifawz40-boop/HUKM/actions/runs/42188045492
+- Artifact `wikisource-candidate-report` ID `13487204922` was uploaded; it expires 2026-11-20. It contains 38 complete candidate metadata records, all source pages/revisions, persons, CC BY-SA attribution, source schema inventory, publication metadata, text-quality indicators, and a bounded preview. No book text was imported into the repository.
+- Candidate review details and metadata-quality findings were added to `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md`.
+- Independent artifact analysis: 38 candidates; all are original works; 40 author-credit records, all with Wikidata QIDs and death-year evidence; all source-page URLs/revision IDs/timestamps present; 18 records tagged `نصوص مجهولة المصدر`; 2 have missing Wikisource backlink categories; 16 exceed the current 120,000-word per-book cap; only one work has scan proofreading evidence (80 pages, 72 level-3 and 8 level-4); all candidate records have zero footnotes in dataset metadata; 37/38 lack publication_year and 33/38 lack first_publication_year; no explicit `is_incomplete` field exists in the source schema.
+- A provisional review shortlist is recorded in the candidate report; it is not an approved import allowlist.
+- UI issue found for future multi-source library support: `BookReaderView.tsx` hardcodes “مؤسسة هنداوي”; `BookOverviewView.tsx` labels the source link as publisher-only and shows at most the first 12 source pages without clearly stating that the list is partial. Fix these before importing Wikisource texts.
+- Vercel status still reports `api-deployments-free-per-day` / more than 100 deployments per day; this is a platform quota issue, not a CI failure. No production deployment was verified.
+- Google AI Studio synchronization remains unverified.
+- Main's current HEAD after the report documentation update: `1317bc9dc1ffb9751e9933c5d9f96f57728204e1` (documentation-only commit after the successful code merge CI; its own CI result is pending).
+
 ## Work completed in this session
 1. Verified repository metadata, default branch, visibility and write permissions.
 2. Enumerated branches (14 total from the connector's paginated search) and reviewed recent PR history (#1–#8).
@@ -74,12 +89,12 @@
 9. Recorded all 38 candidate summaries and explicit no-import/rights-review caveats in `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md`.
 
 ## HUKM_CHECKPOINT
-- LAST_COMPLETED_MILESTONE: Repository intelligence and initial Wikisource candidate discovery (partial; not a full file-by-file source audit)
-- LAST_COMPLETED_TASK: Verify candidate audit run #3 (38 eligible candidates), record report, verify CI run #484 (266 tests + typecheck + build)
+- LAST_COMPLETED_MILESTONE: Repository intelligence, initial Wikisource candidate discovery, and full candidate provenance-report pipeline (partial; not a full file-by-file source audit)
+- LAST_COMPLETED_TASK: Merge PR #9; verify CI run #42188045609 and audit run #42188045492; publish full provenance artifact and update candidate review report
 - CURRENT_BRANCH: main
-- LAST_STABLE_COMMIT: 44e4001ca811b1ad3c2ae9b962b20371aa67842b (CI success; later docs-only commit(s) need their own CI confirmation)
-- TEST_STATUS: 266/266 tests, TypeScript check, and production build passed in CI run #484; 11/11 Wikisource filter tests passed in audit run #3
+- LAST_STABLE_COMMIT: 92b1251dd3dece8323cb32f9997e7817c5bc826d (merge commit; CI and candidate audit both passed)
+- TEST_STATUS: Full tests, TypeScript and production build passed in CI run #42188045609; candidate audit tests and full pinned scan passed in run #42188045492
 - MAIN_SYNC_STATUS: main is current GitHub default branch; Google AI Studio sync itself unverified
-- PENDING_TASKS: Extract complete candidate records and review them; design CC BY-SA-compatible rights path only after allowlist; verify CI on latest docs commit; full application/security/UI audit remains pending
-- NEXT_ACTION: Retrieve full pinned dataset records for the 38 candidates (all persons, source pages/revisions, quality/completeness fields and text), then prepare a human-review allowlist; no ingestion yet
-- KNOWN_ISSUES: Vercel build-rate-limit status; main/preparation branch divergence; no independently confirmed live deployment; latest docs commit CI pending; candidate summary omits full source pages and persons.
+- PENDING_TASKS: Complete manual review of the provisional candidate shortlist; decide a human-approved allowlist; design and test a separate CC BY-SA 4.0 rights tier; make source labels/provenance UI generic; full application/security/UI audit remains pending
+- NEXT_ACTION: Re-fetch current main, verify CI for docs HEAD `1317bc9...`, then manually review the six provisional candidates against source-page texts and edition provenance. Do not import until a per-book allowlist and rights evidence are complete.
+- KNOWN_ISSUES: Vercel daily deployment quota (>100/day); main/preparation branch divergence; no independently confirmed live deployment or Google AI Studio sync; current docs-only HEAD CI pending; candidate text quality/provenance still needs human review.
