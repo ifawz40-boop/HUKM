@@ -552,3 +552,21 @@
 - Author methodology is strongly supported by biographical and scholarly sources: al-Sa'di is a recognized Sunni scholar; Ibn Uthaymeen was among his students and praised the commentary.
 - Important edition warning: avoid confusing the candidate edition with the Muhammad Zuhri al-Najjar version, which has documented additions and textual changes not clearly distinguished. The report records safer manuscript-based alternatives.
 - The Tafsir remains hidden and unapproved until the exact 1150-page edition is textually compared and digital rights are cleared. No full text was copied.
+
+
+## PR #49 merged — Tafsir al-Sa'di preliminary review (2026-11-06)
+
+- PR #49 merged at `e1ff807d267e6199cd852a50dae705149d556645`.
+- Pre-merge CI run #42245858149 passed; post-merge main CI run #42246136834 passed on the exact merge SHA.
+- Added `docs/library/CANDIDATE_REVIEWS/al-sadi-tafsir.md` and linked it from the candidate record.
+- The author and general methodology are strongly supported as Ahl al-Sunnah. The candidate edition is Dar al-Salam, edited by Abd al-Rahman al-Luwaihiq.
+- Documented the edition warning concerning Muhammad Zuhri al-Najjar's version with unmarked additions/changes; do not mix editions. The Tafsir remains hidden and unapproved until the exact 1150-page edition is compared and rights are cleared.
+- No full text or PDF was copied into the repository.
+
+## New candidate research — Umdat al-Ahkam (2026-11-06)
+
+- Current working branch: `docs/add-umdat-al-ahkam-candidate`.
+- Added candidate `abd-al-ghani-al-maqdisi-umdat-al-ahkam` (candidate inventory now 24) with an initial report at `docs/library/CANDIDATE_REVIEWS/abd-al-ghani-al-maqdisi-umdat-al-ahkam.md`.
+- IslamHouse metadata identifies the author as the hadith scholar Abd al-Ghani al-Maqdisi (541–600هـ), and describes the work as a collection of legal hadith selected from Sahih al-Bukhari and Sahih Muslim.
+- The candidate edition is reviewed and sourced by Saeed al-Qahtani, who states that the wording was compared against the two Sahihs and the hadith locations documented.
+- This is a strong candidate but remains hidden and unapproved until the complete text, exact edition and rights are checked. No PDF was copied.
