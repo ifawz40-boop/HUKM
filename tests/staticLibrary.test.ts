@@ -36,12 +36,12 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.ok(libraryNotice.includes('not yet manually curated or individually proofread'));
 
     const catalog = JSON.parse(read('src/data/library/catalog.json'));
-    const batchLine = libraryNotice.split('\\n').find((line) => line.includes('This HUKM batch contains '));
+    const batchLine = libraryNotice.split('\n').find((line) => line.includes('This HUKM batch contains '));
     const batchCount = batchLine?.split('This HUKM batch contains ')[1]?.split(' automatically selected')[0];
     assert.ok(batchCount, 'notice must state the generated book count');
     assert.equal(Number(batchCount), catalog.length);
 
-    const totalsLine = libraryNotice.split('\\n').find((line) => line.startsWith('- First-batch integrity totals:'));
+    const totalsLine = libraryNotice.split('\n').find((line) => line.startsWith('- First-batch integrity totals:'));
     assert.ok(totalsLine, 'notice must state generated books, sections, words and footnotes');
     const totals = totalsLine.replace('- First-batch integrity totals: ', '').split(' ');
     assert.equal(Number(totals[0]), catalog.length);
@@ -386,7 +386,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('must select one book per upstream near-duplicate group and balance book length', () => {
-    const makeRow = (book_id: string, n_words: number, near_duplicate_group?: string) => ({
+    const makeRow = (book_id: string, n_words: number, near_duplicate_group?: string, hasAuthor = true) => ({
       book_id,
       title: book_id,
       n_words,
@@ -394,7 +394,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
       category_main: 'history',
       is_translation: false,
       original_text_status: 'public-domain',
-      credits: [{ role: 'author', name: 'Author', death_year: 1900 }],
+      authors: hasAuthor ? ['Author'] : [],
+      credits: hasAuthor ? [{ role: 'author', name: 'Author', death_year: 1900 }] : [],
       book_url: 'https://example.org/books/' + book_id,
       attribution: 'Source attribution',
       source_file_sha256: 'a'.repeat(64),
@@ -406,6 +407,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
       makeRow('book-b', 40000, 'near-group-1'),
       makeRow('book-c', 30000),
       makeRow('book-d', 20000),
+      makeRow('book-no-author', 60000, undefined, false),
     ], {
       targetBooks: 3,
       minimumBooks: 3,
