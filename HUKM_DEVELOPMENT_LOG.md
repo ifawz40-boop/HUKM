@@ -701,3 +701,13 @@
 - Latest Vercel status on this exact main SHA is `failure` with `build-rate-limit`. The immediately previous main SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf` had a successful Vercel status; the later docs-only merge encountered the rate limit again. No production deployment is confirmed.
 - Re-read main: 28 candidates; `approvedBookIds` remains empty; candidate #28 and its report are present.
 - No source ingestion, manual deployment, or Vercel settings change performed.
+
+
+## PR #57 merged — final checkpoint update (2026-11-06)
+
+- PR #57 merged at `2b9724a1817f8209e6259efef2a2642e8fb86146`.
+- Exact PR head `8dbbff7666aa8f33069010873b97ac0c2390ae81` passed run #42253768180.
+- Post-merge main run #42253937330 passed on exact SHA `2b9724a1817f8209e6259efef2a2642e8fb86146`: tests, Firestore Emulator rules tests, TypeScript and production build.
+- Latest Vercel status on this exact main SHA remains `failure` with `build-rate-limit`; no production deployment is confirmed.
+- Re-read main: 28 candidates, 0 approved public IDs. No public full-text files were added.
+- No manual deployment, source ingestion, Vercel setting change or copyrighted full-text upload performed.
