@@ -198,6 +198,7 @@ def audit_candidates(candidates: list[dict], fetcher=fetch_json, pause_seconds: 
                 "flagged_categories": [] if not live else (live.get("flagged_categories") or []),
             })
         missing_count = sum(page["lookup_status"] != "found" for page in pages)
+        missing_author_page_count = sum(page["lookup_status"] != "found" for page in author_pages)
         flagged_pages = [
             {"title": page["title"], "categories": page["flagged_categories"]}
             for page in pages if page["flagged_categories"]
@@ -214,11 +215,12 @@ def audit_candidates(candidates: list[dict], fetcher=fetch_json, pause_seconds: 
             "source_page_count": len(pages),
             "audited_page_count": len(pages) - missing_count,
             "missing_or_unreturned_page_count": missing_count,
+            "missing_author_page_count": missing_author_page_count,
             "flagged_page_count": len(flagged_pages),
             "flagged_pages": flagged_pages,
             "revision_drift_page_count": len(revision_drift_pages),
             "revision_drift_pages": revision_drift_pages,
-            "page_audit_status": "complete" if missing_count == 0 and not failures else "incomplete",
+            "page_audit_status": "complete" if missing_count == 0 and missing_author_page_count == 0 and not failures else "incomplete",
             "source_pages": pages,
             "author_pages": author_pages,
             "batch_failures": failures,
