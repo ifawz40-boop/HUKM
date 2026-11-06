@@ -15,6 +15,20 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const bootstrapScript = read('scripts/bootstrap-owner.ts');
   const verifyScript = read('scripts/verify-owner.ts');
   const firebaseAdmin = read('src/server/firebaseAdmin.ts');
+  const vercelConfig = JSON.parse(read('vercel.json'));
+  const deploymentGate = read('scripts/assert-library-ready.mjs');
+
+  it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
+    assert.match(vercelConfig.buildCommand, /node scripts\/assert-library-ready\.mjs/);
+    assert.match(deploymentGate, /manifest\.minimumBooks/);
+    assert.match(deploymentGate, /maximumWordsPerBook/);
+    assert.match(deploymentGate, /maximumTotalWords/);
+    assert.match(deploymentGate, /cc-by-4-translation/);
+    assert.match(deploymentGate, /public-domain-life70-screen/);
+    assert.match(deploymentGate, /sourceHash/);
+    assert.match(deploymentGate, /historyUrl/);
+    assert.match(deploymentGate, /licenseQuote/);
+  });
 
   it('must bind Firestore rules to the exact named database used by every Admin SDK entry point', () => {
     const expectedDatabase = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
