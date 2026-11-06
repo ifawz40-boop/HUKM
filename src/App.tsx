@@ -121,10 +121,25 @@ export default function App() {
               headers: { Authorization: `Bearer ${token}` },
             });
             const payload = await response.json();
-            if (!response.ok || !payload.success || typeof payload.banned !== 'boolean') {
+            const banPayload = payload?.ban;
+            const validBanPayload = payload?.banned === false
+              ? banPayload === null
+              : payload?.banned === true &&
+                typeof banPayload === 'object' &&
+                banPayload !== null &&
+                typeof banPayload.id === 'string' &&
+                typeof banPayload.email === 'string' &&
+                banPayload.email.trim().toLowerCase() === profile.email?.trim().toLowerCase() &&
+                typeof banPayload.name === 'string' &&
+                (banPayload.banType === 'temporary' || banPayload.banType === 'permanent') &&
+                typeof banPayload.reason === 'string' &&
+                typeof banPayload.bannedBy === 'string' &&
+                typeof banPayload.bannedAt === 'string' &&
+                banPayload.isActive === true;
+            if (!response.ok || !payload?.success || !validBanPayload) {
               throw new Error('Account moderation status could not be verified.');
             }
-            accountBan = payload.banned && payload.ban ? payload.ban as BannedAccount : null;
+            accountBan = payload.banned ? banPayload as BannedAccount : null;
           } catch (error) {
             // Moderation status is authoritative server data. Never fall back to a stale,
             // user-editable local cache or expose an authenticated session when verification fails.
