@@ -32,6 +32,7 @@ import {
   getChapterScrollPosition,
 } from '../utils/readingTracker';
 import { saveReadingProgressToFirestore } from '../firebase/firestoreService';
+import { getBookSourceLinkLabel, getSourcePageDisclosure } from '../utils/bookProvenance';
 
 interface BookOverviewViewProps {
   book: BookProject;
@@ -96,6 +97,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
     ? book.quotes.filter((item) => isResearchRecord(item) && item.managedBy === 'hukm-research-panel' && item.visibility === 'public')
     : [];
   const authorName = book.author || 'غير منسوب';
+  const sourcePageDisclosure = getSourcePageDisclosure(book.rights?.sourcePages);
 
   const completedCount = progress.completedChapterIds.length;
   const totalChapters = book.chapters.length;
@@ -393,7 +395,7 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
             </div>
             <p className="text-xs leading-7 text-[#cbd5e1]">{book.rights.attribution}</p>
             <div className="flex flex-wrap gap-2 text-xs">
-              <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#f0cb69] hover:bg-white/5">صفحة الكتاب لدى الناشر</a>
+              <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#f0cb69] hover:bg-white/5">{getBookSourceLinkLabel(book.rights)}</a>
               {book.rights.historyUrl && <a href={book.rights.historyUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">إصدار مجموعة البيانات</a>}
               <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">{book.rights.license}</a>
               <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-[#cbd5e1] hover:bg-white/5">بيانات المجموعة</a>
@@ -411,9 +413,14 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
             )}
             {book.rights.sourcePages.length > 0 && (
               <details className="rounded-xl border border-white/10 bg-black/15 p-3">
-                <summary className="cursor-pointer text-xs font-bold text-[#f0cb69]">صفحات المصدر وسجل النسخ ({book.rights.sourcePages.length})</summary>
+                <summary className="cursor-pointer text-xs font-bold text-[#f0cb69]">صفحات المصدر وسجل النسخ ({sourcePageDisclosure.totalCount})</summary>
+                {sourcePageDisclosure.isPartial && (
+                  <p className="mt-2 text-[11px] leading-6 text-amber-100/80">
+                    يُعرض هنا أول {sourcePageDisclosure.visibleCount} صفحة من أصل {sourcePageDisclosure.totalCount}. افتح صفحة المصدر للاطلاع على بقية الصفحات وسجلها.
+                  </p>
+                )}
                 <ul className="mt-3 space-y-2">
-                  {book.rights.sourcePages.slice(0, 12).map((page, index) => (
+                  {sourcePageDisclosure.visiblePages.map((page, index) => (
                     <li key={page.revisionId || page.url || index}>
                       <a href={page.url} target="_blank" rel="noreferrer" className="text-[11px] text-[#cbd5e1] underline decoration-white/20 underline-offset-4 hover:text-white">
                         {page.title || `صفحة المصدر ${index + 1}`}

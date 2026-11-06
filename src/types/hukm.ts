@@ -81,6 +81,8 @@ export interface BookRights {
   datasetCitation: string;
   licenseQuote?: string;
   publisher?: string;
+  /** Human-readable Arabic name for the primary source, when known. */
+  sourceNameAr?: string;
   originalTextStatus?: string;
   translationCovered?: boolean;
   credits?: Array<{ role: string; name: string; deathYear: number | null }>;

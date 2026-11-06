@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { BookProject, BookChapter, ReaderAnnotation, ReaderAnnotationColor } from '../types/hukm';
 import { UserProfile } from '../types/auth';
+import { getBookSourceName } from '../utils/bookProvenance';
 import { calculateWordsCount } from '../utils/hukmEngine';
 import {
   recordChapterOpened,
@@ -1291,7 +1292,7 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
           </div>
           {book.rights && (
             <p className="border-t border-current/10 pt-3 text-[10px] leading-6 opacity-70">
-              النص من <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="underline">مؤسسة هنداوي</a>، مرخص وفق <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="underline">{book.rights.license}</a>. <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="underline">بيانات المصدر والترخيص</a>.
+              النص من <a href={book.rights.sourceUrl} target="_blank" rel="noreferrer" className="underline">{getBookSourceName(book.rights)}</a>، مرخص وفق <a href={book.rights.licenseUrl} target="_blank" rel="noreferrer" className="underline">{book.rights.license}</a>. <a href={book.rights.datasetUrl} target="_blank" rel="noreferrer" className="underline">بيانات المصدر والترخيص</a>.
             </p>
           )}
         </div>
