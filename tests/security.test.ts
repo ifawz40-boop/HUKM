@@ -36,6 +36,9 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     it('documents Gmail SMTP and optional Resend settings without committing credentials', () => {
       const envExample = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf-8');
       assert.ok(envExample.includes('FIREBASE_SERVICE_ACCOUNT_JSON=""'));
+      const gitignore = fs.readFileSync(path.resolve(process.cwd(), '.gitignore'), 'utf-8');
+      assert.ok(gitignore.includes('firebase-adminsdk-*.json'));
+      assert.ok(gitignore.includes('firebase-service-account*.json'));
       assert.ok(envExample.includes('GMAIL_USER="hukm.contact@gmail.com"'));
       assert.ok(envExample.includes('GMAIL_APP_PASSWORD="YOUR_GOOGLE_APP_PASSWORD"'));
       assert.ok(envExample.includes('RESEND_API_KEY="YOUR_RESEND_API_KEY"'));
