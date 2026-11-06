@@ -239,3 +239,19 @@
 - PENDING_TASKS: browser runtime smoke test when Vercel deployment quota permits; EPUB Readium preprocessing prototype; optional Firestore sync for PDF progress after rules review; OCR feasibility for scanned works; continue security/accessibility/mobile audit
 - NEXT_ACTION: Prototype a Readium Go-toolkit EPUB-to-WebPub ingestion step in an isolated feature branch using a public-domain EPUB fixture. Generate a manifest and static resources, test the TS navigator with Arabic RTL/TOC/CFI, measure bundle and storage size, and do not import the EPUB into the public library until its source and redistribution rights are documented.
 - KNOWN_ISSUES: Vercel daily build quota; no verified production deployment or Google AI Studio sync; PDF progress/bookmarks/notes are local-only; current scanned PDF has no OCR/search; EPUB reader not implemented.
+
+
+## Owner-only library curation dashboard — 2026-11-06
+
+- Re-fetched repository metadata and confirmed `main` HEAD: `d9ffac968aac9f629c46b0a81f00fa7d877c2cd8`.
+- Verified PR #14 is merged at `175356b3632f1f054c6280e5c986761cf2d07059`; the library curation work is already on main and was not repeated.
+- Verified PR #15 is merged at `d9ffac968aac9f629c46b0a81f00fa7d877c2cd8`; `vercel.json` retains `{"*": false, "main": true}` for Git-triggered deployments.
+- Queried GitHub Actions for the exact main HEAD: push workflow #42231218981 completed with conclusion `success`. The combined Vercel status on that commit also reports `success`.
+- PR #15's Vercel bot comment reports a Ready **Preview** deployment for the feature branch. This is not recorded as a production deployment. Google AI Studio synchronization remains unverified.
+- Re-read `curation.json`, `candidates.json`, `manifest.json`, editorial policy and author evidence. Confirmed 24 quarantined legacy IDs, zero approved IDs and 22 candidate records (all pending full-text review). The previous next-task file's count of 18 was stale.
+- Inspected `App.tsx`, `HukmNavbar.tsx`, the owner/admin permission service and existing library data flow before adding a new owner-only workflow.
+- Created branch `feat/owner-library-curation-dashboard` from the exact main HEAD.
+- In progress: a read-only owner-only candidate review panel with category/status/search filters and source links. It deliberately has no approval/publishing controls and performs no database writes.
+- Files changed on the feature branch: `src/components/LibraryCurationPanel.tsx`, `src/components/HukmNavbar.tsx`, `src/App.tsx`.
+- Verification status for this feature: pending PR CI and independent diff review. Do not mark complete until the exact PR head passes tests, TypeScript and production build.
+- Next: review branch diff, open PR, verify CI, fix issues if found, then update this checkpoint with exact results. After merge, design a separately audited review-record workflow; do not approve candidates based on metadata or spot checks.
