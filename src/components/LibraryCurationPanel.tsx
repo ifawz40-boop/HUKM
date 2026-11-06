@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, ExternalLink, Search, ShieldCheck, X } from 'lucide-react';
+import { filterLibraryCandidates, isSafeExternalUrl } from '../utils/libraryCuration';
 
 type CandidateStatus =
   | 'candidate'
@@ -42,15 +43,6 @@ const candidateModules = import.meta.glob('../data/library/candidates.json', {
 
 const candidateDataset = candidateModules['../data/library/candidates.json'];
 
-const isSafeExternalUrl = (value: string | undefined): value is string => {
-  if (!value) return false;
-  try {
-    return new URL(value).protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
-
 const candidates = Array.isArray(candidateDataset?.books)
   ? candidateDataset.books.filter((book) =>
       Boolean(book && book.id && book.title && book.author && book.category && book.status && isSafeExternalUrl(book.sourceUrl))
@@ -89,17 +81,10 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const filteredCandidates = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    return candidates.filter((book) => {
-      const matchesCategory = category === 'all' || book.category === category;
-      const matchesStatus = status === 'all' || book.status === status;
-      const searchable = [book.title, book.author, book.edition || '', book.reason || '', book.id]
-        .join(' ')
-        .toLocaleLowerCase();
-      return matchesCategory && matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
-    });
-  }, [query, category, status]);
+  const filteredCandidates = useMemo(
+    () => filterLibraryCandidates(candidates, { query, category, status }),
+    [query, category, status],
+  );
 
   const categoryCounts = useMemo(() => ({
     religious: candidates.filter((book) => book.category === 'religious').length,
