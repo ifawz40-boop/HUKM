@@ -1,0 +1,39 @@
+name: Arabic Wikisource candidate audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/audit-wikisource-candidates.py'
+      - 'tests/test_wikisource_audit.py'
+      - '.github/workflows/audit-wikisource-candidates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wikisource-candidate-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test candidate filters
+        run: python -m unittest discover -s tests -p 'test_wikisource_audit.py'
+
+      - name: Install pinned streaming dependency
+        run: python -m pip install 'datasets==5.1.0'
+
+      - name: Audit pinned Arabic Wikisource corpus
+        run: python scripts/audit-wikisource-candidates.py
