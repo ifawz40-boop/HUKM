@@ -408,3 +408,28 @@ A stronger primary source was found after the first Wikisource sync attempt:
 - Sync run `42170669881` was still running when last checked; inspect logs/status. It began on `f958877b480a6eb72213a590781110d2c60c2550` before the final test-only commit.
 - Next: finish static library source sync and curation first, then implement true multi-user notifications, then decide safe static publishing/editor model, then reader/user isolation and admin/backend/UI audits. Follow the two-check + main-commit rule in the audit plan.
 - Never claim books are bundled until generated JSON files and matching catalogue are committed and the deployment gate passes. Never claim notifications are broadcast until a second account can fetch the persisted announcement. Never claim Firebase/Vercel production changes from GitHub CI alone.
+
+
+## Phase 2 — Multi-user announcement integrity — 2026-11-06
+
+### Implemented on main
+- `src/utils/authStorage.ts`: notification read-state keys are partitioned by authenticated UID or guest; old global `hukm_notifications_v1` pseudo-broadcast/default cache is removed; there is no fabricated welcome notification.
+- `src/utils/authStorage.test.ts`: verifies empty default, account A vs account B vs guest isolation, and legacy global key removal.
+- `src/firebase/firestoreService.ts`: added public announcement fetch/subscribe and validated owner-authenticated create service. Reads are constrained by `where('targetRole', '==', 'all')`; shared documents do not persist `read`.
+- `firestore.rules`: public announcements remain readable, but creation requires the verified founder/owner and strict field/length/type validation; updates/deletes are denied so published broadcasts are immutable.
+- `src/App.tsx`: listens for announcements in real time; merges each account's own read-state; account switch/logout switches to a separate partition; announcement send now awaits the real Firestore write.
+- `src/components/SendAnnouncementModal.tsx`: pending/error/success behavior; keeps the draft if persistence fails and only closes after success.
+- `src/components/NotificationDropdown.tsx`: displays ISO/server timestamps in readable Arabic relative time.
+- Bookmark toggle now waits for the Firestore result and accurately reports local-only status on failure rather than claiming cloud sync prematurely.
+
+### Verification
+- Full GitHub Actions CI for `edfae2b89600abc2aa249c211114a2ff60797e1f` passed: https://github.com/ifawz40-boop/HUKM/actions/runs/42172633996
+  - Test suite: PASS
+  - TypeScript: PASS
+  - Vite production build: PASS
+- Firestore production rules are not yet deployed; the live two-account broadcast test is still pending. This is a code/CI verification, not a production database claim.
+- Follow-up identified: a failed per-user bookmark cloud write is not yet replayed after reload because auth bootstrap still merges guest + cloud state and overwrites the per-user cache. Add a pending per-user desired bookmark record and clear only after confirmed upload in Phase 4.
+
+### Current static-library sync
+- The sync run `42171611705` was still running for several minutes against the old 18-attempt timeout policy. A newer bounded-retry script commit `e8d9a04518b8ceb564f204d7d9a06493bd895d13` reduced attempts to 5 and per-request timeout to 20 seconds; its workflow run `42172530466` is queued/in progress behind the older run. Check both. Do not treat the older run's generated data as current if it commits; re-run with the latest script.
+- Latest code commit at this checkpoint update is documentation-only `e3356e9f4fa0e5f3456a8027d775dcaa96811490`; run the latest CI and re-fetch main before more edits.
