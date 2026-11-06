@@ -3,8 +3,10 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-final-state-2026-11-06`
-Verified main HEAD: `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`
+Current documentation branch: `docs/clarify-code-head-checkpoint`
+Verified application-code HEAD before the documentation-only checkpoint: `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`
+Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
+At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
 
