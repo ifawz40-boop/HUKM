@@ -1,12 +1,12 @@
 # HUKM MEDIA — Exact Continuation Checkpoint
 
-Last refreshed: 2026-11-06
+Last refreshed: 2026-11-06 — after PR #30
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-curation-focus-restoration-merged` (checkpoint PR #29)
-Verified application-code HEAD after PR #28: `320b73c099932cecbea818db6c8002f5d449d8ad`
+Current documentation branch: `docs/checkpoint-main-1f5c98a` (checkpoint PR pending)
+Verified application-code HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #28: `320b73c099932cecbea818db6c8002f5d449d8ad`.
+Latest main HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -23,6 +23,9 @@ At the start of every continuation, re-fetch the live `main` HEAD; later documen
 - PR #23 — keyboard accessibility for the curation dialog — merged at `9f7ac3679062326f07543f2caaa95427527b096f`.
 - PR #24 — checkpoint after keyboard accessibility — merged at `943c80f80ecf5652d29ea40465bdd1b90ab4447e`.
 - PR #25 — latest development checkpoint — merged at `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`.
+- PR #28 — curation dialog focus restoration and background scroll lock — merged at `320b73c099932cecbea818db6c8002f5d449d8ad`.
+- PR #29 — checkpoint after PR #28 — merged at `a53324a7bce17a65eff65bef96ea3aaa8b0d0af4`.
+- PR #30 — sourced *Mukhtasar Minhaj al-Qasidin* candidate review — merged at `1f5c98a918eb491db721270f14a6473dff50c39d`.
 - PR #23 CI run #42235061723 and post-merge run #42235175548 succeeded.
 - PR #24 CI run #42235339268 succeeded.
 - PR #25 CI run #42235610950 and post-merge main run #42235696201 succeeded.
@@ -37,7 +40,7 @@ At the start of every continuation, re-fetch the live `main` HEAD; later documen
 - 24 legacy books are preserved in the archive and quarantined from public display.
 - `src/data/library/curation.json` has zero approved IDs and 24 quarantined IDs.
 - Public text catalogue and public PDF shelf remain empty.
-- `src/data/library/candidates.json` contains 22 bibliographic candidates; none is approved.
+- `src/data/library/candidates.json` contains 23 bibliographic candidates; none is approved.
 - Allowed categories: `religious`, `self-development`, `travel`, `islamic-philosophy-critique`.
 - Full-text, introduction, footnote, author-methodology, edition and rights review remain mandatory before approval.
 - Legacy Hindawi synchronization remains manual-only.
@@ -73,6 +76,16 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Arabic PDF text search is enabled only for extractable text PDFs. The scanned fixture has no OCR and `searchAvailable: false`.
 - EPUB is not implemented. Continue only with a bounded Readium preprocessing prototype after the curated library workflow stabilizes.
 
+## Latest merged library research — PR #30 *Mukhtasar Minhaj al-Qasidin*
+
+- PR #30 merged at exact main HEAD `1f5c98a918eb491db721270f14a6473dff50c39d`; CI run #42238372655 passed on that SHA.
+- Adds a sourced metadata review and candidate-specific report, not a public full text.
+- Candidate ID: `ibn-qudama-mukhtasar-minhaj-al-qasidin`; status: `metadata-verified-content-review-pending`; category: `self-development`.
+- The author is Nجم الدين أبو العباس أحمد بن عبد الرحمن بن قدامة المقدسي (d. 689 AH), not موفق الدين صاحب `المغني` (d. 620 AH).
+- The report documents the book's chain of abridgement from `إحياء علوم الدين` through Ibn al-Jawzi's `منهاج القاصدين`, and explicitly leaves inherited reports, notes, hadith/athar and the author's method open for complete review.
+- The 1398 AH / 1978 edition is 408 pages; no permission to republish the scanned edition or full text has been established.
+- Candidate remains unapproved; `approvedBookIds` remains empty.
+
 ## Latest merged feature — PR #28 curation dialog focus restoration
 
 - PR #28 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/28
@@ -87,9 +100,9 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 
 1. Obtain a complete, authorized copy of the 2018 edition (or written permission for private review) before attempting a page-by-page content and collation review. Do not place the full text or scan in the public repository.
 2. Review all 63 printed pages and the 68-page scan, distinguish the editor's introduction from the author's text, collate every marked omission/addition, and verify hadith/athar references and footnotes. Keep the candidate pending until this is complete.
-3. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, focus restoration, screen-reader labels, 320px layout, long Arabic titles and touch scrolling. The code-level focus restoration and background scroll lock are implemented in pending PR #28; do not mark the manual audit complete.
+3. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, focus restoration, screen-reader labels, 320px layout, long Arabic titles and touch scrolling. Code-level focus restoration and background scroll lock are merged in PR #28; do not mark the manual audit complete without an actual browser/device audit.
 4. Verify Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled; do not manually deploy or change settings without required access/approval.
-5. Continue with the next candidate only after the first review workflow is documented and repeatable.
+5. Continue expanding the candidate pipeline with source-backed metadata/review reports only; do not approve or publish a candidate without full-text and rights review.
 6. Design durable reviewer records and separate audited editorial approval and rights-clearance transitions before adding any status-changing controls.
 
 ## Safety and continuation rules
