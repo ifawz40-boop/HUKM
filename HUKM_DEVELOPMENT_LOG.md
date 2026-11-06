@@ -316,3 +316,17 @@
 - Current library remains 22 candidates, zero approved, 24 legacy records quarantined.
 - The *Fasl fi Tazkiyat al-Nafs* report now includes historical author evidence and caveats about scholarly disagreement; full-text review remains incomplete.
 - Next: authorized full-text review, manual browser/screen-reader audit, and Vercel project settings verification.
+
+
+## Checkpoint after keyboard-accessibility work — 2026-11-06
+
+- PR #24 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/24
+- Merge commit / current main HEAD: `943c80f80ecf5652d29ea40465bdd1b90ab4447e`.
+- Exact main push CI run #42235430190 completed successfully: 294 tests, 293 passed, 0 failed, 1 skipped; TypeScript and production build passed.
+- The curation panel is owner-only and read-only, with HTTPS-validated source links, tested candidate filtering, and keyboard focus containment / Escape close.
+- PR #22's historical author evidence for Ibn Taymiyyah is merged into the preliminary review report. The treatise remains pending full-text review and is not approved.
+- The library still has 22 candidates, zero approved IDs and 24 quarantined legacy records.
+- Vercel's current main status remains `build-rate-limit` due the free-plan deployment quota. No production deployment is confirmed.
+- The Vercel branch configuration is covered by a regression assertion; actual project-level behavior still needs dashboard verification.
+- Google AI Studio synchronization remains unverified.
+- Next: obtain an authorized complete edition for private review, perform manual browser/screen-reader audit, and verify Vercel Project Settings.
