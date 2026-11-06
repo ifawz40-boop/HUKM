@@ -392,6 +392,8 @@ function toCatalogEntry(book) {
 
 async function main() {
   const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
+  const datasetUrl = `https://huggingface.co/datasets/${DATASET}`;
+  const datasetRevisionUrl = revisionUrl(manifest.datasetRevision);
   await mkdir(OUTPUT_DIR, { recursive: true });
   console.log(`Loading ${DATASET} metadata; rights paths: explicit CC BY 4.0 Arabic translation + public-domain original, or conservative life+70 screen for public-domain original.`);
   await verifyDatasetRevision(manifest.datasetRevision);
