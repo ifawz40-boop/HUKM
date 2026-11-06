@@ -394,3 +394,17 @@ A stronger primary source was found after the first Wikisource sync attempt:
 - Vercel remains failed due the external build-rate-limit status.
 - Firebase and Vercel plugins were suggested but are not confirmed connected. Production Firestore rules deployment and owner bootstrap remain pending live Firebase access.
 - Current resume point: poll `42099576786`; inspect generated corpus and fix the remaining sync-script/NOTICE rights-description mismatch only after seeing its output; then check CI and Vercel. Next, use connected Firebase/Vercel integrations if available to inspect and complete the live operations safely.
+
+
+## Full repository audit session — 2026-11-06
+
+- Full audit plan saved at `docs/engineering/FULL_REPOSITORY_AUDIT_PLAN.md`.
+- Repository tree at audit start: 155 entries, recursive listing not truncated.
+- Branches reviewed: backups, deployment branches, SND source investigation, library gate/pinning/notice fixes and test branches. The inspected key files on `deploy/vercel-preparation` matched main; the older pinned-source branch has the previous broken absolute-URL preflight and must not overwrite main.
+- Confirmed P1 findings: announcement UI currently reports success after local-only state update; notifications are stored in one global localStorage key (not per-user); Writer Studio exists but is not imported/rendered by App and no writer view branch exists; legacy Firebase book/category CRUD functions remain in firestoreService although App uses static library; serverless rate limiter is per-process only.
+- Confirmed library blocker: catalog empty and no full-text JSON book files. Vercel gate correctly blocks publication until the manifest minimum is satisfied.
+- Corrected Hugging Face revision preflight URL construction in `scripts/sync-public-library.mjs`; added regression coverage in `tests/staticLibrary.test.ts`.
+- CI run `42170693668` on `b551c04c85d04d82679e180adaf1ed7a5ee7d6a0` passed.
+- Sync run `42170669881` was still running when last checked; inspect logs/status. It began on `f958877b480a6eb72213a590781110d2c60c2550` before the final test-only commit.
+- Next: finish static library source sync and curation first, then implement true multi-user notifications, then decide safe static publishing/editor model, then reader/user isolation and admin/backend/UI audits. Follow the two-check + main-commit rule in the audit plan.
+- Never claim books are bundled until generated JSON files and matching catalogue are committed and the deployment gate passes. Never claim notifications are broadcast until a second account can fetch the persisted announcement. Never claim Firebase/Vercel production changes from GitHub CI alone.
