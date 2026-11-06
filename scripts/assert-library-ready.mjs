@@ -20,6 +20,24 @@ function stop(message) {
   process.exit(1);
 }
 
+function isSafeBookId(value) {
+  return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+}
+
+function isSafeHttpUrl(value) {
+  try {
+    const parsed = new URL(String(value || ''));
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+function countWords(value) {
+  return (String(value || '').match(/[\\p{L}\\p{N}]+/gu) || []).length;
+}
+
+
 try {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
@@ -40,7 +58,7 @@ try {
   let totalWords = 0;
 
   for (const entry of catalog) {
-    if (!entry || typeof entry.id !== 'string' || !entry.id || ids.has(entry.id)) {
+    if (!entry || !isSafeBookId(entry.id) || ids.has(entry.id)) {
       stop('Every catalogue entry must have a unique, non-empty book ID.');
     }
     ids.add(entry.id);
@@ -52,8 +70,17 @@ try {
     if (book.id !== entry.id || !book.title || !book.author || book.status !== 'completed') {
       stop(`Book ${entry.id} has incomplete or mismatched identity metadata.`);
     }
-    if (!Array.isArray(book.chapters) || book.chapters.length < manifest.minimumChapters) {
-      stop(`Book ${entry.id} does not contain the required number of complete sections.`);
+    if (!Array.isArray(book.chapters) || book.chapters.length < manifest.minimumChapters ||
+        book.chapterCount !== book.chapters.length || entry.chapterCount !== book.chapters.length) {
+      stop(`Book ${entry.id} does not contain the expected number of complete sections.`);
+    }
+    const chapterIds = book.chapters.map((chapter) => chapter.id);
+    const chapterNumbers = book.chapters.map((chapter) => chapter.chapterNumber);
+    if (chapterIds.some((id) => typeof id !== 'string' || !id) ||
+        new Set(chapterIds).size !== chapterIds.length ||
+        chapterNumbers.some((number) => !Number.isSafeInteger(number) || number < 1) ||
+        new Set(chapterNumbers).size !== chapterNumbers.length) {
+      stop(`Book ${entry.id} has missing or duplicate chapter identifiers/order.`);
     }
     if (!book.chapters.every((chapter) =>
       chapter.status === 'ready' &&
@@ -64,8 +91,12 @@ try {
     }
 
     const wordCount = Number(book.wordCount || 0);
-    if (!Number.isFinite(wordCount) || wordCount < manifest.minimumWords || wordCount > manifest.maximumWordsPerBook) {
-      stop(`Book ${entry.id} is outside the permitted word-count range.`);
+    const extractedWordCount = book.chapters.reduce((sum, chapter) =>
+      sum + countWords((chapter.content || []).join(' ')), 0);
+    if (!Number.isSafeInteger(wordCount) || wordCount < manifest.minimumWords || wordCount > manifest.maximumWordsPerBook ||
+        extractedWordCount !== wordCount ||
+        book.chapters.some((chapter) => !Number.isSafeInteger(Number(chapter.wordCount)) || Number(chapter.wordCount) < 1)) {
+      stop(`Book ${entry.id} has an invalid or inconsistent word count.`);
     }
     totalWords += wordCount;
 
@@ -77,8 +108,9 @@ try {
       stop(`Book ${entry.id} does not meet an approved per-book rights path.`);
     }
     if (!/CC BY 4\.0|الملكية العامة/.test(String(rights.license || '')) ||
-        !rights.bookUrl ||
-        !rights.historyUrl ||
+        !isSafeHttpUrl(rights.bookUrl) ||
+        !isSafeHttpUrl(rights.historyUrl) ||
+        !isSafeHttpUrl(rights.licenseUrl) ||
         !/^[a-f0-9]{64}$/i.test(String(rights.sourceHash || '')) ||
         !rights.licenseQuote ||
         !rights.attribution) {
