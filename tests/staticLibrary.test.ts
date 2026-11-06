@@ -163,6 +163,13 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(libraryIndex, /PUBLIC_LIBRARY_BOOKS/);
   });
 
+  it('must preserve absolute Hugging Face Hub URLs when building dataset revision preflight requests', () => {
+    assert.match(syncScript, /function buildRequestUrl\(endpoint, params\)/);
+    assert.match(syncScript, /const base = \/\^https\?:\\\\\/\\\\\/i\.test\(endpoint\) \? endpoint/);
+    assert.match(syncScript, /const url = buildRequestUrl\(endpoint, params\)/);
+    assert.match(syncScript, /https:\/\/huggingface\.co\/api\/datasets\/\$\{DATASET\}/);
+  });
+
   it('must enforce the explicit per-book CC BY or conservative public-domain rights paths', () => {
     assert.match(syncScript, /Bayanat-Labs\/open-arabic-books/);
     assert.match(syncScript, /translation_covered/);
