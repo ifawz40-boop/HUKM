@@ -72,7 +72,7 @@ async function requestJson(endpoint, params, label) {
       }
       lastError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       if (attempt === MAX_ATTEMPTS) break;
-      const waitMs = Math.min(20_000, attempt * 1_500);
+      const waitMs = Math.min(10_000, attempt * 1_000);
       console.log(`Dataset Viewer request error for ${label} (attempt ${attempt}/${MAX_ATTEMPTS}): ${lastError}; retrying in ${waitMs / 1000}s.`);
       await sleep(waitMs);
     }
