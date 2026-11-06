@@ -102,7 +102,7 @@
 - Preliminary choice: PDF.js for PDF; keep EPUB library undecided pending RTL/CSP/annotation/bundle-size tests.
 - Legal PDF fixture identified: Wikimedia Commons scan of `لسان غصن لبنان في انتقاد العربية العصرية`, original 1891, 79 pages, about 2.35 MB, marked public domain. The separate Wikisource transcription is CC BY-SA 4.0; keep the scan and transcription rights paths separate.
 - Exact source file page: https://commons.wikimedia.org/wiki/File:كتاب_لسان_غصن_لبنان_في_انتقاد_العربية_العصرية.pdf
-- Latest docs-only main HEAD before the EPUB-stack refinement was `757c68b5c79c092dc6d00593b82ee32d99ecceed`; CI run #42189922389 passed. The subsequent next-task research refinement is documentation-only and needs its own exact-HEAD CI verification.
+- Latest docs-only main HEAD before this log refresh was `66c96380d6ce9bcf6460553f7bec11aafa08ab7a`; CI run #42190056518 passed tests, TypeScript and production build on that exact HEAD. This log refresh is documentation-only; re-fetch main before further writes.
 - Latest combined status on the last verified docs HEAD still shows Vercel `build-rate-limit`; no production deployment or Google AI Studio sync was verified.
 
 ## Work completed in this session
@@ -121,7 +121,7 @@
 - LAST_COMPLETED_TASK: Merge PR #10; verify PR CI/audit; scan all 2,253 Wikisource source pages; publish page-category artifact and update candidate review report
 - CURRENT_BRANCH: main
 - LAST_STABLE_COMMIT: a6280120dc152c3c42fc04e018e66c21754581e0 (PR #10 merge; PR CI and full page-category audit passed)
-- TEST_STATUS: Full tests, TypeScript and production build passed on exact docs HEAD `6c1be...` in run #42189485397; main page-category audit run #42189392657 passed with 2,253 pages, 0 missing, 0 API failures and 0 revision drift
+- TEST_STATUS: Full tests, TypeScript and production build passed on exact docs HEAD `66c963...` in run #42190056518; main page-category audit run #42189392657 passed with 2,253 pages, 0 missing, 0 API failures and 0 revision drift
 - MAIN_SYNC_STATUS: main is current GitHub default branch; Google AI Studio sync itself unverified
 - PENDING_TASKS: Manually review the revised three-book shortlist and source text/edition; design and test a separate CC BY-SA 4.0 rights tier only after human allowlist; make source labels/provenance UI generic; full application/security/UI audit remains pending
 - NEXT_ACTION: Re-fetch main; manually review the three remaining candidates against source-page texts, edition provenance and contributor records. Then implement the PDF.js reader spike and compare EPUB.js/Foliate/Readium for Arabic RTL, CSP, progress and annotation. Do not import until a per-book allowlist and rights evidence are complete.
