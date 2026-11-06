@@ -3,6 +3,7 @@ import { authenticateToken } from './authClaimsApi.ts';
 import { adminDb } from './firebaseAdmin.ts';
 import { createRateLimiter } from './requestProtection.ts';
 import { isValidEmailAddress, resolveEmailRecipientTarget } from './emailRecipients.ts';
+import { createGmailTransporter, resolveEmailProviderConfig } from './emailProvider.ts';
 
 export const emailApiRouter = Router();
 
@@ -16,17 +17,23 @@ const sendEmailRateLimit = createRateLimiter({
  * Check whether email provider credentials are configured on the server
  */
 emailApiRouter.get('/status', authenticateToken, async (_req: Request, res: Response) => {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const fromAddress = process.env.EMAIL_FROM?.trim();
-  const isConfigured = Boolean(apiKey && fromAddress);
+  const providerConfig = resolveEmailProviderConfig(process.env);
+  const configured = Boolean(providerConfig && providerConfig.kind !== 'misconfigured');
+  const providerName = providerConfig?.kind === 'gmail'
+    ? 'Gmail SMTP'
+    : providerConfig?.kind === 'resend'
+      ? 'Resend API'
+      : null;
 
   return res.json({
     success: true,
-    configured: isConfigured,
-    provider: isConfigured ? 'Resend API' : null,
-    message: isConfigured
-      ? 'تم ضبط مفتاح Resend وعنوان المرسل على الخادم. لم يتم التحقق من صلاحية المفتاح أو اعتماد النطاق حتى تنفيذ إرسال فعلي.'
-      : 'مزود البريد غير مهيأ بالكامل. يجب ضبط RESEND_API_KEY و EMAIL_FROM في متغيرات بيئة الخادم.',
+    configured,
+    provider: providerName,
+    message: configured
+      ? `تم ضبط مزود البريد (${providerName}). لم يتم التحقق من بيانات الدخول أو قبول الرسائل إلا بعد إرسال فعلي.`
+      : providerConfig?.kind === 'misconfigured'
+        ? providerConfig.message
+        : 'لم يتم إعداد مزود بريد. اضبط GMAIL_USER و GMAIL_APP_PASSWORD لاستخدام Gmail، أو RESEND_API_KEY و EMAIL_FROM لاستخدام Resend.',
   });
 });
 
@@ -93,16 +100,15 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     });
   }
 
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const fromAddress = process.env.EMAIL_FROM?.trim();
-  if (!apiKey || !fromAddress) {
+  const providerConfig = resolveEmailProviderConfig(process.env);
+  if (!providerConfig || providerConfig.kind === 'misconfigured') {
     return res.status(503).json({
       success: false,
       delivered: false,
       configured: false,
-      message: !apiKey
-        ? 'خدمة البريد الإلكتروني غير مهيأة: متغير RESEND_API_KEY غير موجود. لم يتم إرسال أي بريد.'
-        : 'خدمة البريد الإلكتروني غير مهيأة: متغير EMAIL_FROM غير موجود. لم يتم إرسال أي بريد بعنوان مرسل افتراضي أو غير موثّق.',
+      message: providerConfig?.kind === 'misconfigured'
+        ? providerConfig.message
+        : 'لم يتم إعداد مزود بريد. اضبط GMAIL_USER و GMAIL_APP_PASSWORD أو RESEND_API_KEY و EMAIL_FROM.',
     });
   }
 
@@ -110,6 +116,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
   let actualDispatchedCount = 0;
   const providerIds: string[] = [];
   let partialDispatch = false;
+  let gmailTransporter: ReturnType<typeof createGmailTransporter> | null = null;
 
   try {
     // 2. Determine recipients list. Normalize and deduplicate broadcast addresses.
@@ -132,13 +139,46 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
       return res.status(400).json({ success: false, message: 'لا يوجد مشتركون نشطون صالحون لإرسال الرسالة إليهم.' });
     }
 
-    // 3. Dispatch in batches of 50. Once a batch is accepted, never report a later
-    // provider/network failure as if nothing was sent; that could cause duplicate retries.
-    // The sender must be explicitly configured and verified with the provider.
+    // 3. Dispatch in private batches of 50. Broadcast recipients are BCC'd so
+    // subscribers never receive one another's email addresses.
+    // Once a batch is accepted, never report a later provider/network failure as if nothing was sent.
+    const fromAddress = providerConfig.from;
     const BATCH_SIZE = 50;
+    if (providerConfig.kind === 'gmail') {
+      gmailTransporter = createGmailTransporter(providerConfig);
+    }
 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const batch = recipients.slice(i, i + BATCH_SIZE);
+
+      if (providerConfig.kind === 'gmail' && gmailTransporter) {
+        let info: Awaited<ReturnType<typeof gmailTransporter.sendMail>>;
+        try {
+          info = await gmailTransporter.sendMail({
+            from: providerConfig.from,
+            to: recipientTarget.kind === 'individual' ? batch : providerConfig.user,
+            bcc: recipientTarget.kind === 'individual' ? undefined : batch,
+            replyTo: providerConfig.user,
+            subject: subject.trim(),
+            html: htmlContent,
+          });
+        } catch (providerError) {
+          console.error(`Gmail SMTP failure at batch index ${i}.`, providerError);
+          if (actualDispatchedCount === 0) throw providerError;
+          partialDispatch = true;
+          break;
+        }
+
+        const acceptedCount = Array.isArray(info.accepted) ? info.accepted.length : batch.length;
+        actualDispatchedCount += acceptedCount;
+        if (info.messageId) providerIds.push(info.messageId);
+        if (acceptedCount !== batch.length || (Array.isArray(info.rejected) && info.rejected.length > 0)) {
+          partialDispatch = true;
+          break;
+        }
+        continue;
+      }
+
       let response: Awaited<ReturnType<typeof fetch>>;
 
       try {
@@ -150,7 +190,8 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
           },
           body: JSON.stringify({
             from: fromAddress,
-            to: batch,
+            to: recipientTarget.kind === 'individual' ? batch : [fromAddress],
+            bcc: recipientTarget.kind === 'individual' ? undefined : batch,
             subject: subject.trim(),
             html: htmlContent,
           }),
@@ -209,6 +250,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
         acceptedByProvider: actualDispatchedCount > 0,
         partial: !isComplete,
         senderUid: user.uid,
+        provider: providerConfig.kind,
       });
     } catch (logError) {
       logSaved = false;
@@ -255,6 +297,8 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
       acceptedByProvider: false,
       message: 'حدث خطأ داخلي أثناء إرسال البريد. لم يتم تأكيد قبول أي رسالة.',
     });
+  } finally {
+    gmailTransporter?.close();
   }
 });
 
