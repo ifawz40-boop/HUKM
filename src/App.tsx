@@ -358,7 +358,10 @@ export default function App() {
 
   const loadBookById = async (bookId: string): Promise<BookProject | null> => {
     const requestId = ++bookLoadRequestIdRef.current;
-    if (loadedBook?.id === bookId) return loadedBook;
+    if (loadedBook?.id === bookId) {
+      setIsLoadingBook(false);
+      return loadedBook;
+    }
     setIsLoadingBook(true);
     try {
       const fullBook = await loadPublicLibraryBook(bookId);
