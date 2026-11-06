@@ -249,13 +249,13 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('must ignore stale static-book loads after a newer book request or navigation', () => {
-    assert.match(app, /bookLoadRequestIdRef = useRef<number>\\(0\\)/);
-    assert.match(app, /const requestId = \\+\\+bookLoadRequestIdRef\\.current/);
-    assert.match(app, /bookLoadRequestIdRef\\.current !== requestId\\) return null/);
-    assert.match(app, /bookLoadRequestIdRef\\.current === requestId\\) setIsLoadingBook\\(false\\)/);
-    assert.match(app, /const invalidatePendingBookLoad = \\(\\)/);
-    assert.match(app, /invalidatePendingBookLoad\\(\\);/);
-    assert.doesNotMatch(app, /void loadPublicLibraryBook\\(bookParam\\)/);
+    assert.ok(app.includes('const bookLoadRequestIdRef = useRef<number>(0);'));
+    assert.ok(app.includes('const requestId = ++bookLoadRequestIdRef.current;'));
+    assert.ok(app.includes('if (bookLoadRequestIdRef.current !== requestId) return null;'));
+    assert.ok(app.includes('if (bookLoadRequestIdRef.current === requestId) setIsLoadingBook(false);'));
+    assert.ok(app.includes('const invalidatePendingBookLoad = () => {'));
+    assert.ok(app.includes('invalidatePendingBookLoad();'));
+    assert.equal(app.includes('void loadPublicLibraryBook(bookParam)'), false);
   });
 
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
