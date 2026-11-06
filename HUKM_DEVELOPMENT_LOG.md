@@ -570,3 +570,13 @@
 - IslamHouse metadata identifies the author as the hadith scholar Abd al-Ghani al-Maqdisi (541–600هـ), and describes the work as a collection of legal hadith selected from Sahih al-Bukhari and Sahih Muslim.
 - The candidate edition is reviewed and sourced by Saeed al-Qahtani, who states that the wording was compared against the two Sahihs and the hadith locations documented.
 - This is a strong candidate but remains hidden and unapproved until the complete text, exact edition and rights are checked. No PDF was copied.
+
+
+## PR #50 merged — Umdat al-Ahkam candidate (2026-11-06)
+
+- PR #50 merged at `342ac0bad42c7610099fdc5383f401ec91f32adb`.
+- Pre-merge CI run #42246361365 passed; post-merge main CI run #42246576624 passed on the exact merge SHA, including Firestore Emulator rules, TypeScript and production build.
+- Candidate inventory is now 24. Added `عمدة الأحكام من كلام خير الأنام` by Abd al-Ghani al-Maqdisi with a detailed preliminary review and link to the IslamHouse edition reviewed and takhrij by Saeed al-Qahtani.
+- The candidate remains hidden and unapproved until the full hadith text, exact edition and digital rights are checked. No PDF or full text was copied.
+- Public `approvedBookIds` remains empty; `src/data/library/books/` contains only `.gitkeep`; no archive/quarantine path exists in the current main tree.
+- Vercel status remains `build-rate-limit`; no deployment is confirmed or manually triggered. `vercel.json` continues to permit Git-triggered deployment from `main` only.
