@@ -55,6 +55,20 @@ describe('HUKM — bundled Arabic library architecture', () => {
       return sum + book.chapters.reduce((chapterSum: number, chapter: any) => chapterSum + (chapter.footnotes?.length || 0), 0);
     }, 0);
     assert.equal(Number(totals[7].replaceAll(',', '')), actualFootnotes);
+
+    const duplicateLine = libraryNotice.split('\\n').find((line) => line.startsWith('- Upstream chapter duplicate annotations are preserved'));
+    assert.ok(duplicateLine, 'notice must disclose preserved source duplicate annotations');
+    const duplicateCounts = duplicateLine.split(': ')[1].split(' ');
+    const exactDuplicateSections = bookFiles.reduce((sum, file) => {
+      const book = JSON.parse(fs.readFileSync(path.join(bookDirectory, file), 'utf8'));
+      return sum + book.chapters.filter((chapter: any) => chapter.exactDuplicateGroup).length;
+    }, 0);
+    const nearDuplicateSections = bookFiles.reduce((sum, file) => {
+      const book = JSON.parse(fs.readFileSync(path.join(bookDirectory, file), 'utf8'));
+      return sum + book.chapters.filter((chapter: any) => chapter.nearDuplicateGroup).length;
+    }, 0);
+    assert.equal(Number(duplicateCounts[0]), exactDuplicateSections);
+    assert.equal(Number(duplicateCounts[5]), nearDuplicateSections);
   });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
@@ -425,6 +439,15 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.equal(new Set(selectedGroups).size, selectedGroups.length);
   });
 
+  it('must preserve source chapter exact/near-duplicate markers through extraction and book generation', () => {
+    assert.ok(chapterExtractor.includes('"exact_duplicate_group"'));
+    assert.ok(chapterExtractor.includes('"near_duplicate_group"'));
+    assert.ok(syncScript.includes('exactDuplicateGroup: safeText(row.exact_duplicate_group) || null'));
+    assert.ok(syncScript.includes('nearDuplicateGroup: safeText(row.near_duplicate_group) || null'));
+    assert.ok(deploymentGate.includes('chapter.exactDuplicateGroup'));
+    assert.ok(deploymentGate.includes('chapter.nearDuplicateGroup'));
+  });
+
   it('must regenerate an accurate rights and automated-selection notice on every sync', () => {
     assert.ok(syncScript.includes('CC BY 4.0 does not impose a ShareAlike condition'));
     assert.ok(syncScript.includes('automatically selected, rights-screened books'));
@@ -472,6 +495,10 @@ describe('HUKM — bundled Arabic library architecture', () => {
       assert.ok(book.rights.licenseQuote);
       assert.ok(book.rights.attribution);
       assert.ok(book.rights.nearDuplicateGroup === undefined || book.rights.nearDuplicateGroup === null || typeof book.rights.nearDuplicateGroup === 'string');
+      for (const chapter of book.chapters) {
+        assert.ok(chapter.exactDuplicateGroup === undefined || chapter.exactDuplicateGroup === null || typeof chapter.exactDuplicateGroup === 'string');
+        assert.ok(chapter.nearDuplicateGroup === undefined || chapter.nearDuplicateGroup === null || typeof chapter.nearDuplicateGroup === 'string');
+      }
       const nearDuplicateGroup = book.rights.nearDuplicateGroup;
       if (nearDuplicateGroup) {
         assert.equal(seenNearDuplicateGroups.has(nearDuplicateGroup), false, `${file} duplicates an upstream book-level near-duplicate group`);
