@@ -94,6 +94,7 @@ export default function App() {
 
   // Session tracking to completely eliminate async race conditions during account switching
   const authSessionIdRef = useRef<number>(0);
+  const bookLoadRequestIdRef = useRef<number>(0);
 
   // Real Firebase Auth Lifecycle listener with Cloud Reader Synchronization & Safe Migration
   useEffect(() => {
@@ -350,19 +351,28 @@ export default function App() {
     }, 3800);
   };
 
+  const invalidatePendingBookLoad = () => {
+    bookLoadRequestIdRef.current += 1;
+    setIsLoadingBook(false);
+  };
+
   const loadBookById = async (bookId: string): Promise<BookProject | null> => {
+    const requestId = ++bookLoadRequestIdRef.current;
     if (loadedBook?.id === bookId) return loadedBook;
     setIsLoadingBook(true);
     try {
       const fullBook = await loadPublicLibraryBook(bookId);
+      if (bookLoadRequestIdRef.current !== requestId) return null;
       setLoadedBook(fullBook);
       return fullBook;
     } catch (error) {
-      console.error('Static book load failed:', error);
-      showToast('تعذر تحميل ملف هذا الكتاب من حزمة الموقع.');
+      if (bookLoadRequestIdRef.current === requestId) {
+        console.error('Static book load failed:', error);
+        showToast('تعذر تحميل ملف هذا الكتاب من حزمة الموقع.');
+      }
       return null;
     } finally {
-      setIsLoadingBook(false);
+      if (bookLoadRequestIdRef.current === requestId) setIsLoadingBook(false);
     }
   };
 
@@ -409,13 +419,10 @@ export default function App() {
     } else if (viewParam === 'landing') {
       setCurrentView('landing');
     } else if (bookParam) {
-      void loadPublicLibraryBook(bookParam).then((book) => {
-        setLoadedBook(book);
+      void loadBookById(bookParam).then((book) => {
+        if (!book) return;
         setSelectedBookId(bookParam);
         setCurrentView('reader');
-      }).catch((error) => {
-        console.error('Direct static book link failed:', error);
-        setCurrentView('home');
       });
     }
   }, []);
@@ -612,6 +619,7 @@ export default function App() {
           isReaderPreviewMode={isReaderPreviewMode}
           onToggleReaderPreview={handleToggleReaderPreview}
           onNavigate={(view, catId) => {
+            invalidatePendingBookLoad();
             if (catId) {
               setSelectedCategoryId(catId);
               setCurrentView('home');
@@ -652,6 +660,7 @@ export default function App() {
               showToast(`أهلاً بك يا ${user.name} في منصة حُكم.`);
             }}
             onEnterLibrary={() => {
+              invalidatePendingBookLoad();
               setCurrentView('home');
               window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
             }}
@@ -802,7 +811,7 @@ export default function App() {
               currentUser={currentUser}
               isOwner={isOwner}
               isBookmarked={checkIsBookmarked(currentBook.id)}
-              onBack={() => setCurrentView('home')}
+              onBack={() => { invalidatePendingBookLoad(); setCurrentView('home'); }}
               onSelectChapter={(chapterId) => handleOpenReader(currentBook.id, chapterId)}
               onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
               onShowToast={showToast}
@@ -811,7 +820,7 @@ export default function App() {
             <div className="p-12 text-center text-white max-w-md mx-auto my-12" dir="rtl">
               <p className="text-lg font-bold text-[#f0cb69]">الكتاب المطلوب غير متوفر حالياً في المكتبة.</p>
               <button
-                onClick={() => setCurrentView('home')}
+                onClick={() => { invalidatePendingBookLoad(); setCurrentView('home'); }}
                 className="mt-4 rounded-xl bg-[#c59b27] px-5 py-2.5 text-xs font-bold text-[#070d1e]"
               >
                 العودة إلى المكتبة
@@ -934,6 +943,7 @@ export default function App() {
       {currentView !== 'reader' && currentView !== 'overview' && (
         <HukmFooter
           onNavigate={(view, catId) => {
+            invalidatePendingBookLoad();
             if (catId) {
               setSelectedCategoryId(catId);
               setCurrentView('home');
