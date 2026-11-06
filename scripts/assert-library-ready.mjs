@@ -2,7 +2,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.cwd();
+let root = process.cwd();
+const args = process.argv.slice(2);
+if (args.length > 0) {
+  if (args.length !== 2 || args[0] !== '--root') {
+    console.error('[HUKM deployment gate] Usage: node assert-library-ready.mjs [--root <directory>]');
+    process.exit(2);
+  }
+  root = path.resolve(args[1]);
+}
 const manifestPath = path.join(root, 'src/data/library/manifest.json');
 const catalogPath = path.join(root, 'src/data/library/catalog.json');
 const booksDir = path.join(root, 'src/data/library/books');
