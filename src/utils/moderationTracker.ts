@@ -8,48 +8,10 @@ import {
 const STORAGE_KEY_ADMINS = 'hukm_admins_v1';
 const STORAGE_KEY_BANS = 'hukm_banned_users_v1';
 
-export const INITIAL_ADMINS: AdminAccount[] = [
-  {
-    id: 'founder-bootstrap-uid',
-    uid: 'founder-bootstrap-uid',
-    email: 'dr.islam.mohamed@hukm.media',
-    name: 'Dr/ Islam Mohamed',
-    title: 'المؤسس والمشرف العام للمنصة',
-    role: 'owner',
-    addedBy: 'النظام التأسيسي',
-    addedAt: '2024-01-01',
-    canEditBooks: true,
-    canManageBans: true,
-    isFounder: true,
-  },
-  {
-    id: 'manager-bootstrap-uid',
-    uid: 'manager-bootstrap-uid',
-    email: 'ifawz40@gmail.com',
-    name: 'إبراهيم فوزي',
-    title: 'المدير التنفيذي والناشر المعتمد',
-    role: 'admin',
-    addedBy: 'Dr/ Islam Mohamed',
-    addedAt: '2024-01-01',
-    canEditBooks: true,
-    canManageBans: true,
-    isFounder: false,
-  },
-];
-
-export const INITIAL_BANS: BannedAccount[] = [
-  {
-    id: 'ban-demo-1',
-    email: 'violator.spammer@spammail.com',
-    name: 'مستخدم مخالف تجريبي',
-    banType: 'temporary',
-    reason: 'إساءة استخدام المنصة وتكرار نشر تعليقات مخالفة لمعايير الحوار والتوثيق.',
-    bannedBy: 'Dr/ Islam Mohamed',
-    bannedAt: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
-    expiresAt: new Date(Date.now() + 3600 * 1000 * 36).toISOString(), // remaining 36h
-    isActive: true,
-  },
-];
+// No demo administrators or bans are seeded in production or local storage.
+// Authoritative administrator and moderation records are loaded from Firestore.
+export const INITIAL_ADMINS: AdminAccount[] = [];
+export const INITIAL_BANS: BannedAccount[] = [];
 
 // ----------------------------------------------------
 // ADMINS MANAGEMENT
@@ -61,7 +23,7 @@ export function getStoredAdmins(): AdminAccount[] {
       const raw = localStorage.getItem(STORAGE_KEY_ADMINS);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     }
   } catch (e) {
@@ -178,7 +140,7 @@ export function banUser(params: {
   }
 
   // Prevent banning Founder or protected admins
-  if (normalizedEmail === 'dr.islam.mohamed@hukm.media' || normalizedEmail === 'ifawz40@gmail.com') {
+  if (normalizedEmail === 'ifawz40@gmail.com') {
     return { success: false, message: 'لا يمكن حظر حساب المؤسس أو المدير التنفيذي!' };
   }
 

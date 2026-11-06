@@ -33,11 +33,50 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.ok(vercelApiContent.includes("app.disable('x-powered-by')"));
     });
 
-    it('documents the server-side Resend configuration without committing credentials', () => {
+    it('documents Gmail SMTP and optional Resend settings without committing credentials', () => {
       const envExample = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf-8');
+      assert.ok(envExample.includes('FIREBASE_SERVICE_ACCOUNT_JSON=""'));
+      const gitignore = fs.readFileSync(path.resolve(process.cwd(), '.gitignore'), 'utf-8');
+      assert.ok(gitignore.includes('firebase-adminsdk-*.json'));
+      assert.ok(gitignore.includes('firebase-service-account*.json'));
+      assert.ok(envExample.includes('GMAIL_USER="hukm.contact@gmail.com"'));
+      assert.ok(envExample.includes('GMAIL_APP_PASSWORD="YOUR_GOOGLE_APP_PASSWORD"'));
       assert.ok(envExample.includes('RESEND_API_KEY="YOUR_RESEND_API_KEY"'));
       assert.ok(envExample.includes('EMAIL_FROM='));
+      assert.equal(/GMAIL_APP_PASSWORD="(?!YOUR_GOOGLE_APP_PASSWORD)[^"]+"/.test(envExample), false);
       assert.equal(/RESEND_API_KEY="re_[^"]+"/.test(envExample), false);
+    });
+
+    it('selects providers through the validated server-side provider resolver', () => {
+      const emailApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
+      const providerContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailProvider.ts'), 'utf-8');
+      assert.ok(emailApiContent.includes('resolveEmailProviderConfig(process.env)'));
+      assert.ok(providerContent.includes("host: 'smtp.gmail.com'"));
+      assert.ok(providerContent.includes('port: 465'));
+      assert.ok(emailApiContent.includes("bcc: recipientTarget.kind === 'individual' ? undefined : batch"));
+      assert.equal(emailApiContent.includes('updates@hukm.media'), false);
+    });
+  });
+
+  describe('Authenticated cloud moderation enforcement', () => {
+    it('checks only the email asserted by the caller token against private Firestore bans', () => {
+      const authApi = fs.readFileSync(path.resolve(process.cwd(), 'src/server/authClaimsApi.ts'), 'utf-8');
+      const routeStart = authApi.indexOf("authClaimsRouter.get('/account-status'");
+      const route = authApi.slice(routeStart);
+      assert.ok(routeStart >= 0);
+      assert.ok(route.includes("where('email', '==', email)"));
+      assert.ok(route.includes('authenticateToken'));
+      assert.equal(route.includes('req.body'), false);
+    });
+
+    it('checks cloud moderation status before committing the authenticated user session', () => {
+      const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
+      assert.ok(appContent.includes("fetch('/api/auth/account-status'"));
+      assert.ok(appContent.includes('setActiveBan(accountBan)'));
+      assert.ok(
+        appContent.indexOf("fetch('/api/auth/account-status'") <
+        appContent.indexOf('STEP 1: BOOKMARKS MIGRATION')
+      );
     });
   });
 
@@ -582,8 +621,9 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(emailApiContent.includes("adminRole !== 'owner' && adminRole !== 'admin'"), false);
     });
 
-    it('must not claim the email provider is ready based only on a non-empty API key', () => {
-      assert.ok(emailApiContent.includes('لم يتم التحقق من صلاحيته أو اعتماد نطاق المرسل'));
+    it('must resolve a complete configured provider and never claim credentials were delivery-tested', () => {
+      assert.ok(emailApiContent.includes('resolveEmailProviderConfig(process.env)'));
+      assert.ok(emailApiContent.includes('لم يتم التحقق من بيانات الدخول أو قبول الرسائل إلا بعد إرسال فعلي'));
       assert.equal(emailApiContent.includes('مهيأ وجاهز للإرسال الفعلي'), false);
     });
 

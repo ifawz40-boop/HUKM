@@ -1,0 +1,47 @@
+name: Refresh Bun lockfile after dependency changes
+
+on:
+  push:
+    branches:
+      - 'deploy/**'
+    paths:
+      - 'package.json'
+      - '.github/workflows/update-bun-lock.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hukm-bun-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout preparation branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve and write the lockfile
+        run: bun install
+
+      - name: Commit the updated lockfile
+        run: |
+          if git diff --quiet -- bun.lock; then
+            echo "Bun lockfile is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git commit -m "chore: refresh Bun lockfile for server email transport"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

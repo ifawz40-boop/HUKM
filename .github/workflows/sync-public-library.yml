@@ -2,7 +2,9 @@ name: Sync rights-cleared full Arabic books
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'deploy/**'
     paths:
       - 'src/data/library/manifest.json'
       - 'scripts/sync-public-library.mjs'
@@ -13,18 +15,18 @@ permissions:
   contents: write
 
 concurrency:
-  group: hukm-library-sync-open-arabic-books
+  group: hukm-library-sync-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   sync-library:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
-      - name: Checkout main
+      - name: Checkout triggering branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref_name }}
           persist-credentials: true
 
       - name: Use Node.js
@@ -35,7 +37,7 @@ jobs:
       - name: Download, validate and bundle selected works
         run: node scripts/sync-public-library.mjs
 
-      - name: Commit bundled full texts
+      - name: Commit bundled full texts to the triggering branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -45,4 +47,8 @@ jobs:
             exit 0
           fi
           git commit -m "data: bundle curated Arabic public-domain books"
-          git push origin HEAD:main
+          # The sync may take several minutes while other preparation commits land.
+          # Rebase the generated data commit onto the latest branch head; never force-push.
+          git fetch origin "${GITHUB_REF_NAME}:refs/remotes/origin/${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

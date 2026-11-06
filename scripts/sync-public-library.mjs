@@ -10,42 +10,58 @@ const CATALOG_PATH = path.join(ROOT, 'src/data/library/catalog.json');
 const NOTICE_PATH = path.join(ROOT, 'src/data/library/NOTICE.md');
 const API = 'https://datasets-server.huggingface.co';
 const DATASET = 'Bayanat-Labs/open-arabic-books';
-const USER_AGENT = 'HUKM-MEDIA-Static-Library/2.0 (rights-screened Arabic books; https://github.com/ifawz40-boop/HUKM)';
+const USER_AGENT = 'HUKM-MEDIA-Static-Library/2.1 (rights-screened Arabic books; https://github.com/ifawz40-boop/HUKM)';
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const countWords = (value) => (value.match(/[\p{L}\p{N}]+/gu) || []).length;
 const safeText = (value) => typeof value === 'string' ? value.trim() : '';
 const sqlString = (value) => "'" + value.replace(/'/g, "''") + "'";
 const revisionUrl = (revision) => `https://huggingface.co/datasets/${DATASET}/tree/${revision}`;
 const licenseUrl = 'https://creativecommons.org/licenses/by/4.0/';
+const MAX_ATTEMPTS = 18;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 async function requestJson(endpoint, params, label) {
   const url = `${API}/${endpoint}?${new URLSearchParams(params).toString()}`;
   let lastError = '';
-  for (let attempt = 1; attempt <= 12; attempt += 1) {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
-      signal: AbortSignal.timeout(45000),
-    });
-    const body = await response.text();
-    if (response.ok) {
-      let payload;
-      try { payload = JSON.parse(body); }
-      catch { throw new Error(`Invalid JSON from Dataset Viewer for ${label}: ${body.slice(0, 400)}`); }
-      if (payload.partial === true) {
-        throw new Error(`Dataset Viewer marked ${label} partial; refusing incomplete source data.`);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      const body = await response.text();
+      if (response.ok) {
+        let payload;
+        try { payload = JSON.parse(body); }
+        catch { throw new Error(`Invalid JSON from Dataset Viewer for ${label}: ${body.slice(0, 400)}`); }
+        if (payload.partial === true) {
+          throw new Error(`Dataset Viewer marked ${label} partial; refusing incomplete source data.`);
+        }
+        return payload;
       }
-      return payload;
-    }
-    lastError = `HTTP ${response.status}: ${body.slice(0, 500)}`;
-    if ((response.status >= 500 || response.status === 429) && attempt < 12) {
-      const waitMs = response.status === 429 ? 30000 : Math.min(20000, attempt * 2500);
-      console.log(`Dataset Viewer temporary HTTP ${response.status} for ${label} (attempt ${attempt}/12); retrying in ${waitMs / 1000}s.`);
+
+      lastError = `HTTP ${response.status}: ${body.slice(0, 500)}`;
+      const retryable = response.status >= 500 || response.status === 429;
+      if (!retryable || attempt === MAX_ATTEMPTS) break;
+
+      const retryAfterSeconds = Number(response.headers.get('retry-after') || 0);
+      const waitMs = response.status === 429 && retryAfterSeconds > 0
+        ? Math.min(30_000, retryAfterSeconds * 1000)
+        : Math.min(20_000, attempt * 1_500);
+      console.log(`Dataset Viewer temporary HTTP ${response.status} for ${label} (attempt ${attempt}/${MAX_ATTEMPTS}); retrying in ${waitMs / 1000}s.`);
       await sleep(waitMs);
-      continue;
+    } catch (error) {
+      if (error instanceof SyntaxError || (error instanceof Error && error.message.startsWith('Invalid JSON'))) {
+        throw error;
+      }
+      lastError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      if (attempt === MAX_ATTEMPTS) break;
+      const waitMs = Math.min(20_000, attempt * 1_500);
+      console.log(`Dataset Viewer request error for ${label} (attempt ${attempt}/${MAX_ATTEMPTS}): ${lastError}; retrying in ${waitMs / 1000}s.`);
+      await sleep(waitMs);
     }
-    break;
   }
-  throw new Error(`Dataset Viewer failed for ${label}: ${lastError}`);
+  throw new Error(`Dataset Viewer failed for ${label} after ${MAX_ATTEMPTS} attempts: ${lastError}`);
 }
 
 async function fetchAllMetadata() {
@@ -163,6 +179,12 @@ function selectBooks(metadata, manifest) {
       chapters >= manifest.minimumChapters
     );
   });
+
+  const byRights = {
+    ccByTranslation: eligible.filter((row) => getRightsKind(row) === 'cc-by-4-translation').length,
+    life70Screen: eligible.filter((row) => getRightsKind(row) === 'public-domain-life70-screen').length,
+  };
+  console.log(`Rights-screened metadata: ${eligible.length} eligible (${byRights.ccByTranslation} CC BY 4.0 translations; ${byRights.life70Screen} public-domain life+70-screened).`);
 
   const selected = [];
   const usedIds = new Set();
@@ -350,10 +372,10 @@ function toCatalogEntry(book) {
 async function main() {
   const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
   await mkdir(OUTPUT_DIR, { recursive: true });
-  console.log(`Loading ${DATASET} metadata; rights filter: explicit CC BY 4.0 Arabic translation + public-domain original.`);
+  console.log(`Loading ${DATASET} metadata; rights paths: explicit CC BY 4.0 Arabic translation + public-domain original, or conservative life+70 screen for public-domain original.`);
   const metadataRows = await fetchAllMetadata();
   const selected = selectBooks(metadataRows, manifest);
-  console.log(`Selected ${selected.length} books / target ${manifest.targetBooks}; fetching complete chapters.`);
+  console.log(`Selected ${selected.length} books / target ${manifest.targetBooks}; fetching complete chapters with bounded retries.`);
 
   const generated = [];
   const rejected = [];
@@ -418,36 +440,31 @@ async function main() {
       `- Source: ${book.rights.bookUrl}`,
       `- Attribution: ${book.rights.attribution}`,
       `- Colophon: ${book.rights.licenseQuote}`,
-      `- Source SHA-256: ${book.rights.sourceHash}`,
+      `- Rights: ${book.rights.license}`,
       '',
     ]),
-    '## Quality and legal limitations',
-    '',
-    'The source dataset reports 0 source-hash and license-quote mismatches across its 1,545-book release, and a 100-book reading sample with correct chapter boundaries. This is not a complete proofreading of every word. Images and SVG figures are omitted by the source dataset; omission counts are retained per chapter and shown in the reader. Table counts are also retained. The source dataset notes that its publisher public-domain statements are not legal advice; this HUKM subset additionally requires an explicit CC BY 4.0 Arabic-translation colophon and a public-domain original-text status.',
-    '',
-    'CC BY 4.0 requires attribution and a link to the license. Do not remove the per-book credit or colophon when redistributing these texts.',
-    '',
-    '## Inventory totals',
+    '## Build summary',
     '',
     `- Books: ${generated.length}`,
-    `- Chapters/sections: ${totalChapters}`,
+    `- Sections: ${totalChapters}`,
     `- Words: ${totalWords.toLocaleString('en-US')}`,
-    `- Approximate UTF-8 JSON payload: ${(totalBytes / (1024 * 1024)).toFixed(2)} MiB`,
+    `- JSON payload: ${(totalBytes / (1024 * 1024)).toFixed(2)} MiB before compression.`,
+    `- Generated at: ${new Date().toISOString()}`,
     '',
-    '## Dataset citation',
+    '## Limitations',
     '',
-    'Hallberg, A. (2024). The Arabic E-Book Corpus (Version 1) [Data set]. University of Gothenburg. https://doi.org/10.5878/7rbh-gy93',
-    '',
-    'Bayanat Labs (2026). Open Arabic Books, version 0.1.0. https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books',
+    '- The publisher colophon and life+70 screen are evidence, not legal advice. Copyright terms differ by jurisdiction; verify before redistribution.',
+    '- Images, SVG figures and some tables are omitted; per-book omission counts are stored in each JSON file.',
+    '- The 95% word-count threshold and section-count checks detect incomplete extraction, not proofreading or textual accuracy.',
     '',
   ].join('\n');
   await writeFile(NOTICE_PATH, notice, 'utf8');
-  console.log(`SYNC COMPLETE: ${generated.length} complete books, ${totalChapters} sections, ${totalWords} words, ${(totalBytes / (1024 * 1024)).toFixed(2)} MiB.`);
-  console.log('GENERATED SUMMARY: ' + JSON.stringify(generated.map((book) => ({ id: book.id, title: book.title, author: book.author, category: book.category, words: book.wordCount, chapters: book.chapterCount, source: book.rights.bookUrl, hash: book.rights.sourceHash }))));
-  console.log('REJECTED SUMMARY: ' + JSON.stringify(rejected));
+
+  console.log(`SUCCESS: generated ${generated.length} complete books, ${totalChapters} sections, ${totalWords} words, ${(totalBytes / (1024 * 1024)).toFixed(2)} MiB.`);
+  if (rejected.length) console.warn(`Skipped ${rejected.length} source books after validation failures: ${JSON.stringify(rejected)}`);
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error('Static library sync failed:', error);
   process.exitCode = 1;
 });
