@@ -42,7 +42,7 @@ describe('Email template output safety', () => {
     assert.equal(html.includes('<img src=x onerror=alert(4)>'), false);
     assert.equal(/(?:javascript:|data:text\/html)/i.test(html), false);
     assert.ok(html.includes('&lt;script&gt;chapter&lt;/script&gt;'));
-    assert.ok(html.includes('https://hukm.example?book='));
+    assert.ok(html.includes('https://hukm.example/?book='));
   });
 
   it('escapes broadcast content and falls back from unsafe action URLs', () => {
@@ -58,7 +58,7 @@ describe('Email template output safety', () => {
     assert.equal(html.includes('<script>body</script>'), false);
     assert.equal(html.includes('<svg onload=alert(2)>'), false);
     assert.ok(html.includes('&lt;script&gt;subject&lt;/script&gt;'));
-    assert.ok(html.includes('href="https://hukm.example"'));
+    assert.ok(html.includes('href="https://hukm.example/"'));
   });
 
   it('keeps valid HTTPS action links working', () => {
