@@ -415,3 +415,18 @@
 - No application runtime behavior, book approvals, candidate metadata, Firestore/API or deployment configuration changed in PR #33/#34.
 - Application/data HEAD remains PR #30's `1f5c98a918eb491db721270f14a6473dff50c39d`; latest main includes documentation and test-only commits through PR #34.
 
+
+
+## Latest merged review-workflow core — PR #37 (2026-11-06)
+
+- PR #37 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/37
+- Merge commit / verified main HEAD: `dfbe36e57b1804e3c9007adb1ffce50975c9d106`.
+- PR head `7e38b0fb08f41c347f895150f0fcec60421dfda1` passed CI run #42239633204; post-merge main CI run #42239741378 passed on the exact merge commit (tests, TypeScript and production build).
+- Added pure editorial and rights status transition helpers in `src/data/library/reviewWorkflow.ts`, unit tests in `src/data/library/reviewWorkflow.test.ts`, and `docs/library/REVIEW_WORKFLOW_RFC.md`.
+- Editorial review and rights clearance are independent. Decisions require evidence and notes; reopen/revocation rules are explicit; review snapshots become stale when candidate metadata or policy version changes.
+- Public eligibility requires editorial approval, independent rights clearance, matching current snapshots, and the explicit Git `approvedBookIds` allowlist.
+- The RFC is an architecture proposal, not an owner-approved policy. No Firestore collection, write endpoint, API route, status-changing UI, or client write was enabled by PR #37.
+- PR #36 was closed without merging and superseded by PR #37; PR #37 is the rebased/revised version based on current main.
+- Candidate inventory remains 23, approved IDs remain zero, and 24 legacy books remain quarantined.
+- Main-only Vercel Git deployment policy remains `{"*": false, "main": true}`; Vercel status remains `build-rate-limit`. No production deployment is confirmed.
+- Next implementation stage: build an unmounted/inert server-side review repository/API with dependency injection, verified-owner middleware, transactional state/event writes, optimistic versions, idempotency and failure-injection tests. Do not mount or enable writes until Firestore deny rules and emulator-backed security tests are ready.
