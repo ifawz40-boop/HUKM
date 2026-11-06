@@ -20,6 +20,8 @@ jobs:
         run: |
           set -euo pipefail
           urls=(
+            'https://doris.snd.se//api/file/2024-145-1/1/documentation?filePath=metadata.tsv'
+            'https://doris.snd.se/api/file/2024-145-1/1/documentation?filePath=metadata.tsv'
             'https://doris.snd.se//api/file/2024-145/1/documentation?filePath=metadata.tsv'
             'https://doris.snd.se/api/file/2024-145/1/documentation?filePath=metadata.tsv'
           )
