@@ -487,3 +487,14 @@
 - PR #43 was based on pre-PR-42 main `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`, so its same six-file diff was reapplied without force-push onto latest main `db17f43c0a42ec9fa543ea0072053ed46957ee6e`.
 - Current rebased branch: `feat/firestore-review-rules-emulator-v2`, based on exact current main; CI must pass again on the rebased PR before merge.
 - The explicit collection denies remain additive to the default-deny catch-all. Review API remains unmounted and no client write path is enabled.
+
+
+## PR #44 merged — Firestore review rules and emulator verification (2026-11-06)
+
+- PR #44 merged by squash at `d6523ab6841f88720e8a48166af3eec79c78d5fa`.
+- Pre-merge CI run #42243550198 passed on exact PR head `985db62af9e5f5171c34bd63abdaa8e594552f37`: full test suite, Firestore Emulator rules tests, TypeScript and production build all succeeded.
+- Post-merge main CI is queued/running on exact merge SHA `d6523ab6841f88720e8a48166af3eec79c78d5fa`; verify its result before marking the post-merge stage complete.
+- Added explicit deny rules for `libraryEditorialStates`, `libraryRightsStates`, and `libraryReviewEvents` for every client role, including owner. Emulator tests cover unauthenticated, reader, admin and owner contexts, direct reads/lists/creates/updates/deletes, and nested documents.
+- Review API remains unmounted in `api/index.ts`; no Admin SDK review-write endpoint is enabled. This PR only locks down client access.
+- Vercel combined status still reports `build-rate-limit`; this is an external Vercel status, not a successful deployment. No manual deployment was run.
+- Original PR #43 was closed unmerged after rebasing; PR #44 contains the same six-file security change plus checkpoint updates on latest main.
