@@ -13,6 +13,7 @@ SOURCE_LICENSE_URL = AUDIT.SOURCE_LICENSE_URL
 candidate_score = AUDIT.candidate_score
 deduplicate_candidates = AUDIT.deduplicate_candidates
 is_candidate = AUDIT.is_candidate
+public_summary = AUDIT.public_summary
 
 
 def valid_row():
@@ -156,6 +157,31 @@ class WikisourceCandidateAuditTests(unittest.TestCase):
         weak = valid_row()
         weak["genre_source"] = "category"
         self.assertGreater(candidate_score(authoritative), candidate_score(weak))
+
+    def test_public_summary_preserves_all_source_revisions_and_person_credits(self):
+        row = valid_row()
+        row["source_pages"].extend([
+            {"title": f"صفحة {index}", "url": f"https://ar.wikisource.org/wiki/Page_{index}", "revision_id": 100 + index}
+            for index in range(4, 9)
+        ])
+        row["n_source_pages"] = len(row["source_pages"])
+        row["persons"].append({
+            "role": "editor",
+            "name": "محرر محقق",
+            "death_year": 1940,
+            "source": "wikidata",
+        })
+        row["text_raw"] = "نص مرشح للمراجعة " * 200
+
+        summary = public_summary(row)
+
+        self.assertEqual(len(summary["source_pages"]), 8)
+        self.assertEqual(summary["source_pages"][-1]["revision_id"], 108)
+        self.assertEqual(len(summary["persons"]), 2)
+        self.assertEqual(summary["persons"][-1]["role"], "editor")
+        self.assertEqual(summary["categories"], [])
+        self.assertEqual(summary["raw_text_characters"], len(row["text_raw"]))
+        self.assertLessEqual(len(summary["text_preview"]), 1200)
 
 
 if __name__ == "__main__":
