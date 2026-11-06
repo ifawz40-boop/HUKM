@@ -393,3 +393,13 @@
 - Waqfeya's category tag is recorded as catalogue metadata only, not as a doctrinal conclusion. The work's transmission through Ibn al-Jawzi's abridgement of *Ihya Ulum al-Din* makes complete review of narratives, hadith, marginalia and doctrinal passages necessary.
 - Rights for the Waqfeya digital copy and the modern editorial apparatus remain unresolved. The permission statement on IslamHouse is not assumed to authorize redistribution of the Waqfeya file.
 - No public-library allowlist, publication, Firestore/API, authentication, or Vercel behavior changed.
+
+
+## Manual accessibility QA plan prepared (2026-11-06)
+
+- Added `docs/qa/curation-dialog-manual-accessibility.md` on branch `docs/curation-dialog-manual-a11y-plan`.
+- The checklist covers keyboard focus entry/containment/restoration, Escape, screen-reader dialog semantics, Arabic RTL and long metadata, 320 CSS-pixel reflow / 400% zoom, touch scrolling, contrast, reduced motion and verified-owner authorization.
+- All manual test statuses are explicitly **Not run**. This is a test plan, not a claim of a completed accessibility audit.
+- Current main HEAD at branch creation: `24ceb26f9a2869f01c1a1c1bd2e85a2c334f2218`; PR #31 (checkpoint after PR #30) is merged and its main CI run #42238618839 passed.
+- A superseded duplicate checkpoint PR #32 was closed without merging after PR #31 advanced main during the previous checkpoint attempt; no main changes resulted from PR #32.
+- Exact current main CI run #42238618839 passed on `24ceb26f9a2869f01c1a1c1bd2e85a2c334f2218`; Vercel status on that SHA is `build-rate-limit`. No production deployment is confirmed.

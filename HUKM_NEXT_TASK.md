@@ -1,12 +1,12 @@
 # HUKM MEDIA — Exact Continuation Checkpoint
 
-Last refreshed: 2026-11-06
+Last refreshed: 2026-11-06 — manual accessibility QA plan added
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-mukhtasar-minhaj-candidate-merged` (checkpoint PR #31)
+Current documentation branch: `docs/curation-dialog-manual-a11y-plan` (QA plan and checkpoint PR pending)
 Verified application/data HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`.
+Latest main HEAD after documentation checkpoint PR #31: `24ceb26f9a2869f01c1a1c1bd2e85a2c334f2218`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -23,6 +23,9 @@ At the start of every continuation, re-fetch the live `main` HEAD; later documen
 - PR #23 — keyboard accessibility for the curation dialog — merged at `9f7ac3679062326f07543f2caaa95427527b096f`.
 - PR #24 — checkpoint after keyboard accessibility — merged at `943c80f80ecf5652d29ea40465bdd1b90ab4447e`.
 - PR #25 — latest development checkpoint — merged at `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`.
+- PR #29 — curation-dialog focus restoration checkpoint — merged at `a53324a7bce17a65eff65bef96ea3aaa8b0d0af4`.
+- PR #30 — *Mukhtasar Minhaj al-Qasidin* candidate research — merged at `1f5c98a918eb491db721270f14a6473dff50c39d`.
+- PR #31 — 23-candidate library checkpoint — merged at `24ceb26f9a2869f01c1a1c1bd2e85a2c334f2218`.
 - PR #23 CI run #42235061723 and post-merge run #42235175548 succeeded.
 - PR #24 CI run #42235339268 succeeded.
 - PR #25 CI run #42235610950 and post-merge main run #42235696201 succeeded.
