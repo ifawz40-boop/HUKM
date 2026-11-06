@@ -430,3 +430,20 @@
 - Candidate inventory remains 23, approved IDs remain zero, and 24 legacy books remain quarantined.
 - Main-only Vercel Git deployment policy remains `{"*": false, "main": true}`; Vercel status remains `build-rate-limit`. No production deployment is confirmed.
 - Next implementation stage: build an unmounted/inert server-side review repository/API with dependency injection, verified-owner middleware, transactional state/event writes, optimistic versions, idempotency and failure-injection tests. Do not mount or enable writes until Firestore deny rules and emulator-backed security tests are ready.
+
+
+## PR #39 — inert review repository/API core merged (2026-11-06)
+
+- PR #39 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/39
+- Merge commit / verified live `main` HEAD: `e619ab711ea2682479c1789b4e720aa4512fd044`.
+- PR head `acfcb19ec43f2760d4d191b8a1b6e5618fc394af` passed CI run #42240951392; post-merge main CI run #42241115451 passed on the exact merge commit (tests, TypeScript and production build).
+- Added `src/server/libraryReviewRepository.ts`: Firestore-like transactional repository for separate editorial/rights projections and append-only events, optimistic versions, deterministic per-owner/candidate idempotency, request fingerprint conflict checks, snapshot staleness/restart requirements, and server timestamp read-back after commit.
+- Added `src/server/libraryReviewApi.ts`: injectable Express router factory with owner middleware dependencies, candidate resolution/fingerprinting, server-derived reviewer UID/role/policy, safe errors and read/list/event endpoints.
+- Added `src/server/libraryReviewRepository.test.ts` and `src/server/libraryReviewApi.test.ts`; package test script includes both. Tests cover event/state transaction behavior, failure injection, idempotency replay/reuse, version conflicts, stale metadata restarts, separate rights state, owner-only API behavior, spoofed request identity, invalid candidates/payloads, default-deny Firestore guard, and the not-mounted activation guard.
+- The API factory is **not mounted** in `server.ts` or `api/index.ts`; no production endpoint, Firestore write, approval UI, client write or publication behavior is active.
+- `firestore.rules` remains default-deny for unmatched paths. Explicit named denies and Firestore Emulator security tests are still pending before any API mounting.
+- `firebase.json` already configures Firestore Emulator on port 8080 (UI disabled); no emulator-backed security test harness exists yet.
+- Candidate inventory remains 23; `approvedBookIds` remains empty; 24 legacy books remain quarantined.
+- Manual accessibility checklist still has nine Not-run items. Vercel Git deployment policy remains `{"*": false, "main": true}`; Vercel status still reports `build-rate-limit`, so production deployment is not confirmed.
+- Next: implement RFC Stage 3 explicit deny rules and emulator-backed tests, and type-check the production Firebase Admin adapter without mounting the API.
+
