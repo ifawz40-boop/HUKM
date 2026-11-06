@@ -102,6 +102,34 @@ export default function App() {
 
         if (profile) {
           setActiveBan(null);
+
+          // Check the authenticated account's cloud moderation status before
+          // migrating bookmarks or writing any reader progress to Firestore.
+          let accountBan = profile.email ? getActiveBanDetails(profile.email) : null;
+          try {
+            const token = await auth.currentUser?.getIdToken();
+            if (!token) throw new Error('Missing Firebase ID token for account-status check.');
+            const response = await fetch('/api/auth/account-status', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+              throw new Error('Account moderation status could not be verified.');
+            }
+            accountBan = payload.banned && payload.ban ? payload.ban as BannedAccount : null;
+          } catch (error) {
+            // Keep the local cache as a fallback if the cloud check is temporarily unavailable.
+            console.warn('Could not verify cloud moderation status:', error);
+          }
+
+          if (accountBan) {
+            if (authSessionIdRef.current === currentSessionId) {
+              setActiveBan(accountBan);
+              setCurrentUser(profile);
+              setAuthLoading(false);
+            }
+            return;
+          }
           // ---------------------------------------------------------------
           // STEP 1: BOOKMARKS MIGRATION & LOCAL CACHE MERGE
           // ---------------------------------------------------------------
@@ -189,28 +217,7 @@ export default function App() {
           }
 
           // ---------------------------------------------------------------
-          // STEP 4: CHECK CLOUD MODERATION STATUS FOR THIS AUTHENTICATED USER
-          // ---------------------------------------------------------------
-          let accountBan = profile.email ? getActiveBanDetails(profile.email) : null;
-          try {
-            const token = await auth.currentUser?.getIdToken();
-            if (token) {
-              const response = await fetch('/api/auth/account-status', {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const payload = await response.json();
-              if (!response.ok || !payload.success) {
-                throw new Error('Account moderation status could not be verified.');
-              }
-              accountBan = payload.banned && payload.ban ? payload.ban as BannedAccount : null;
-            }
-          } catch (error) {
-            // Keep the local cache as a fallback if the cloud check is temporarily unavailable.
-            console.warn('Could not verify cloud moderation status:', error);
-          }
-
-          // ---------------------------------------------------------------
-          // STEP 5: COMMIT FINAL ACTIVE STATE IF SESSION REMAINS MATCHED
+          // STEP 4: COMMIT FINAL ACTIVE STATE IF SESSION REMAINS MATCHED
           // ---------------------------------------------------------------
           if (authSessionIdRef.current === currentSessionId) {
             profile.bookmarks = mergedBookmarks;
