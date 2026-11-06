@@ -3,8 +3,8 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-after-accessibility`
-Verified main HEAD: `943c80f80ecf5652d29ea40465bdd1b90ab4447e`
+Current documentation branch: `docs/checkpoint-final-state-2026-11-06`
+Verified main HEAD: `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`
 
 ## Verified merge and CI state
 
@@ -19,12 +19,14 @@ Verified main HEAD: `943c80f80ecf5652d29ea40465bdd1b90ab4447e`
 - PR #22 — historical author evidence for Ibn Taymiyyah — merged at `413d77eb11eb97490e22a1bce63a7e7cb1f53ff2`.
 - PR #23 — keyboard accessibility for the curation dialog — merged at `9f7ac3679062326f07543f2caaa95427527b096f`.
 - PR #24 — checkpoint after keyboard accessibility — merged at `943c80f80ecf5652d29ea40465bdd1b90ab4447e`.
-- PR #23 CI run #42235061723 succeeded; post-merge run #42235175548 succeeded.
+- PR #25 — latest development checkpoint — merged at `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`.
+- PR #23 CI run #42235061723 and post-merge run #42235175548 succeeded.
 - PR #24 CI run #42235339268 succeeded.
-- Exact current main push workflow #42235430190 completed successfully on `943c80f80ecf5652d29ea40465bdd1b90ab4447e`: 294 tests, 293 passed, 0 failed, 1 skipped; TypeScript check and production build passed.
-- The combined Vercel status on the current main commit remains `failure` with target `build-rate-limit`. Vercel reports the free-plan limit (>100 deployments/day). This is a provider quota issue, not a failed GitHub test/build.
+- PR #25 CI run #42235610950 and post-merge main run #42235696201 succeeded.
+- Exact current main push run #42235696201 completed successfully on `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`: 294 tests, 293 passed, 0 failed, 1 skipped; TypeScript check and production build passed.
+- The combined Vercel status on the current main commit remains `failure` with target `build-rate-limit`. Vercel's bot reports the free-plan limit (>100 deployments/day). This is a provider quota issue, not a failed GitHub test/build.
 - No production deployment is confirmed for the latest main commit. Do not claim the site is live.
-- `vercel.json` contains `git.deploymentEnabled: {"*": false, "main": true}`. Vercel documents that this setting controls branch-triggered deployments, supports minimatch patterns, and that if a branch matches multiple rules at least one `true` causes deployment. The current configuration intentionally allows `main` and disables other branches. Project-level behavior still needs dashboard verification.
+- `vercel.json` contains `git.deploymentEnabled: {"*": false, "main": true}`. Vercel documents that this setting controls branch-triggered deployments, supports minimatch patterns, and that if a branch matches multiple rules at least one `true` causes deployment. The configuration intentionally allows `main` and disables other branches. Project-level behavior still needs dashboard verification.
 - Google AI Studio synchronization remains unverified.
 
 ## Public library state
@@ -59,7 +61,7 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Pure helpers are in `src/utils/libraryCuration.ts`; unit tests cover URL safety, Arabic search, combined filters and empty filters.
 - Static regression tests cover owner-only mounting, read-only behavior, candidate metadata/report link and Vercel main-only deployment policy.
 - Keyboard accessibility: close button receives initial focus; Escape closes; Tab/Shift+Tab are contained within the dialog; scroll chaining is contained inside modal content.
-- PR #23 and post-merge CI passed. A manual browser/screen-reader audit has not yet been performed.
+- PR #23 and all post-merge CI passed. A manual browser/screen-reader audit has not yet been performed.
 
 ## Reader state
 
