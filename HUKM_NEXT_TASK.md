@@ -1,6 +1,7 @@
 # HUKM MEDIA — Exact Next Task
 
 **Current branch:** `main`  
+**Current verified docs-only main HEAD:** `7a561596a23bd6ae61aa4e9c1f3236206f57f87c` — push CI #42190859034 SUCCESS  
 **Last verified code merge:** `205211ab6238fdbf6835884bb5f3936d488e8a0b` (PR #11; re-fetch `main` before every write)  
 **Last stable code merge:** `205211ab6238fdbf6835884bb5f3936d488e8a0b`  
 **Latest CI on provenance UI PR:** run #42190539425 — SUCCESS (tests, TypeScript, build)  
@@ -12,12 +13,12 @@
 - PR CI run #42190539425 passed full tests, TypeScript and production build.
 - Multi-source attribution helpers and regression tests are in `src/utils/bookProvenance.ts` and `src/utils/bookProvenance.test.ts`.
 - Reader source footer is dynamic; overview labels source links correctly and discloses the 12-page preview.
-- Current documentation checkpoint HEAD before this correction: `083a48d3c546784adcab7d3465505ad158f26e8f`; exact-head CI has not yet been observed.
+- Latest docs-only `main` HEAD `7a561596a23bd6ae61aa4e9c1f3236206f57f87c` passed exact-head push CI run #42190859034 (tests, TypeScript, production build).
 
-## Phase A — verify current documentation checkpoint
-1. Re-fetch `main` and confirm its exact HEAD.
-2. Verify push-triggered CI for the current docs-only HEAD; do not confuse Vercel quota status with code CI.
-3. Confirm both checkpoint files contain this exact task and merge SHA.
+## Phase A — exact-head verification complete
+- `main` is confirmed at `7a561596a23bd6ae61aa4e9c1f3236206f57f87c`.
+- Push CI #42190859034 succeeded on this exact HEAD: test suite, TypeScript and production build.
+- Both checkpoint files are present and readable on `main`.
 
 ## Phase B — manual review status
 - First candidate scan reviewed: Commons identifies 1891 edition, author 1850–1896, 79-page/2.35 MB scan, and marks the mechanical scan public domain.
@@ -142,10 +143,10 @@ Legal PDF fixture for the PDF reader:
 - LAST_COMPLETED_MILESTONE: Repository intelligence + pinned candidate discovery + full provenance report + all-page live category audit
 - LAST_COMPLETED_TASK: Merge PR #9; verify full CI and pinned candidate audit on main; publish full provenance artifact; spot-check Wikisource work, chapter and author pages; identify page-level category gap and Ibn Khaldun author-page date error
 - CURRENT_BRANCH: main
-- LAST_STABLE_COMMIT: a6280120dc152c3c42fc04e018e66c21754581e0 (PR #10 merge; PR CI and full live page-category audit passed)
+- LAST_STABLE_COMMIT: 205211ab6238fdbf6835884bb5f3936d488e8a0b (PR #11 merge; PR CI passed)
 - CURRENT_MAIN_HEAD: 1951fcbf5f7726e5282fd4b29dc3f666951d2bfa (documentation checkpoint; CI pending)
-- TEST_STATUS: Full tests, TypeScript and build passed on exact main docs HEAD `6c1be44352e20c31ecfecf7ac9bf0a2739f251cb` in run #42189485397; main candidate + page-category audit run #42189392657 passed with 2,253 pages, zero missing, zero API errors, zero revision drift
+- TEST_STATUS: Full tests, TypeScript and build passed on exact PR #11 head in run #42190539425 and on exact docs-only main HEAD `7a561596...` in run #42190859034; page-category audit run #42189392657 passed with 2,253 pages, zero missing, zero API errors, zero revision drift
 - MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
 - PENDING_TASKS: Human-review three-book shortlist; implement CC BY-SA rights tier after allowlist; fix generic source attribution UI; continue full repository audit
-- NEXT_ACTION: Re-fetch current main, then manually review the three remaining candidates against exact source text/edition and contributor records; no ingestion yet
-- KNOWN_ISSUES: Vercel daily deployment quota; branch divergence; no verified live deployment or AI Studio sync; candidate content still needs human review.
+- NEXT_ACTION: Complete scan-to-transcription collation for the first candidate; then implement a PDF.js-based custom reader route for legally cleared PDF files using a locally pinned worker. Do not add the dependency until Bun lockfile regeneration and CI can validate it; keep the current structured-text reader intact.
+- KNOWN_ISSUES: Vercel daily deployment quota; branch divergence; no verified live deployment or AI Studio sync; candidate transcription still needs scan collation and CC BY-SA rights review; PDF/EPUB paths are not implemented.
