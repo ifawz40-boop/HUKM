@@ -340,7 +340,13 @@ function buildBook(metadata, sourceChapters, manifest) {
   if (!author) throw new Error(`${metadata.title}: no verifiable author credit in the source metadata.`);
   const chapters = sourceChapters.map((row, index) => {
     const content = toParagraphs(row.text_raw);
-    const wordCount = countWords(String(row.text_raw || ''));
+    const extractedWordCount = countWords(String(row.text_raw || ''));
+    const declaredWordCount = Number(row.n_words || 0);
+    if (declaredWordCount > 0 &&
+        (extractedWordCount < declaredWordCount * 0.95 || extractedWordCount > declaredWordCount * 1.10)) {
+      throw new Error(`${metadata.title}: section ${row.chapter_index} has ${extractedWordCount} extracted words vs ${declaredWordCount} declared.`);
+    }
+    const wordCount = declaredWordCount || extractedWordCount;
     const footnotes = mapFootnotes(row.footnotes);
     const sourceChapterIndex = Number(row.chapter_index);
     return {
