@@ -137,3 +137,14 @@ The large deployment branch has many commits ahead but its inspected key files (
 - The public catalogue is still empty. The implementation is committed, but latest GitHub Actions tests/typecheck/build and the new sync run are not yet independently verified through the currently available GitHub run interface. Vercel reports a daily deployment API quota failure; no production deployment is confirmed.
 - A separate UI reliability batch now prevents false clipboard success, makes book-card reading actions keyboard-accessible, and displays the library word count.
 - **Resume first:** verify CI for `d120b8d4e8769c59aaa8bc7f0fbc31ed8a11840f`; inspect the streaming sync run triggered by `9073cbad9297b644ef6baf884f30cbf4c6250eda`; only then curate generated books and continue visual/library work. Full details and exact next actions are in `docs/engineering/WORK_SESSION_CHECKPOINT.md`.
+
+
+## Continuation update — reader and deployment integrity hardening
+
+- Reader localStorage preferences are now allowlisted/range-checked before use; invalid font/theme values cannot index the style maps. Reader share now awaits Clipboard API success and reports failure honestly.
+- The Vercel static-library gate now verifies catalogue/full-text metadata parity, contiguous chapter numbering, and chapter-to-book ownership.
+- Regression fixtures include a valid book and a deliberately mismatched catalogue case that must fail.
+- Commits: `03e40f0`, `d2d551d`, `8c28480`, `301d551`, `b17c69d`.
+- Source files were re-fetched and inspected after the edits. GitHub Actions test/typecheck/build execution remains unverified via the available run-listing interface; Vercel combined status still reports its daily build API rate limit, not a code compilation result.
+- Resume from checkpoint section “Reader hardening and library deployment-gate integrity” in `docs/engineering/WORK_SESSION_CHECKPOINT.md`; first verify CI for `b17c69de5694d30df6471190696c9ea58e24232a`, then inspect the latest streaming sync run.
+
