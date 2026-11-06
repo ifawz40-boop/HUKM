@@ -519,3 +519,29 @@ A stronger primary source was found after the first Wikisource sync attempt:
 6. Continue the full repository audit in `docs/engineering/FULL_REPOSITORY_AUDIT_PLAN.md`, including remaining routes, Firestore rules, legacy CRUD, reader/account isolation, writer publishing flow, and responsive UI states.
 7. Re-fetch `main` before every write batch. Preserve the user's rule: inspect, implement, test, independently review, commit to `main`, verify the resulting commit, then advance this checkpoint. Never force-push or claim an unverified deployment.
 
+
+
+## Continuation checkpoint — 2026-11-06 — Reader hardening and library deployment-gate integrity
+
+### Work completed directly on main
+1. Commit `03e40f02fe1276de7f99b47be159ae67aeb99f42` — `BookReaderView.tsx` now validates persisted reader font size (15–32), font family (four supported values), and theme (four supported values) before using localStorage values as state. Invalid or stale values fall back to safe defaults instead of producing undefined style maps.
+2. The reader share action now awaits `navigator.clipboard.writeText`, only displays success after it resolves, and reports a fallback message when the Clipboard API is unavailable or rejects. This closes a second copy-success bug in the actual reader; the earlier overview-page share fix was separate.
+3. Commit `d2d551d9b66f15c14ca834d19619c49d2d583d0d` — added source regression assertions for reader preference validation and honest clipboard handling.
+4. Commit `8c28480fbfe4097638d7202898158c843f7c0fc5` — deployment gate now checks that the catalogue's title, author, category, word count and chapter count match the corresponding full-text record; it also requires contiguous chapter numbering starting at 1 and each chapter's `bookId` to match its parent book.
+5. Commit `301d5510b11b983d3de06f96c78f1d877183e98a` — updated the gate's positive fixture with complete catalogue/chapter identity fields and added a negative test proving mismatched catalogue metadata is rejected.
+6. Commit `b17c69de5694d30df6471190696c9ea58e24232a` — static assertions now explicitly cover catalogue parity and contiguous chapter/ownership checks.
+
+### Independent source re-review
+- Re-fetched the reader, deployment gate and static regression test files from `main` after the writes.
+- Confirmed reader font size bounds, font/theme allowlists, removal of unsafe persisted-value casts, awaited clipboard write and failure fallback.
+- Confirmed deployment gate metadata parity, contiguous chapter numbering and chapter ownership checks.
+- Confirmed the test suite contains the updated valid fixture and a negative mismatched-catalogue fixture.
+- These are source inspections only. Do not claim the TypeScript build or test runner passed until a GitHub Actions run confirms it.
+
+### Resume marker
+1. Check the GitHub Actions push run for latest main commit `b17c69de5694d30df6471190696c9ea58e24232a`. Confirm unit/static tests, TypeScript and production build. The available GitHub Actions wrapper in this session exposes pull-request-triggered commit runs only and does not expose a repository-wide push-run listing; the combined status currently only reports Vercel's free-plan daily API build-rate-limit failure. Use GitHub Actions UI if needed; do not interpret the Vercel quota status as a code test.
+2. Re-run the source-library sync workflow and inspect the exact logs. Do not claim the catalogue is populated while `src/data/library/catalog.json` remains `[]`.
+3. If CI passes, next hardening task: update selection to avoid `exact_duplicate_group` and `near_duplicate_group` collisions, but first confirm those fields exist in the metadata configuration and inspect real candidate records. Maintain the minimum-book fail-closed gate.
+4. Continue reviewing `BookReaderView` lifecycle (book/user changes, speech cancellation, scroll timer cleanup), Firestore progress/annotation rules, and every route. Keep Firestore limited to per-user progress/annotations; public book files remain static lazy-loaded assets.
+5. Continue the visual-library implementation only after content exists and the source catalogue has been independently audited. Check book detail/source attribution, mobile layout, keyboard navigation, search, empty/loading/error states, and cover fallback.
+6. Before every new change batch, re-fetch `main`; after each batch, run source regression checks, commit to `main`, and update this checkpoint. Never claim a deployed production site without a successful deployment URL/status.
