@@ -1,7 +1,7 @@
 > [!WARNING]
 > **Historical checkpoint — superseded on 2026-11-06.** This document records an earlier state around 05:00 UTC when the static catalogue was empty and the 15-book deployment gate was still blocking publication. That is no longer the current library state: `main` now contains 24 catalogue records and the previously audited 24-book full-text batch. Do not follow the old empty-library diagnosis or treat the historical workflow-run IDs below as current.
 >
-> **Read these current records first:** [HUKM_DEVELOPMENT_LOG.md](../../HUKM_DEVELOPMENT_LOG.md) and [HUKM_NEXT_TASK.md](../../HUKM_NEXT_TASK.md). At the latest verified checkpoint, `main` was at `feae1b40674f58b2117372ee47f68424c4de85ca`; the exact-head CI result remained unverified, and Vercel's status still pointed to a `build-rate-limit` failure. `deploy/vercel-preparation` was heavily diverged (71 ahead / 146 behind) and must not be merged wholesale.
+> **Read these current records first:** [HUKM_DEVELOPMENT_LOG.md](../../HUKM_DEVELOPMENT_LOG.md) and [HUKM_NEXT_TASK.md](../../HUKM_NEXT_TASK.md). At the latest verified checkpoint, `main` was at `acdb59691ba4e6316da452c0561aa33367d889b3` (documentation-only updates followed the last code/data commit); the exact-head CI result remained unverified, and Vercel's status still pointed to a `build-rate-limit` failure. `deploy/vercel-preparation` was heavily diverged (71 ahead / 146 behind) and must not be merged wholesale.
 >
 > The material below is retained as historical context only.
 
