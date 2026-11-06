@@ -112,6 +112,11 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     });
   }
 
+  const fromAddress = providerConfig.from;
+  const senderMailbox = (providerConfig.kind === 'gmail'
+    ? providerConfig.user
+    : (fromAddress.match(/<([^>]+)>/)?.[1] || fromAddress)).toLowerCase();
+
   let recipients: string[] = [];
   let actualDispatchedCount = 0;
   const providerIds: string[] = [];
@@ -129,7 +134,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
         const email = doc.data().email;
         if (typeof email === 'string') {
           const normalized = email.trim().toLowerCase();
-          if (isValidEmailAddress(normalized)) uniqueRecipients.add(normalized);
+          if (isValidEmailAddress(normalized) && normalized !== senderMailbox) uniqueRecipients.add(normalized);
         }
       });
       recipients = Array.from(uniqueRecipients);
@@ -142,8 +147,6 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     // 3. Dispatch in private batches of 50. Broadcast recipients are BCC'd so
     // subscribers never receive one another's email addresses.
     // Once a batch is accepted, never report a later provider/network failure as if nothing was sent.
-    const fromAddress = providerConfig.from;
-    const senderMailbox = fromAddress.match(/<([^>]+)>/)?.[1] || fromAddress;
     const BATCH_SIZE = 50;
     if (providerConfig.kind === 'gmail') {
       gmailTransporter = createGmailTransporter(providerConfig);
