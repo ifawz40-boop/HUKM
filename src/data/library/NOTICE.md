@@ -13,6 +13,7 @@ The full book texts are bundled as one lazy-loaded JSON file per book under `boo
 - Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.
 - The underlying source dataset contains 1,545 books. This HUKM batch contains 24 automatically selected, rights-screened books from a 24-book target; selection uses category quotas and a target length of about 50,000 words. It is not yet manually curated or individually proofread.
 - The selector keeps at most one book per upstream book-level near_duplicate_group; the group identifier is retained in each book's rights metadata.
+- Upstream chapter duplicate annotations are preserved on each chapter without removing or merging text: 0 sections carry exact_duplicate_group and 0 carry near_duplicate_group.
 - First-batch integrity totals: 24 books, 529 sections, 1,144,156 words and 2,283 footnotes. The source metadata records 204 omitted images, 0 omitted SVG elements and 14 omitted tables across this batch; these assets are not embedded in the reader.
 
 ## Included books
@@ -262,7 +263,7 @@ The full book texts are bundled as one lazy-loaded JSON file per book under `boo
 - Books: 24
 - Sections: 529
 - Words: 1,144,156
-- JSON payload: 12.53 MiB before compression.
+- JSON payload: 12.57 MiB before compression.
 - Generated snapshot: 2026-11-04 (deterministic source snapshot)
 
 ## Limitations
