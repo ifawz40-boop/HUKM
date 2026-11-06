@@ -9,12 +9,16 @@
       "author": "شيخ الإسلام ابن تيمية",
       "category": "self-development",
       "sourceUrl": "https://waqfeya.net/books/فصل-في-تزكية-النفس-9dcd94a01753468f91df41e6cdfe242f",
-      "edition": "تحقيق فواز محمد العوضي",
-      "pages": 68,
+      "edition": "اعتنى به فواز محمد العوضي؛ الطبعة الأولى؛ الترقيم موافق للمطبوع",
+      "pages": 63,
       "status": "metadata-verified-content-review-pending",
       "reason": "رسالة في تزكية النفس وترك المحرمات وفعل المأمورات.",
       "shamelaUrl": "https://shamela.ws/index.php/book/133364",
-      "initialSpotCheck": "The opening text frames purification as leaving prohibitions and doing commanded acts, and cites Qur'anic verses and early scholars. No issue identified in the inspected opening page; full text and editor's introduction remain unreviewed."
+      "initialSpotCheck": "Preliminary source audit only: Waqfeya lists a 68-page PDF scan, while the text edition lists 63 printed pages (60 pages of text). The edition's description says the earlier Majmu Fatawa text omitted nearly half of the latter part. The editor's introduction contains contemporary group criticism and must be reviewed separately from Ibn Taymiyyah's text. Full collation, all pages, footnotes and hadith references remain pending; this is not approval.",
+      "scanPages": 68,
+      "publisher": "مكتبة النهج الواضح — الكويت",
+      "publicationYear": "1439هـ / 2018م",
+      "reviewReportUrl": "https://github.com/ifawz40-boop/HUKM/blob/main/docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.md"
     },
     {
       "id": "ibn-al-qayyim-al-da-wal-dawa",

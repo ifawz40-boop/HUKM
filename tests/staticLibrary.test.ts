@@ -53,6 +53,17 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
   });
 
+  it('must display the candidate-specific source audit report when present', () => {
+    const candidates = JSON.parse(read('src/data/library/candidates.json'));
+    const candidate = candidates.books.find((book: { id: string }) => book.id === 'ibn-taymiyyah-tazkiyat-al-nafs');
+    assert.equal(candidate.pages, 63);
+    assert.equal(candidate.scanPages, 68);
+    assert.equal(candidate.publisher, 'مكتبة النهج الواضح — الكويت');
+    assert.match(candidate.reviewReportUrl, /^https:\/\//);
+    assert.match(curationPanel, /reviewReportUrl/);
+    assert.match(curationPanel, /تقرير المراجعة/);
+  });
+
   it('must keep the curation dashboard owner-only, read-only and safe-link constrained', () => {
     assert.match(navbar, /isEffectiveOwner && onOpenCurationPanel/);
     assert.match(app, /\{isOwner && \(\s*<LibraryCurationPanel/);

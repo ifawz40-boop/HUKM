@@ -18,7 +18,11 @@ interface LibraryCandidate {
   category: string;
   sourceUrl: string;
   edition?: string;
+  publisher?: string;
+  publicationYear?: string;
   pages?: number | null;
+  scanPages?: number | null;
+  reviewReportUrl?: string;
   status: CandidateStatus;
   reason?: string;
   shamelaUrl?: string;
@@ -214,7 +218,10 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
 
                   <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-slate-300">
                     <span className="rounded-md bg-white/5 px-2 py-1">{categoryLabels[book.category] || book.category}</span>
-                    {book.pages ? <span className="rounded-md bg-white/5 px-2 py-1">{book.pages.toLocaleString('ar-EG')} صفحة</span> : null}
+                    {book.pages ? <span className="rounded-md bg-white/5 px-2 py-1">{book.pages.toLocaleString('ar-EG')} صفحة مطبوعة</span> : null}
+                    {book.scanPages ? <span className="rounded-md bg-white/5 px-2 py-1">{book.scanPages.toLocaleString('ar-EG')} صفحة في المسح</span> : null}
+                    {book.publisher ? <span className="rounded-md bg-white/5 px-2 py-1">{book.publisher}</span> : null}
+                    {book.publicationYear ? <span className="rounded-md bg-white/5 px-2 py-1">{book.publicationYear}</span> : null}
                     {book.edition ? <span className="rounded-md bg-white/5 px-2 py-1">{book.edition}</span> : null}
                   </div>
 
@@ -230,6 +237,11 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
                     <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-[#f0cb69] underline underline-offset-4 hover:text-white">
                       <ExternalLink className="h-3 w-3" /> الوقفية / المصدر
                     </a>
+                    {isSafeExternalUrl(book.reviewReportUrl) && (
+                      <a href={book.reviewReportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 underline underline-offset-4 hover:text-white">
+                        <ExternalLink className="h-3 w-3" /> تقرير المراجعة
+                      </a>
+                    )}
                     {isSafeExternalUrl(book.shamelaUrl) && (
                       <a href={book.shamelaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300 underline underline-offset-4 hover:text-white">
                         <ExternalLink className="h-3 w-3" /> المكتبة الشاملة
