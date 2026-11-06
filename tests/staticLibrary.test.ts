@@ -366,9 +366,19 @@ describe('HUKM — bundled Arabic library architecture', () => {
       book_url: 'https://example.org/book-a', attribution: 'Attribution',
       source_file_sha256: 'a'.repeat(64),
     }];
-    assert.throws(() => selectBooks(metadata, { syncEnabled: false }), /LIBRARY_SYNC_DISABLED_PENDING_OWNER_EDITORIAL_REVIEW/);
-    assert.throws(() => selectBooks(metadata, { syncEnabled: true, editoriallyApprovedSourceIds: [] }), /LIBRARY_SYNC_REQUIRES_EXPLICIT_EDITORIALLY_APPROVED_SOURCE_IDS/);
-    assert.throws(() => selectBooks(metadata, { syncEnabled: true, editoriallyApprovedSourceIds: ['book-b'], minimumWords: 1, maximumWordsPerBook: 20000, minimumChapters: 1, categories: [], fallbackCategories: [], targetBooks: 1, minimumBooks: 1, maximumTotalWords: 20000 }), /Only 0 books passed/);
+    const minimalManifest = {
+      targetBooks: 1,
+      minimumBooks: 1,
+      minimumWords: 1,
+      maximumWordsPerBook: 20000,
+      minimumChapters: 1,
+      maximumTotalWords: 20000,
+      categories: [],
+      fallbackCategories: [],
+    };
+    assert.throws(() => selectBooks(metadata, { ...minimalManifest, syncEnabled: false }), /LIBRARY_SYNC_DISABLED_PENDING_OWNER_EDITORIAL_REVIEW/);
+    assert.throws(() => selectBooks(metadata, { ...minimalManifest, syncEnabled: true, editoriallyApprovedSourceIds: [] }), /LIBRARY_SYNC_REQUIRES_EXPLICIT_EDITORIALLY_APPROVED_SOURCE_IDS/);
+    assert.throws(() => selectBooks(metadata, { ...minimalManifest, syncEnabled: true, editoriallyApprovedSourceIds: ['book-b'] }), /Only 0 books passed/);
   });
 
   it('must keep UI category IDs identical to the curated policy categories', () => {
