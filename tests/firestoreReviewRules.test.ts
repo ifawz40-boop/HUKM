@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
@@ -44,11 +42,11 @@ before(async () => {
     firestore: {
       host: '127.0.0.1',
       port: 8080,
-      rules: readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8'),
     },
   });
 
-  await testEnvironment.clearFirestore();
+  // firebase.json binds firestore.rules to the project's named production database ID;
+  // the CLI emulator loads that same rules file for this named database at startup.
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     const adminDb = getFirestore(context.firestore().app, DATABASE_ID);
     for (const collectionName of REVIEW_COLLECTIONS) {
