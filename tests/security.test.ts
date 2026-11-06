@@ -33,7 +33,7 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.ok(vercelApiContent.includes("app.disable('x-powered-by')"));
     });
 
-    it('documents the server-side Resend configuration without committing credentials', () => {
+    it('documents Gmail SMTP and optional Resend settings without committing credentials', () => {
       const envExample = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf-8');
       assert.ok(envExample.includes('GMAIL_USER="hukm.contact@gmail.com"'));
       assert.ok(envExample.includes('GMAIL_APP_PASSWORD="YOUR_GOOGLE_APP_PASSWORD"'));
@@ -43,10 +43,12 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(/RESEND_API_KEY="re_[^"]+"/.test(envExample), false);
     });
 
-    it('requires an explicit sender address and never falls back to an unverified domain', () => {
+    it('selects providers through the validated server-side provider resolver', () => {
       const emailApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
-      assert.ok(emailApiContent.includes("const fromAddress = process.env.EMAIL_FROM?.trim()"));
-      assert.ok(emailApiContent.includes('متغير EMAIL_FROM غير موجود'));
+      const providerContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailProvider.ts'), 'utf-8');
+      assert.ok(emailApiContent.includes('resolveEmailProviderConfig(process.env)'));
+      assert.ok(providerContent.includes("host: 'smtp.gmail.com'"));
+      assert.ok(providerContent.includes('port: 465'));
       assert.equal(emailApiContent.includes('updates@hukm.media'), false);
     });
   });
@@ -592,8 +594,9 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.equal(emailApiContent.includes("adminRole !== 'owner' && adminRole !== 'admin'"), false);
     });
 
-    it('must not claim the email provider is ready based only on a non-empty API key', () => {
-      assert.ok(emailApiContent.includes('لم يتم التحقق من صلاحيته أو اعتماد نطاق المرسل'));
+    it('must resolve a complete configured provider and never claim credentials were delivery-tested', () => {
+      assert.ok(emailApiContent.includes('resolveEmailProviderConfig(process.env)'));
+      assert.ok(emailApiContent.includes('لم يتم التحقق من بيانات الدخول أو قبول الرسائل إلا بعد إرسال فعلي'));
       assert.equal(emailApiContent.includes('مهيأ وجاهز للإرسال الفعلي'), false);
     });
 
