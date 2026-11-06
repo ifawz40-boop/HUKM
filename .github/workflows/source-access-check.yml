@@ -19,13 +19,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url='https://api.researchdata.se/dataset/2024-145/1/file/documentation?filePath=metadata.tsv'
-          curl --fail --location --show-error --silent \
-            --retry 2 --retry-all-errors --connect-timeout 20 --max-time 120 \
-            --dump-header /tmp/snd-headers.txt \
-            --output /tmp/hukm-metadata.tsv \
-            --write-out 'HTTP=%{http_code}\nFINAL_URL=%{url_effective}\nBYTES=%{size_download}\nCONTENT_TYPE=%{content_type}\n' \
-            "$url"
+          urls=(
+            'https://doris.snd.se//api/file/2024-145/1/documentation?filePath=metadata.tsv'
+            'https://doris.snd.se/api/file/2024-145/1/documentation?filePath=metadata.tsv'
+          )
+          downloaded=false
+          for url in "${urls[@]}"; do
+            echo "--- trying ${url} ---"
+            if curl --fail --location --show-error --silent \
+              --retry 1 --retry-all-errors --connect-timeout 20 --max-time 120 \
+              --dump-header /tmp/snd-headers.txt \
+              --output /tmp/hukm-metadata.tsv \
+              --write-out 'HTTP=%{http_code}\nFINAL_URL=%{url_effective}\nBYTES=%{size_download}\nCONTENT_TYPE=%{content_type}\n' \
+              "$url"; then
+              downloaded=true
+              break
+            fi
+          done
+          test "$downloaded" = true
           echo '--- response headers ---'
           tail -n 20 /tmp/snd-headers.txt
           echo '--- metadata preview ---'
