@@ -24,22 +24,50 @@ export const PUBLIC_LIBRARY_BOOKS: BookProject[] = (
   catalogModules['./catalog.json'] || []
 ).filter((book) => book && book.id && book.title && Array.isArray(book.chapters));
 
-const bookLoaders = import.meta.glob('./books/*.json') as Record<
-  string,
-  () => Promise<{ default: BookProject }>
->;
+const bookAssetUrls = import.meta.glob('./books/*.json', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+
+const loadedBooks = new Map<string, BookProject>();
+const pendingBookLoads = new Map<string, Promise<BookProject>>();
 
 export async function loadPublicLibraryBook(bookId: string): Promise<BookProject> {
-  const loader = bookLoaders[`./books/${bookId}.json`];
-  if (!loader) {
-    throw new Error(`The bundled book "${bookId}" is not present in the static library.`);
+  const cachedBook = loadedBooks.get(bookId);
+  if (cachedBook) return cachedBook;
+
+  const pendingRequest = pendingBookLoads.get(bookId);
+  if (pendingRequest) return pendingRequest;
+
+  const assetUrl = bookAssetUrls[`./books/${bookId}.json`];
+  if (!assetUrl) {
+    throw new Error(`The static book asset "${bookId}" is not present in the library.`);
   }
-  const module = await loader();
-  const book = module.default;
-  if (!book || book.id !== bookId || !Array.isArray(book.chapters) || book.chapters.length === 0) {
-    throw new Error(`The bundled book "${bookId}" failed its content integrity check.`);
+
+  const request = (async () => {
+    const response = await fetch(assetUrl);
+    if (!response.ok) {
+      throw new Error(`The static book asset "${bookId}" could not be loaded (HTTP ${response.status}).`);
+    }
+
+    const book = await response.json() as BookProject;
+    if (!book || book.id !== bookId || !Array.isArray(book.chapters) || book.chapters.length === 0) {
+      throw new Error(`The static book asset "${bookId}" failed its content integrity check.`);
+    }
+
+    loadedBooks.set(bookId, book);
+    return book;
+  })();
+
+  pendingBookLoads.set(bookId, request);
+  try {
+    return await request;
+  } finally {
+    if (pendingBookLoads.get(bookId) === request) {
+      pendingBookLoads.delete(bookId);
+    }
   }
-  return book;
 }
 
 export const PUBLIC_LIBRARY_SOURCE = {
