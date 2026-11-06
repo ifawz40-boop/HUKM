@@ -53,6 +53,15 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
   });
 
+  it('must support keyboard-only operation and contain dialog focus', () => {
+    assert.match(curationPanel, /autoFocus/);
+    assert.match(curationPanel, /event\.key === 'Escape'/);
+    assert.match(curationPanel, /event\.currentTarget\.querySelectorAll/);
+    assert.match(curationPanel, /last\.focus\(\)/);
+    assert.match(curationPanel, /overscroll-contain/);
+    assert.match(curationPanel, /aria-describedby="library-curation-description"/);
+  });
+
   it('must display the candidate-specific source audit report when present', () => {
     const candidates = JSON.parse(read('src/data/library/candidates.json'));
     const candidate = candidates.books.find((book: { id: string }) => book.id === 'ibn-taymiyyah-tazkiyat-al-nafs');
