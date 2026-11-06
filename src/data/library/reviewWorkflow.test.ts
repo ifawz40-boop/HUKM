@@ -86,6 +86,7 @@ test('publication requires editorial approval, rights clearance and the Git allo
   assert.equal(isPublicLibraryEligible('approved', 'public_domain_verified', current), true);
   assert.equal(isPublicLibraryEligible('approved', 'cleared', { ...current, rightsSnapshot: { ...snapshot, candidateFingerprint: 'b'.repeat(64) } }), false);
   assert.equal(isPublicLibraryEligible('approved', 'cleared', { ...current, editorialSnapshot: { ...snapshot, policyVersion: '0.9.0' } }), false);
+  assert.equal(isPublicLibraryEligible('approved', 'cleared', null), false);
 });
 
 test('review snapshots become stale when candidate metadata or policy changes', () => {
@@ -93,6 +94,9 @@ test('review snapshots become stale when candidate metadata or policy changes', 
   assert.equal(isReviewSnapshotCurrent(reviewed, reviewed), true);
   assert.equal(isReviewSnapshotCurrent(reviewed, { ...reviewed, candidateFingerprint: 'b'.repeat(64) }), false);
   assert.equal(isReviewSnapshotCurrent(reviewed, { ...reviewed, policyVersion: '1.0.1' }), false);
+  assert.equal(isReviewSnapshotCurrent(null, reviewed), false);
+  assert.equal(isReviewSnapshotCurrent(reviewed, null), false);
+  assert.equal(isReviewSnapshotCurrent({ ...reviewed, candidateFingerprint: 'not-a-hash' }, reviewed), false);
 });
 
 test('evidence references accept only unique HTTPS URLs without credentials', () => {
