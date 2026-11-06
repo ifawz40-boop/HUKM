@@ -35,8 +35,11 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
 
     it('documents the server-side Resend configuration without committing credentials', () => {
       const envExample = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf-8');
+      assert.ok(envExample.includes('GMAIL_USER="hukm.contact@gmail.com"'));
+      assert.ok(envExample.includes('GMAIL_APP_PASSWORD="YOUR_GOOGLE_APP_PASSWORD"'));
       assert.ok(envExample.includes('RESEND_API_KEY="YOUR_RESEND_API_KEY"'));
       assert.ok(envExample.includes('EMAIL_FROM='));
+      assert.equal(/GMAIL_APP_PASSWORD="(?!YOUR_GOOGLE_APP_PASSWORD)[^"]+"/.test(envExample), false);
       assert.equal(/RESEND_API_KEY="re_[^"]+"/.test(envExample), false);
     });
 
