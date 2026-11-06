@@ -184,3 +184,14 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - This is a disputed tabarruk practice, not automatically shirk; Azhar and other Sunni authorities differ in the exact ruling. The report carefully distinguishes it from invoking or worshipping the object.
 - Keep the candidate hidden. Owner decision is needed on whether HUKM excludes books that positively endorse this type of tabarruk, even where it is disputed among Sunni scholars. If excluded, delete the candidate and report entirely from the current tree; do not archive.
 - Next: finish the 23-candidate author/content audit and proceed only with full-text sources; never publish an unapproved candidate.
+
+
+## PR #47 — verified merge
+- PR #47 merged at `f8f5724e6198a950dde40843e31187ce582c9598`; post-merge main CI run #42245165847 passed.
+- Ibn Jubayr candidate remains hidden/unapproved; review report records the disputed tabarruk passage and the need for the owner's policy decision.
+- No public book content or PDF was added.
+
+## Owner policy decision pending
+- Does HUKM exclude any book that positively endorses touching the Prophet's chamber/minbar or seeking blessing from attributed relics, even where this is disputed among Sunni scholars, or allow such material in historical travelogues provided it does not invoke or worship the object?
+- Until the owner decides, keep `رحلة ابن جبير` hidden and unapproved. If excluded, delete the candidate and report entirely from the current tree.
+- Next: continue the author/content audit of remaining candidates, starting with the concise spiritual-ethics work `مختصر منهاج القاصدين`, and keep all candidates unapproved until full-text review and rights clearance.
