@@ -251,6 +251,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   it('must ignore stale static-book loads after a newer book request or navigation', () => {
     assert.ok(app.includes('const bookLoadRequestIdRef = useRef<number>(0);'));
     assert.ok(app.includes('const requestId = ++bookLoadRequestIdRef.current;'));
+    assert.ok(app.includes('if (loadedBook?.id === bookId) {\n      setIsLoadingBook(false);\n      return loadedBook;\n    }'));
     assert.ok(app.includes('if (bookLoadRequestIdRef.current !== requestId) return null;'));
     assert.ok(app.includes('if (bookLoadRequestIdRef.current === requestId) setIsLoadingBook(false);'));
     assert.ok(app.includes('const invalidatePendingBookLoad = () => {'));
