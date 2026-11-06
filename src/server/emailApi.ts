@@ -166,7 +166,14 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
             html: htmlContent,
           });
           // Broadcasts include one sender copy in the visible To field plus BCC recipients.
-          acceptedCount = Math.min(batch.length, Array.isArray(info.accepted) ? info.accepted.length : batch.length);
+          // Exclude that sender copy when counting subscriber deliveries.
+          const acceptedRecipients = Array.isArray(info.accepted)
+            ? info.accepted.filter((entry) => {
+                const address = typeof entry === 'string' ? entry : entry.address;
+                return address.toLowerCase() !== providerConfig.user;
+              })
+            : batch;
+          acceptedCount = Math.min(batch.length, acceptedRecipients.length);
           messageId = info.messageId || '';
         } catch (providerError) {
           console.error(`Gmail SMTP failure at batch index ${i}.`, providerError);
