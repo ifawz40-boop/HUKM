@@ -649,3 +649,62 @@ authClaimsRouter.get('/my-claims', authenticateToken, async (req: Request, res: 
     emailVerified: Boolean(user.email_verified),
   });
 });
+
+/**
+ * Check the authenticated user's own moderation status.
+ * Bans are private in Firestore; the Admin SDK reads only the email asserted
+ * by this caller's verified Firebase ID token and returns only that user's ban.
+ */
+authClaimsRouter.get('/account-status', authenticateToken, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const email = typeof user?.email === 'string' ? user.email.trim().toLowerCase() : '';
+
+  if (!email) {
+    return res.json({ success: true, banned: false, ban: null });
+  }
+
+  try {
+    const snapshot = await adminDb.collection('bans').where('email', '==', email).get();
+    const now = Date.now();
+    const activeDocs = snapshot.docs
+      .filter((document) => document.data()?.isActive === true)
+      .filter((document) => {
+        const data = document.data();
+        if (data.banType !== 'temporary' || !data.expiresAt) return true;
+        const expiresAt = Date.parse(String(data.expiresAt));
+        // An invalid expiry timestamp does not silently lift a temporary ban.
+        return !Number.isFinite(expiresAt) || expiresAt > now;
+      })
+      .sort((a, b) => String(b.data()?.bannedAt || '').localeCompare(String(a.data()?.bannedAt || '')));
+
+    const document = activeDocs[0];
+    if (!document) {
+      return res.json({ success: true, banned: false, ban: null });
+    }
+
+    const data = document.data();
+    return res.json({
+      success: true,
+      banned: true,
+      ban: {
+        id: document.id,
+        email,
+        name: typeof data.name === 'string' ? data.name : 'مستخدم مسجل',
+        banType: data.banType === 'permanent' ? 'permanent' : 'temporary',
+        reason: typeof data.reason === 'string' ? data.reason : 'مخالفة معايير المنصة.',
+        bannedBy: typeof data.bannedBy === 'string' ? data.bannedBy : 'إدارة حُكم',
+        bannedAt: typeof data.bannedAt === 'string' ? data.bannedAt : '',
+        expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
+        isActive: true,
+      },
+    });
+  } catch (error) {
+    console.error('Read authenticated account moderation status failed:', error);
+    return res.status(500).json({
+      success: false,
+      banned: false,
+      ban: null,
+      message: 'تعذر التحقق من حالة الحساب الآن. حاول تسجيل الدخول مجددًا لاحقًا.',
+    });
+  }
+});
