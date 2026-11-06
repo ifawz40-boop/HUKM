@@ -248,7 +248,7 @@ export function createLibraryReviewRouter(dependencies: LibraryReviewRouterDepen
       if (typeof body.note !== 'string' || !Array.isArray(body.evidenceReferences)) {
         return res.status(400).json({ success: false, code: 'INVALID_REVIEW_PAYLOAD', message: 'الملاحظة ومراجع الأدلة مطلوبة بصيغة صحيحة.' });
       }
-      if (!Number.isSafeInteger(body.expectedVersion) || Number(body.expectedVersion) < 0) {
+      if (typeof body.expectedVersion !== 'number' || !Number.isSafeInteger(body.expectedVersion) || body.expectedVersion < 0) {
         return res.status(400).json({ success: false, code: 'INVALID_EXPECTED_VERSION', message: 'إصدار المراجعة المتوقع غير صالح.' });
       }
 
