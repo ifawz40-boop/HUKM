@@ -26,6 +26,12 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const vercelConfig = JSON.parse(read('vercel.json'));
   const deploymentGate = read('scripts/assert-library-ready.mjs');
   const libraryManifest = JSON.parse(read('src/data/library/manifest.json'));
+  const libraryNotice = read('src/data/library/NOTICE.md');
+
+  it('must describe CC BY 4.0 accurately without adding a ShareAlike condition', () => {
+    assert.match(libraryNotice, /CC BY 4\\.0 does not impose a ShareAlike condition/);
+    assert.doesNotMatch(libraryNotice, /share-alike-compatible/i);
+  });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
     assert.match(vercelConfig.buildCommand, /node scripts\/assert-library-ready\.mjs/);
