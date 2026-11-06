@@ -90,7 +90,7 @@ class PageCategoryAuditTests(unittest.TestCase):
                     pages.append({
                         "title": title,
                         "pageid": 1,
-                        "lastrevid": 105726,
+                        "lastrevid": 105727,
                         "fullurl": "https://ar.wikisource.org/wiki/فقه_اللغة_وسر_العربية",
                         "categories": [{"title": "تصنيف:فقه اللغة"}],
                     })
@@ -116,8 +116,10 @@ class PageCategoryAuditTests(unittest.TestCase):
         self.assertEqual(report["page_audit_status"], "complete")
         self.assertEqual(report["flagged_page_count"], 1)
         self.assertEqual(report["flagged_pages"][0]["title"], "فقه اللغة وسر العربية/مقدمة")
-        self.assertTrue(report["source_pages"][0]["revision_matches_pinned_source"])
+        self.assertFalse(report["source_pages"][0]["revision_matches_pinned_source"])
         self.assertTrue(report["source_pages"][1]["revision_matches_pinned_source"])
+        self.assertEqual(report["revision_drift_page_count"], 1)
+        self.assertEqual(report["revision_drift_pages"][0]["title"], "فقه اللغة وسر العربية")
         self.assertEqual(report["author_pages"][0]["lookup_status"], "found")
 
     def test_audit_candidates_marks_missing_pages_incomplete(self):
