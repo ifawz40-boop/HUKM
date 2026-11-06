@@ -366,7 +366,7 @@
 - Preserved the existing `overscroll-contain`, candidate publisher/edition/scan-page metadata and candidate-specific review-report links. The older unmerged accessibility branch was not merged because it removed some of those current-main details.
 - Added static regression assertions for listener registration/removal, focus restoration, Escape handling, body scroll locking and retained scroll containment.
 - Scope is limited to `src/components/LibraryCurationPanel.tsx` and `tests/staticLibrary.test.ts`; no curation status, allowlist, Firestore/API, publication or deployment behavior changed.
-- PR #28 remains open pending validation of its final documentation-inclusive head and independent merge review. Do not claim this change is merged.
+- PR #28 was subsequently merged after final-head CI and independent diff review; the exact merge and post-merge verification are recorded in the following checkpoint section.
 - Current live `main` HEAD at PR creation: `39f1ec926b15c228936575ace7c73c464e72bfbe`.
 - Vercel still reports `build-rate-limit`; no production deployment is confirmed.
 
