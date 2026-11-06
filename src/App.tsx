@@ -295,9 +295,9 @@ export default function App() {
 
   // The public-domain catalogue and its categories are bundled with the application.
   // They are immutable at runtime and never loaded from Firestore or localStorage.
-  const categories: CategoryItem[] = PUBLIC_LIBRARY_CATEGORIES.filter((category) =>
-    PUBLIC_LIBRARY_BOOKS.some((book) => book.category === category.id)
-  );
+  // Keep all editorially approved category paths visible even while the public catalogue is empty.
+  // The allowlist controls book publication; category navigation must not depend on current book count.
+  const categories: CategoryItem[] = PUBLIC_LIBRARY_CATEGORIES;
   const [books, setBooks] = useState(PUBLIC_LIBRARY_BOOKS);
   const [loadedBook, setLoadedBook] = useState<BookProject | null>(null);
   const [isLoadingBook, setIsLoadingBook] = useState(false);
