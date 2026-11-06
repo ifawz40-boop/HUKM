@@ -25,7 +25,7 @@ const getStoredProgress = (key: string, totalPages: number) => {
   try {
     return parsePdfReaderProgress(window.localStorage.getItem(key), totalPages);
   } catch {
-    return { page: 1, zoom: 1 };
+    return { page: 1, zoom: 1, fitToWidth: true };
   }
 };
 
@@ -63,7 +63,6 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
 
     const loadingTask = getDocument({
       url: item.fileUrl,
-      isEvalSupported: false,
       enableXfa: false,
     });
     loadingTaskRef.current = loadingTask;
@@ -154,6 +153,7 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
         if (!context) throw new Error('Canvas 2D context is unavailable.');
 
         const renderTask = page.render({
+          canvas,
           canvasContext: context,
           viewport,
           transform: outputScale !== 1
