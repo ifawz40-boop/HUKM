@@ -17,8 +17,8 @@ const safeText = (value) => typeof value === 'string' ? value.trim() : '';
 const sqlString = (value) => "'" + value.replace(/'/g, "''") + "'";
 const revisionUrl = (revision) => `https://huggingface.co/datasets/${DATASET}/tree/${revision}`;
 const licenseUrl = 'https://creativecommons.org/licenses/by/4.0/';
-const MAX_ATTEMPTS = 18;
-const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_ATTEMPTS = 5;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 function buildRequestUrl(endpoint, params) {
   const isAbsoluteUrl = endpoint.startsWith('https://') || endpoint.startsWith('http://');
@@ -60,8 +60,8 @@ async function requestJson(endpoint, params, label) {
 
       const retryAfterSeconds = Number(response.headers.get('retry-after') || 0);
       const waitMs = response.status === 429 && retryAfterSeconds > 0
-        ? Math.min(30_000, retryAfterSeconds * 1000)
-        : Math.min(20_000, attempt * 1_500);
+        ? Math.min(15_000, retryAfterSeconds * 1000)
+        : Math.min(10_000, attempt * 1_000);
       console.log(`Dataset Viewer temporary HTTP ${response.status} for ${label} (attempt ${attempt}/${MAX_ATTEMPTS}); retrying in ${waitMs / 1000}s.`);
       await sleep(waitMs);
     } catch (error) {
