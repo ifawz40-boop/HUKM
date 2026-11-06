@@ -15,6 +15,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const syncWorkflow = read('.github/workflows/sync-public-library.yml');
   const chapterExtractor = read('scripts/extract-library-chapters.py');
   const bookOverview = read('src/components/BookOverviewView.tsx');
+  const bookReader = read('src/components/BookReaderView.tsx');
   const bookCard = read('src/components/BookCard.tsx');
   const hero = read('src/components/HukmHero.tsx');
   const serverApi = read('src/server/authClaimsApi.ts');
@@ -281,6 +282,20 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(bookOverview, /const handleShare = async \(\) => \{/);
     assert.match(bookOverview, /await navigator\.clipboard\?\.writeText|await navigator\.clipboard\.writeText/);
     assert.match(bookOverview, /catch \{[\s\S]*تعذر نسخ الرابط تلقائيًا/);
+  });
+
+  it('must validate persisted reader preferences before using them as UI state', () => {
+    assert.match(bookReader, /saved >= 15 && saved <= 32/);
+    assert.match(bookReader, /saved === 'amiri' \|\| saved === 'cairo' \|\| saved === 'tajawal' \|\| saved === 'readex'/);
+    assert.match(bookReader, /saved === 'dark' \|\| saved === 'sepia' \|\| saved === 'light' \|\| saved === 'black'/);
+    assert.doesNotMatch(bookReader, /localStorage\.getItem\('hukm_reader_font'\) as any/);
+    assert.doesNotMatch(bookReader, /localStorage\.getItem\('hukm_reader_theme'\) as any/);
+  });
+
+  it('must report reader-share success only after the clipboard write resolves', () => {
+    assert.match(bookReader, /const handleShare = async \(\) => \{/);
+    assert.match(bookReader, /await navigator\.clipboard\.writeText\(window\.location\.href\)/);
+    assert.match(bookReader, /catch \{[\s\S]*تعذر نسخ الرابط تلقائيًا/);
   });
 
   it('must expose book-card reading actions through keyboard-accessible controls', () => {
