@@ -29,6 +29,7 @@ import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SendAnnouncementModal } from './components/SendAnnouncementModal';
 import { AdminManagementModal } from './components/AdminManagementModal';
+import { LibraryCurationPanel } from './components/LibraryCurationPanel';
 import { HukmEmailModal } from './components/HukmEmailModal';
 import { BannedNoticeModal } from './components/BannedNoticeModal';
 import { LegacyLibraryPurgeModal } from './components/LegacyLibraryPurgeModal';
@@ -317,6 +318,7 @@ export default function App() {
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isAdminManagementOpen, setIsAdminManagementOpen] = useState(false);
+  const [isCurationPanelOpen, setIsCurationPanelOpen] = useState(false);
   const [isLegacyPurgeOpen, setIsLegacyPurgeOpen] = useState(false);
   const [legacyLibraryPurgeCompleted, setLegacyLibraryPurgeCompleted] = useState(false);
 
@@ -656,6 +658,7 @@ export default function App() {
           onOpenSendAnnouncement={() => setIsAnnouncementModalOpen(true)}
           onOpenEmailModal={() => setIsEmailModalOpen(true)}
           onOpenAdminManagement={() => setIsAdminManagementOpen(true)}
+          onOpenCurationPanel={() => setIsCurationPanelOpen(true)}
           onLogout={handleLogout}
           onUserRefreshed={(refreshed) => setCurrentUser(refreshed)}
           onShowToast={showToast}
@@ -996,6 +999,13 @@ export default function App() {
         currentUser={currentUser}
         onShowToast={showToast}
       />
+
+      {isOwner && (
+        <LibraryCurationPanel
+          isOpen={isCurationPanelOpen}
+          onClose={() => setIsCurationPanelOpen(false)}
+        />
+      )}
 
       {/* Official Banned Account Decree Modal */}
       <BannedNoticeModal
