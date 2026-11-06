@@ -239,7 +239,7 @@ def main():
     report_path = "wikisource-candidate-report.jsonl"
     with open(report_path, "w", encoding="utf-8") as report_file:
         for item in report:
-            report_file.write(json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\\n")
+            report_file.write(json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n")
     print("WIKISOURCE_CANDIDATE_REPORT_FILE=" + report_path)
 
     print("WIKISOURCE_CANDIDATE_REPORT_BEGIN")
