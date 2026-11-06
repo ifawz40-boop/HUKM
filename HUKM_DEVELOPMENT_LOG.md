@@ -77,6 +77,20 @@
 - Google AI Studio synchronization remains unverified.
 - Main's current HEAD after the report documentation update: `1317bc9dc1ffb9751e9933c5d9f96f57728204e1` (documentation-only commit after the successful code merge CI; its own CI result is pending).
 
+## Latest continuation — page-level provenance audit (2026-11-06)
+
+- PR #10, `Audit Wikisource categories across every source page`, merged by squash: https://github.com/ifawz40-boop/HUKM/pull/10
+- Merge commit: `a6280120dc152c3c42fc04e018e66c21754581e0`; verified `main` was identical immediately after merge.
+- PR CI run #42189138400 passed full tests, TypeScript and production build. PR audit run #42189138412 completed successfully, including both Python test suites, the pinned 40,782-row candidate scan, and the live page-category audit.
+- Live page-level audit: 2,253/2,253 source pages and all author pages found; 0 API batch failures; 0 missing pages; 0 revision drift; all 38 candidate reports marked complete.
+- The page-category audit flagged 1,380 pages across 28 books for `نصوص مجهولة المصدر`, plus one page (`معجم البلدان/الجزء الثالث`) tagged `أعمال غير مكتملة`. This exposed an important limitation in the earlier book-level-only category check.
+- Full page-category artifact: https://github.com/ifawz40-boop/HUKM/actions/runs/42189138412/artifacts/13489445638 (14-day retention).
+- A first GET-based API attempt failed with HTTP 414 (URI Too Long) for long Arabic title batches. The audit now uses POST requests; the final full page audit succeeded.
+- Candidate report updated with the 2,253-page findings and a revised three-book shortlist: `لسان غصن لبنان`, `مقدمة ابن خلدون` (author-page Gregorian conversion discrepancy), and `سنن النسائي` (no scan-proofreading signal; low diacritization ratio). No book is approved for import.
+- 28 books have at least one page tagged unknown-source. Examples: `كتاب الأحكام الشرعية الكبرى` 844/847 pages, `إحياء علوم الدين` 105/105, `فقه اللغة وسر العربية` 31/32, `عيون الأنباء` 8/54, `كتاب الاعتبار` 14/15.
+- Post-merge CI and candidate-audit runs for merge commit `a628012...` were triggered. Documentation updates after the merge also trigger CI; their exact-head status must be checked before declaring the latest docs checkpoint verified.
+- The current Vercel status remains a free-plan daily deployment quota failure; no production deployment or Google AI Studio synchronization has been independently confirmed.
+
 ## Work completed in this session
 1. Verified repository metadata, default branch, visibility and write permissions.
 2. Enumerated branches (14 total from the connector's paginated search) and reviewed recent PR history (#1–#8).
@@ -89,12 +103,12 @@
 9. Recorded all 38 candidate summaries and explicit no-import/rights-review caveats in `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md`.
 
 ## HUKM_CHECKPOINT
-- LAST_COMPLETED_MILESTONE: Repository intelligence, initial Wikisource candidate discovery, and full candidate provenance-report pipeline (partial; not a full file-by-file source audit)
-- LAST_COMPLETED_TASK: Merge PR #9; verify CI run #42188045609 and audit run #42188045492; publish full provenance artifact and update candidate review report
+- LAST_COMPLETED_MILESTONE: Repository intelligence + pinned candidate discovery + full provenance report + live page-level category audit (partial; not a full file-by-file source audit)
+- LAST_COMPLETED_TASK: Merge PR #10; verify PR CI/audit; scan all 2,253 Wikisource source pages; publish page-category artifact and update candidate review report
 - CURRENT_BRANCH: main
-- LAST_STABLE_COMMIT: 92b1251dd3dece8323cb32f9997e7817c5bc826d (merge commit; CI and candidate audit both passed)
-- TEST_STATUS: Full tests, TypeScript and production build passed in CI run #42188045609; candidate audit tests and full pinned scan passed in run #42188045492
+- LAST_STABLE_COMMIT: a6280120dc152c3c42fc04e018e66c21754581e0 (PR #10 merge; PR CI and full page-category audit passed)
+- TEST_STATUS: Full tests, TypeScript and production build passed in PR CI run #42189138400; both audit unit-test suites and pinned + live page-category audits passed in run #42189138412
 - MAIN_SYNC_STATUS: main is current GitHub default branch; Google AI Studio sync itself unverified
-- PENDING_TASKS: Complete manual review of the provisional candidate shortlist; decide a human-approved allowlist; design and test a separate CC BY-SA 4.0 rights tier; make source labels/provenance UI generic; full application/security/UI audit remains pending
-- NEXT_ACTION: Re-fetch current main, verify CI for docs HEAD `1317bc9...`, then manually review the six provisional candidates against source-page texts and edition provenance. Do not import until a per-book allowlist and rights evidence are complete.
+- PENDING_TASKS: Manually review the revised three-book shortlist and source text/edition; design and test a separate CC BY-SA 4.0 rights tier only after human allowlist; make source labels/provenance UI generic; full application/security/UI audit remains pending
+- NEXT_ACTION: Re-fetch main and verify post-merge CI/audit for `a628012...` and latest docs-only HEAD; then manually review the three remaining candidates against source-page texts and edition provenance. Do not import until a per-book allowlist and rights evidence are complete.
 - KNOWN_ISSUES: Vercel daily deployment quota (>100/day); main/preparation branch divergence; no independently confirmed live deployment or Google AI Studio sync; current docs-only HEAD CI pending; candidate text quality/provenance still needs human review.
