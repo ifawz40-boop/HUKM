@@ -545,3 +545,52 @@ A stronger primary source was found after the first Wikisource sync attempt:
 4. Continue reviewing `BookReaderView` lifecycle (book/user changes, speech cancellation, scroll timer cleanup), Firestore progress/annotation rules, and every route. Keep Firestore limited to per-user progress/annotations; public book files remain static lazy-loaded assets.
 5. Continue the visual-library implementation only after content exists and the source catalogue has been independently audited. Check book detail/source attribution, mobile layout, keyboard navigation, search, empty/loading/error states, and cover fallback.
 6. Before every new change batch, re-fetch `main`; after each batch, run source regression checks, commit to `main`, and update this checkpoint. Never claim a deployed production site without a successful deployment URL/status.
+
+
+## Continuation checkpoint — 2026-11-06 — Static library extraction, rights audit and first full-text batch
+
+### Verified code and data commits on main
+- 1cb066966a75422dbe3ae592f907bd746f231a1c — fixed JSONL parsing in scripts/sync-public-library.mjs: split extractor output on real LF/CRLF boundaries and ignore blank lines. The previous over-escaped regex treated the JSONL output as one string and failed at the second JSON object.
+- 5ba1e74326dd65f29a55e99a6fd2a877ef05ad1a — aligned the streaming regression assertion with the actual contiguous-index guard and added a regression assertion for line-ending parsing.
+- bc70e34df3b2ab82c67f40393b98ff06ed513e56 — generated and committed 17 full-text books, catalogue and source/rights notice from the pinned dataset.
+- 0b7089bf95451a6ed3590d0000f743513585111c — corrected the rights notice: CC BY 4.0 requires attribution and licence notices; it does not impose a ShareAlike condition.
+- 1a669c8578f7873e0b7d664fa87d8baabcf48eca — added a regression test for accurate CC BY 4.0 wording.
+- 636fc39e1c4caa161a9a33910c322ab056bd0b6d — clarified that the first selection is automated and not yet manually curated/proofread; documented omitted source assets and verified first-batch totals.
+- 470983d2bc1b53bb319d6f8a0415f5513ac5836e — added regression assertions for first-batch transparency and the documented totals.
+
+### Streaming sync evidence
+- GitHub Actions sync run: https://github.com/ifawz40-boop/HUKM/actions/runs/42180455502 — SUCCESS.
+- Source revision pinned and verified: 39876c0e7f28c2d16887c7c139800e0df9f87263.
+- Metadata scan: 1,545 source rows; 364 passed the existing rights screen (135 explicitly licensed Arabic translations; 229 original-text/public-domain life+70-screened candidates).
+- The configured target is 24 books; the current category quotas and eligibility yielded 17. The sync extracted 441 complete sections after scanning 26,712 rows. JSONL SHA-256: 8aa33738145a11bb6b260070f1cfb607905f9491536e413633cf0c87a4ddcccf.
+- Generated output: 17 complete books, 441 sections, 1,499,436 words, 15.91 MiB. All 17 files, metadata catalogue and NOTICE.md were committed to main.
+
+### Independent generated-data audit
+- Fetched and parsed all 17 full-text Git blobs (the ordinary Contents wrapper returns empty content for some files above its size limit; Git blob retrieval supplied the full UTF-8 data).
+- Confirmed 17 catalogue entries and 17 matching book files; title, author, category, word count and chapter count match between catalogue and full text.
+- All 17 books: actual chapter count matches declared count; chapter word totals and independently counted body-text words match the declared total; chapters are contiguous from 1, belong to the parent book, are marked ready and contain text.
+- All 17: 64-character source hashes, per-book attribution, colophon quotation, source URL and pinned history URL are present; both approved rights tiers are represented and each has original-text status public-domain.
+- Aggregate retained footnotes: 969. Recorded omissions across the batch: 87 images, 2 SVG elements and 5 tables. Cover art is not included; every generated coverImage is currently empty, so the UI fallback remains in use.
+- No structural or rights-metadata failures were found in the independent summary. This is not a human proofread of the 17 books; the selection and content ingestion are automated.
+- The public dataset card states that images/SVG figures are not included and duplicate chapters are marked rather than removed. No verified near_duplicate_group or exact_duplicate_group metadata field has been established in the current metadata schema. Do not implement book-level deduplication against guessed field names; inspect the actual schema/records first.
+
+### CI and deployment verification
+- Latest GitHub Actions verification run: https://github.com/ifawz40-boop/HUKM/actions/runs/42181012044 — SUCCESS for commit 470983d2bc1b53bb319d6f8a0415f5513ac5836e.
+- 262 tests passed; TypeScript check passed; Vite production build passed. The test suite also executed the real-library deployment-gate test against the 17 generated books, not its empty-library skip branch.
+- Build output confirms the initial application JS is about 344.09 kB (74.57 kB gzip), CSS 93.67 kB (14.21 kB gzip), while each book is currently emitted as a separate lazy JavaScript chunk. Individual book chunks range up to about 1.39 MB uncompressed / 412 kB gzip, and Vite warns for chunks above 1.2 MB. This is a measurable performance follow-up, not a build failure.
+- Combined GitHub status still reports Vercel failure with target https://vercel.com/ifawz40-boop?upgradeToPro=build-rate-limit. This is the previously observed Vercel deployment API quota block; it is not the GitHub Actions build result. No successful Vercel production deployment is confirmed.
+
+### Rights notice correction
+- NOTICE.md now accurately distinguishes CC BY 4.0 attribution requirements from ShareAlike licences and explicitly discloses that the first 17-book selection is automated, not yet manually curated or individually proofread.
+- It also records the exact first-batch totals and omitted source assets. Regression tests guard these disclosures so the notice cannot silently revert to the inaccurate wording.
+
+### Exact next actions — resume here
+1. Improve static book delivery before adding more content. Replace large dynamic-imported JSON-as-JavaScript chunks with Vite ?url asset URLs and fetch the original JSON as a static asset. Keep the catalogue metadata-only, keep each book independently lazy-loaded, add in-memory promise/value caching and preserve the existing stale-request guard in src/App.tsx. Add tests proving book text is not included in JS chunks and fetch failures are reported honestly. Verify the actual build chunk report before and after.
+2. Fix reader lifecycle timers in BookReaderView.tsx: the restored-position notice timer and copied-share feedback timer currently have no explicit cleanup. Store timer refs, cancel previous timers before rescheduling, clear the chapter-specific notice on chapter change, and clear both on unmount. Add regression tests.
+3. Replace the current largest-first category selection with a value-oriented, manually reviewed manifest only after inspecting all eligible titles, source credits, categories and rights evidence. Keep minimum book/word/section thresholds fail-closed. Do not claim the current batch is manually curated.
+4. Confirm the actual source metadata schema and sample records for duplicate/edition relationships before adding book-level deduplication. Duplicate chapter markers are a separate upstream property; do not remove them blindly.
+5. Continue the visual library audit: cover fallback (all current coverImage fields are empty), book detail/source panel, author/category shelves, mobile/keyboard states, search and empty/loading/error states. Use original or explicitly cleared cover artwork; the source dataset does not include cover art.
+6. Continue the full repository audit plan: Firestore rules, progress/annotation sync and account isolation, orphaned Writer Studio/publishing routes, admin/auth/email API, and responsive accessibility.
+7. Re-fetch main before every write batch; test, independently re-fetch/review, commit each coherent batch to main, and update this checkpoint. Do not claim deployment without a successful Vercel production URL/status.
+
+RESUME MARKER: Main is at 470983d2bc1b53bb319d6f8a0415f5513ac5836e. The 17-book library and integrity gate are verified in CI. Start with lazy JSON asset delivery and reader timer cleanup; then curate/expand the library.
