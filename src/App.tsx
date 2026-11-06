@@ -819,7 +819,7 @@ export default function App() {
                     <h3 id="pdf-library-heading" className="text-lg font-black text-white">الكتب والنسخ المصورة</h3>
                     <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-400">قسم مستقل للنسخ المصورة. لا تُحتسب هذه المواد ضمن فهرس الكتب النصية، ولكل ملف مصدر وبيان حقوق منفصل.</p>
                   </div>
-                  <span className="w-fit rounded-lg border border-[#c59b27]/20 bg-[#c59b27]/5 px-3 py-1.5 text-[10px] text-[#f0cb69]">{PDF_LIBRARY_ITEMS.length} نسخة مصورة تجريبية</span>
+                  <span className="w-fit rounded-lg border border-[#c59b27]/20 bg-[#c59b27]/5 px-3 py-1.5 text-[10px] text-[#f0cb69]">{PDF_LIBRARY_ITEMS.length} نسخة مصورة</span>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {PDF_LIBRARY_ITEMS.map((item) => (
