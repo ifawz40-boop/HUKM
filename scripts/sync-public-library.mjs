@@ -12,7 +12,7 @@ const API = 'https://datasets-server.huggingface.co';
 const DATASET = 'Bayanat-Labs/open-arabic-books';
 const USER_AGENT = 'HUKM-MEDIA-Static-Library/2.1 (rights-screened Arabic books; https://github.com/ifawz40-boop/HUKM)';
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const countWords = (value) => (value.match(/[\p{L}\p{N}]+/gu) || []).length;
+const countWords = (value) => (value.match(/[\p{L}\p{N}][\p{L}\p{M}\p{N}]*/gu) || []).length;
 const safeText = (value) => typeof value === 'string' ? value.trim() : '';
 const sqlString = (value) => "'" + value.replace(/'/g, "''") + "'";
 const revisionUrl = (revision) => `https://huggingface.co/datasets/${DATASET}/tree/${revision}`;
