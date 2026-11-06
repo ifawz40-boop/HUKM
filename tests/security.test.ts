@@ -80,6 +80,38 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     });
   });
 
+  describe('Public announcement isolation and publishing security', () => {
+    it('allows public reads but only validated owner-created immutable broadcasts', () => {
+      const helperStart = rulesContent.indexOf('function isValidPublicNotificationCreate');
+      const helperEnd = rulesContent.indexOf('function isValidDraftChapterCreate', helperStart);
+      const helper = rulesContent.slice(helperStart, helperEnd);
+      const blockStart = rulesContent.indexOf('match /notifications/{notificationId}');
+      const blockEnd = rulesContent.indexOf('match /subscribers/{subscriberId}', blockStart);
+      const notificationRules = rulesContent.slice(blockStart, blockEnd);
+      assert.ok(helperStart >= 0);
+      assert.ok(helper.includes('isOwner()'));
+      assert.ok(helper.includes('data.createdBy == request.auth.uid'));
+      assert.ok(helper.includes('data.message.size() <= 2000'));
+      assert.ok(notificationRules.includes("resource.data.targetRole == 'all'"));
+      assert.ok(notificationRules.includes('allow create: if isValidPublicNotificationCreate(notificationId)'));
+      assert.ok(notificationRules.includes('allow update, delete: if false'));
+      assert.equal(notificationRules.includes('allow create, update, delete: if isAdmin()'), false);
+    });
+
+    it('fetches only public announcements and never stores per-user read state in shared documents', () => {
+      const fetchStart = firestoreServiceContent.indexOf('export async function fetchPublicNotificationsFromFirestore');
+      const saveStart = firestoreServiceContent.indexOf('export async function savePublicNotificationToFirestore');
+      assert.ok(fetchStart >= 0 && saveStart > fetchStart);
+      const fetchBlock = firestoreServiceContent.slice(fetchStart, saveStart);
+      const saveBlock = firestoreServiceContent.slice(saveStart, firestoreServiceContent.indexOf('AUTHENTICATION WITH FIREBASE'));
+      assert.ok(fetchBlock.includes("where('targetRole', '==', 'all')"));
+      assert.ok(fetchBlock.includes('read: false'));
+      assert.ok(saveBlock.includes('createdBy: user.uid'));
+      assert.ok(saveBlock.includes('targetRole: \'all\''));
+      assert.equal(saveBlock.includes('read: false'), false);
+    });
+  });
+
   describe('Elevated role registry verification', () => {
     it('requires a verified claim and an exact matching active registry role', () => {
       assert.equal(resolveVerifiedUserRole('owner', true, 'owner'), 'owner');
