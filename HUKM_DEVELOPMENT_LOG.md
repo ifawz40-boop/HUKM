@@ -330,3 +330,18 @@
 - The Vercel branch configuration is covered by a regression assertion; actual project-level behavior still needs dashboard verification.
 - Google AI Studio synchronization remains unverified.
 - Next: obtain an authorized complete edition for private review, perform manual browser/screen-reader audit, and verify Vercel Project Settings.
+
+
+## Final checkpoint after PR #25 — 2026-11-06
+
+- PR #25 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/25
+- Merge commit / current main HEAD: `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`.
+- PR CI #42235610950 and post-merge main CI #42235696201 completed successfully.
+- Exact post-merge test totals: 294 tests, 293 passed, 0 failed, 1 skipped; TypeScript and production build passed.
+- Vercel status remains `build-rate-limit` due the free-plan deployment quota. No production deployment is confirmed.
+- The owner-only curation dashboard, tested candidate filters/HTTPS links, source-review report, historical author evidence and keyboard-accessible dialog are merged.
+- Candidate set remains 22; approved IDs remain zero; 24 legacy books remain quarantined.
+- *Fasl fi Tazkiyat al-Nafs* remains pending full-text review and rights clearance.
+- Main-only Git deployment policy is present and statically tested; effective Vercel project settings still need verification.
+- Google AI Studio synchronization remains unverified.
+- Next: obtain an authorized complete edition for private review, perform manual browser/screen-reader audit, and verify Vercel Project Settings.
