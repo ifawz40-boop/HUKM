@@ -71,6 +71,7 @@ const SELECTED_IDS = new Set([
 
 async function inspectSelectedMetadata() {
   const selected = [];
+  const allRows = [];
   let total = null;
   for (let offset = 0; total === null || offset < total; offset += 100) {
     const url = new URL('/rows', BASE);
@@ -85,6 +86,7 @@ async function inspectSelectedMetadata() {
     total = Number(payload.num_rows_total || 0);
     for (const item of payload.rows || []) {
       const row = item.row;
+      allRows.push(row);
       if (!SELECTED_IDS.has(row.book_id)) continue;
       const credits = Array.isArray(row.credits) ? row.credits : [];
       const namesFor = (pattern) => credits.filter((credit) => pattern.test(String(credit.role || ''))).map((credit) => credit.name);
@@ -112,6 +114,70 @@ async function inspectSelectedMetadata() {
   console.log('\n[selected-book-metadata]');
   console.log(JSON.stringify(selected, null, 2));
   console.log('selected metadata rows:', selected.length, 'of', SELECTED_IDS.size);
+
+  const safe = (value) => String(value ?? '').trim();
+  const relevantRoles = new Set(['author', 'translator', 'editor', 'compiler', 'foreword']);
+  const getCredits = (row) => (Array.isArray(row.credits) ? row.credits : [])
+    .filter((credit) => credit && typeof credit === 'object')
+    .map((credit) => {
+      const rawYear = credit.death_year;
+      const deathYear = rawYear === null || rawYear === undefined || rawYear === ''
+        ? null : (Number.isFinite(Number(rawYear)) ? Number(rawYear) : null);
+      return { role: safe(credit.role || credit.role_ar).toLowerCase(), name: safe(credit.name), deathYear };
+    }).filter((credit) => credit.name);
+  const explicitlyLicensedTranslation = (row) => {
+    const quote = safe(row.license_quote);
+    const covered = row.translation_covered === true || row.translation_covered === 'true' || row.translation_covered === 1;
+    return row.is_translation === true && covered && row.original_text_status === 'public-domain' &&
+      /(?:المشاع الإبداعي|Creative Commons)[\s\S]{0,180}(?:٤[٫.]٠|4\.0)/i.test(quote);
+  };
+  const life70Screen = (row) => {
+    const isOriginal = row.is_translation === false;
+    const isTranslated = row.is_translation === true;
+    const rawCredits = Array.isArray(row.credits) ? row.credits : [];
+    const credits = getCredits(row);
+    const translators = credits.filter((credit) => credit.role === 'translator');
+    const unknown = credits.filter((credit) => !relevantRoles.has(credit.role) && credit.role !== 'reviser');
+    const rightsCredits = credits.filter((credit) => relevantRoles.has(credit.role));
+    if (!isOriginal && !(isTranslated && translators.length > 0)) return false;
+    if (unknown.length > 0 || credits.length !== rawCredits.length) return false;
+    return rightsCredits.length > 0 && rightsCredits.every((credit) => credit.deathYear !== null && credit.deathYear <= 1955);
+  };
+  const eligible = allRows.filter((row) => explicitlyLicensedTranslation(row) ||
+    (row.original_text_status === 'public-domain' && life70Screen(row)));
+  const usable = eligible.filter((row) => {
+    const words = Number(row.n_words);
+    const chapters = Number(row.n_chapters);
+    return Number.isFinite(words) && words >= 8000 && words <= 120000 && Number.isFinite(chapters) && chapters >= 3;
+  });
+  const byCategory = new Map();
+  for (const row of usable) {
+    const category = safe(row.category_main) || 'other';
+    if (!byCategory.has(category)) byCategory.set(category, []);
+    byCategory.get(category).push(row);
+  }
+  const candidateReport = [...byCategory.entries()].sort((a, b) => b[1].length - a[1].length).map(([category, rows]) => ({
+    category,
+    eligibleCount: rows.length,
+    candidates: rows.sort((a, b) => Number(b.n_words) - Number(a.n_words)).slice(0, 5).map((row) => {
+      const credits = getCredits(row);
+      return {
+        id: row.book_id,
+        title: row.title,
+        words: row.n_words,
+        chapters: row.n_chapters,
+        authors: credits.filter((credit) => credit.role === 'author').map((credit) => credit.name),
+        translators: credits.filter((credit) => credit.role === 'translator').map((credit) => credit.name),
+        originalTitle: row.original_title,
+        originalAuthor: row.original_author,
+        rightsTier: explicitlyLicensedTranslation(row) ? 'cc-by-4-translation' : 'public-domain-life70-screen',
+        nearDuplicateGroup: row.near_duplicate_group || null,
+      };
+    }),
+  }));
+  console.log('\n[eligible-candidate-report]');
+  console.log(JSON.stringify({ eligibleTotal: eligible.length, usableTotal: usable.length, categories: candidateReport }, null, 2));
+}
 }
 
 const results = await Promise.all([
