@@ -5,12 +5,12 @@
 - Date: 2026-11-06
 - Repository: ifawz40-boop/HUKM
 - Latest feature merge: PR #14 — Islamic editorial curation, merge commit 175356b3632f1f054c6280e5c986761cf2d07059.
-- Current main HEAD after workflow guard: 5f620a9114d0f6ca49c7932ab4e20c42da8b481a.
+- Current main HEAD after documentation and candidate metadata updates: 4ae7b4ad6aba58a658f82c2cdcb7c576377bbd36.
 - Main CI run #42219582761 passed 286 tests (1 skipped), TypeScript and production build on the PR #14 merge commit.
 - Main CI run #42219696273 passed 286 tests (1 skipped), TypeScript and production build on the workflow-guard HEAD.
 - Legacy automatic Hindawi sync run #42219582591 failed safely at dataset revision preflight (manifest.datasetRevision is intentionally absent); it did not reach the commit step and did not repopulate the catalogue.
 - Sync workflow is now manual-only; push events skip the legacy sync job.
-- Vercel check on 5f620a9114d0f6ca49c7932ab4e20c42da8b481a reports SUCCESS. The production URL was not independently opened/verified. Google AI Studio sync remains unverified.
+- Vercel check on the latest main HEAD reports FAILURE: build-rate-limit (free-plan deployment quota). No new production deployment is confirmed. Google AI Studio sync remains unverified.
 - 24 legacy text books moved intact to src/data/library/archive/books/; their old catalogue and notice are preserved under archive/.
 - Public text catalogue is intentionally empty. curation.json has 0 approved IDs and 24 quarantined IDs.
 - Public PDF shelf is empty; the old linguistic scan fixture metadata is preserved in archive/pdfCatalog.json.
@@ -18,9 +18,11 @@
 - Deployment gate permits only an explicitly empty curation state or a complete 15+ book collection passing editorial, integrity and rights checks.
 - 22 sourced Waqfeya candidates are recorded in src/data/library/candidates.json. All remain metadata-verified/content-review-pending; none is approved.
 - PR #14 CI run #42219445177 passed 286 tests (1 skipped), TypeScript and production build before merge.
+- Latest docs/candidate metadata CI run #42220339226 was pending at the time of this checkpoint; the last code-changing main run #42219696273 passed. No code changed in the later candidate and documentation commits.
 
 ## Current curation policy and candidate set
 - Policy: docs/library/EDITORIAL_POLICY.md.
+- Author evidence register: docs/library/AUTHOR_EVIDENCE_2026-11-06.md.
 - Legacy review: docs/library/CURRENT_LIBRARY_REVIEW_2026-11-06.md.
 - Candidate metadata and bibliographic sources: src/data/library/candidates.json.
 - The 24-title review is explicitly preliminary; it used titles, indexes and targeted passages, not a full human line-by-line reading. The conservative action was to quarantine all titles rather than imply they had passed.
