@@ -248,6 +248,16 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(app, /book\.category === category\.id/);
   });
 
+  it('must ignore stale static-book loads after a newer book request or navigation', () => {
+    assert.match(app, /bookLoadRequestIdRef = useRef<number>\\(0\\)/);
+    assert.match(app, /const requestId = \\+\\+bookLoadRequestIdRef\\.current/);
+    assert.match(app, /bookLoadRequestIdRef\\.current !== requestId\\) return null/);
+    assert.match(app, /bookLoadRequestIdRef\\.current === requestId\\) setIsLoadingBook\\(false\\)/);
+    assert.match(app, /const invalidatePendingBookLoad = \\(\\)/);
+    assert.match(app, /invalidatePendingBookLoad\\(\\);/);
+    assert.doesNotMatch(app, /void loadPublicLibraryBook\\(bookParam\\)/);
+  });
+
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
     assert.match(syncScript, /fetchChapters/);
     assert.match(syncScript, /text_raw/);
