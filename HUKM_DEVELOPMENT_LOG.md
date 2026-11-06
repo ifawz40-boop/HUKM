@@ -630,3 +630,21 @@
 - 0 approved public books (`approvedBookIds: []`).
 - No book text/PDFs copied for either new candidate.
 - No archive/quarantine introduced; confirmed non-compliant books are to be deleted from the current project tree, not retained as isolated book files.
+
+
+## PR #53 merged — checkpoint and historical sync diagnosis (2026-11-06)
+
+- PR #53 merged at `66e458bb28811a9bd8203050966227de907cd17a`.
+- Exact PR head `b483beb56669b9b606a8f7a9d8d7caa173cf2b8b` passed run #42251615082; post-merge main run #42251791852 passed tests, Firestore Emulator rules, TypeScript and production build on the exact merge SHA.
+- Verified API/security state: `api/index.ts` mounts only auth, email and health routes; no `createLibraryReviewRouter` or library-review route is mounted. `firestore.rules` explicitly denies all client reads/writes to `libraryEditorialStates`, `libraryRightsStates` and `libraryReviewEvents`, plus default deny. The review API is scaffolding only, not production functionality.
+- The curation panel contains code-level focus trapping, Escape handling and focus restoration; manual keyboard/mobile/screen-reader QA has not been performed.
+
+## New travel candidate — الرحلة الحجازية لمحمد لبيب البتنوني (2026-11-06)
+
+- Added `al-batnuni-al-rihla-al-hijaziyya` as hidden candidate 27 in the travel category.
+- NYU/Columbia Arabic Collections Online records the 1329 AH [1911] edition, Matbaat al-Jamaliyya, and identifies the work with Hajj/pilgrimage and travel subjects.
+- Other catalogues record different edition details: UAE Federation Library lists a 1329 AH (1909) second edition in 334 pages; Qatar National Library lists a 1909–1910 copy in 267 pages from a different publisher. Do not conflate these records.
+- The author is a travel writer/historian, not treated as a religious authority. The work's subject metadata includes Islamic shrines; that is a review flag, not evidence of endorsement.
+- Full text could not be retrieved from the NYU viewer in this review session. Content review of praise for the Khedive, shrines, local practices and historical/political passages remains pending.
+- NYU states that it believes its displayed materials are public domain; this is not a universal legal determination. No PDF/text was copied and redistribution rights remain unverified.
+- Candidate remains hidden and unapproved; no archive/quarantine created.

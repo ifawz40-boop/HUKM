@@ -432,3 +432,83 @@ The old PR #14 merge workflow failed because the historical manifest did not pin
 - Historical PR #14 sync-library: FAIL (missing pinned datasetRevision in the then-current manifest); current ingestion path is disabled and guarded.
 - Vercel: `build-rate-limit`, deployment not confirmed.
 - No production deployment or source ingestion performed.
+
+
+---
+
+# CURRENT VERIFIED CHECKPOINT — 2026-11-06 (after PR #53 merge)
+
+Repository: `ifawz40-boop/HUKM`  
+Default / Google AI Studio branch: `main`  
+Main HEAD at checkpoint creation: `66e458bb28811a9bd8203050966227de907cd17a`  
+Current development branch: `docs/review-al-batnuni-rihla-hijaziyya`  
+Latest merged PR: #53 at `66e458bb28811a9bd8203050966227de907cd17a`  
+Open PRs at checkpoint creation: none
+
+## CI and merge state
+
+- PR #51 exact-head and post-merge CI passed.
+- PR #52 exact-head and post-merge CI passed.
+- PR #53 exact-head run #42251615082 passed; post-merge main run #42251791852 passed on exact SHA `66e458bb28811a9bd8203050966227de907cd17a`.
+- All three workflows ran tests, Firestore Emulator security-rules tests, TypeScript and production build.
+- Vercel still reports `build-rate-limit`; no production deployment is confirmed.
+- `vercel.json` continues to restrict Git-triggered deployments to `main`.
+- Google AI Studio synchronization and actual Vercel dashboard settings remain unverified.
+
+## Library state
+
+- Candidate inventory: 26 before the current development branch; approved public IDs: 0.
+- Categories before the current branch: religious 15, self-development 6, Islamic-philosophy critique 3, travel 2.
+- Existing new candidates #25 and #26 are hidden and unapproved:
+  - `الشرح الممتع على زاد المستقنع`: full text, editorial layers, detailed methodology and rights pending.
+  - `شرح عقيدة أهل السنة والجماعة`: full text, recording comparison, editorial layers and rights pending.
+- New candidate #27 in this branch: `الرحلة الحجازية لولي النعم الحاج عباس حلمي باشا الثاني خديو مصر`, by Muhammad Labib al-Batnuni, travel category. NYU records a 1329 AH [1911] edition; other catalogues record differing 1909/1910 editions and page counts. The full text was not retrieved; content review is pending.
+- The travel candidate is not approved. Its review must focus on political praise of the Khedive, shrine descriptions, local religious practices and historical/political passages.
+- No full text/PDF was copied. `approvedBookIds` remains empty. No archive/quarantine is introduced.
+
+## PR #14 sync diagnosis
+
+- PR #14 remains merged at `175356b3632f1f054c6280e5c986761cf2d07059`; source branch `feat/islamic-library-curation` remains at historical head `5a3e0eb9da0920c54494abbfab2cef61e54bc2ba`.
+- Its old post-merge sync job failed because the historical manifest lacked `datasetRevision`. Current main has a job guard restricting sync to manual dispatch on a non-main branch, and current manifest has `syncEnabled: false` with an empty source allowlist. Current script fails closed before external requests.
+- Do not add a dataset revision or enable sync to turn the historical failure green. Future ingestion requires complete editorial approval, rights screening, a pinned revision and a reviewed PR.
+
+## Security and curation status
+
+- `api/index.ts` currently mounts only auth, email and health endpoints; library review router is not mounted.
+- Firestore rules explicitly deny all client reads/writes to review state/event collections; default deny remains.
+- Review API and repository are scaffolding only. Do not describe the review workflow as a live feature.
+- The curation panel implements a code-level focus trap, Escape close and focus restoration. Manual QA on keyboard, mobile and screen readers remains outstanding.
+
+## Exact next actions
+
+1. Continue reviewing candidate books in priority order using complete, lawful editions.
+2. Obtain and inspect the full 1911 NYU edition or another precisely identified edition of `الرحلة الحجازية`. Do not infer content from catalog metadata.
+3. If the travelogue fails HUKM's editorial policy, delete its candidate record and report from the current tree; do not archive it.
+4. Resolve the Ibn Jubayr travelogue only after applying the owner's actual standard to the complete context of its tabarruk passage.
+5. Review complete texts and editorial layers of `الشرح الممتع` and `شرح عقيدة أهل السنة والجماعة`; do not approve from metadata alone.
+6. Complete manual keyboard/mobile/screen-reader QA of the curation panel.
+7. Keep Firestore review writes disabled and API unmounted until a production Admin adapter and verified-owner middleware are implemented and reviewed.
+8. Verify Vercel dashboard Git settings and resolve build-rate quota separately; do not manually deploy or alter settings without authorization.
+9. Confirm Google AI Studio remains connected to `main`.
+
+## Files to inspect
+
+- `src/data/library/candidates.json`
+- `src/data/library/curation.json`
+- `docs/library/CANDIDATE_REVIEWS/al-batnuni-al-rihla-al-hijaziyya.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-al-sharh-al-mumti.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md`
+- `api/index.ts`
+- `src/server/libraryReviewApi.ts`
+- `firestore.rules`
+- `HUKM_DEVELOPMENT_LOG.md`
+- `HUKM_NEXT_TASK.md`
+- `vercel.json`
+
+## Validation truth
+
+- PR #53 exact-head CI: PASS; post-merge main CI: PASS on `66e458bb28811a9bd8203050966227de907cd17a`.
+- Current candidate PR must pass exact-head tests, Firestore Emulator, TypeScript and production build before merge.
+- Vercel: `build-rate-limit`, deployment not confirmed.
+- No production deployment or source ingestion performed.

@@ -332,6 +332,21 @@
       "authorBiographyUrl": "https://foundation.binothaimeen.net/static/about_shekh",
       "reviewReportUrl": "https://github.com/ifawz40-boop/HUKM/blob/main/docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md",
       "initialSpotCheck": "بيانات المؤسسة الناشرة تثبت أن العمل شرح وتقرير لكتاب المؤلف «عقيدة أهل السنة والجماعة»، وأن مادته من دروسه في عنيزة، وأن أوسع الشرحين سُجل عام 1416هـ. الطبعة الأولى 1437هـ، مجلد واحد، 549 صفحة. هذه مطابقة قوية مبدئيًا لقسم العقيدة، لكنها ليست اعتمادًا للمحتوى؛ يلزم فحص المتن كاملًا ومقدمته وحواشيه ومقابلة ما طبع بما سُجل، وحسم حقوق النشر الرقمي."
+    },
+    {
+      "id": "al-batnuni-al-rihla-al-hijaziyya",
+      "title": "الرحلة الحجازية لولي النعم الحاج عباس حلمي باشا الثاني خديو مصر",
+      "author": "محمد لبيب البتنوني (ت 1357هـ/1938م)",
+      "category": "travel",
+      "sourceUrl": "https://sites.dlib.nyu.edu/viewer/books/columbia_aco000759/display?lang=ar",
+      "source": "NYU Libraries / Columbia University Libraries — Arabic Collections Online",
+      "edition": "سجل NYU لطبعة 1329هـ [1911م]، مطبعة الجمالية. يسجل فهرس اتحاد مكتبات الإمارات طبعة ثانية 1329هـ (1909م) في 334 صفحة، بينما يسجل فهرس مكتبة قطر الوطنية نسخة 1909–1910 في 267 صفحة وناشرًا مختلفًا؛ لا تُدمج هذه البيانات قبل مطابقة النسخة.",
+      "publisher": "مطبعة الجمالية (وفق سجل NYU لطبعة 1911؛ يحتاج التحقق من النسخة المستهدفة)",
+      "status": "candidate",
+      "reason": "رحلة حج فعلية رافق فيها المؤلف الخديوي عباس حلمي الثاني عام 1909م، مع وصف جغرافي وتاريخي للحجاز ومناسك الحج والمشاعر والصور والخرائط بحسب الفهارس. يلزم فحص المتن كاملًا، خصوصًا خطاب المدح للخديوي ووصف المزارات والممارسات المحلية.",
+      "authorBiographyUrl": "https://app.alreq.com/ar/Authors/Author/8702db57-0fe1-46db-041f-08d7902f2e13",
+      "reviewReportUrl": "https://github.com/ifawz40-boop/HUKM/blob/main/docs/library/CANDIDATE_REVIEWS/al-batnuni-al-rihla-al-hijaziyya.md",
+      "initialSpotCheck": "توثيق ببليوغرافي أولي من NYU وQNL واتحاد مكتبات الإمارات ومكتبة البابطين. يصف الفهرس الرحلة بأنها توثيق لرحلة حج الخديوي، والجغرافيا والتاريخ والمناسك والصور والخرائط. تصنيف NYU يتضمن موضوع المزارات الإسلامية، وهو موضوع فهرسة لا دليل بذاته على تبني المؤلف لممارساتها. لم تتم قراءة النص الكامل؛ لم يتمكن العارض من جلب ملف PDF من NYU في جلسة الفحص. يبقى مرشحًا مخفيًا غير معتمد."
     }
   ]
 }
