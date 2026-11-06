@@ -7,6 +7,12 @@ on:
       - 'scripts/audit-wikisource-candidates.py'
       - 'tests/test_wikisource_audit.py'
       - '.github/workflows/audit-wikisource-candidates.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/audit-wikisource-candidates.py'
+      - 'tests/test_wikisource_audit.py'
+      - '.github/workflows/audit-wikisource-candidates.yml'
   workflow_dispatch:
 
 permissions:
