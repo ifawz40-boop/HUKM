@@ -434,6 +434,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     }
     const catalog = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'src/data/library/catalog.json'), 'utf8'));
     assert.equal(catalog.length, files.length);
+    const seenNearDuplicateGroups = new Set<string>();
     for (const file of files) {
       const book = JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
       assert.ok(book.id && book.title && book.author, `${file} must have grounded identity metadata`);
@@ -448,6 +449,12 @@ describe('HUKM — bundled Arabic library architecture', () => {
       assert.ok(book.rights.sourceHash);
       assert.ok(book.rights.licenseQuote);
       assert.ok(book.rights.attribution);
+      assert.ok(book.rights.nearDuplicateGroup === undefined || book.rights.nearDuplicateGroup === null || typeof book.rights.nearDuplicateGroup === 'string');
+      const nearDuplicateGroup = book.rights.nearDuplicateGroup;
+      if (nearDuplicateGroup) {
+        assert.equal(seenNearDuplicateGroups.has(nearDuplicateGroup), false, `${file} duplicates an upstream book-level near-duplicate group`);
+        seenNearDuplicateGroups.add(nearDuplicateGroup);
+      }
     }
   });
 });
