@@ -37,7 +37,7 @@ import {
   updateUserBookmarksInFirestore,
   fetchUserReadingProgress,
   uploadGuestReadingProgressToFirestore,
-  fetchPublicNotificationsFromFirestore,
+  subscribeToPublicNotifications,
   savePublicNotificationToFirestore,
 } from './firebase/firestoreService';
 import {
@@ -264,9 +264,8 @@ export default function App() {
   useEffect(() => {
     if (notificationState.ownerId !== activeNotificationOwnerId) return;
     let active = true;
-    const loadPublicAnnouncements = async () => {
-      const remote = await fetchPublicNotificationsFromFirestore();
-      if (!active || remote === null) return;
+    const unsubscribe = subscribeToPublicNotifications((remote) => {
+      if (!active) return;
       setNotificationState((current) => {
         if (!active || current.ownerId !== activeNotificationOwnerId) return current;
         const readState = new Map(current.items.map((item) => [item.id, item.read]));
@@ -275,9 +274,11 @@ export default function App() {
           items: remote.map((item) => ({ ...item, read: readState.get(item.id) ?? false })),
         };
       });
+    });
+    return () => {
+      active = false;
+      unsubscribe();
     };
-    void loadPublicAnnouncements();
-    return () => { active = false; };
   }, [activeNotificationOwnerId, notificationState.ownerId]);
 
   useEffect(() => {
