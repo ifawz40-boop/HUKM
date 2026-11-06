@@ -626,3 +626,41 @@ RESUME MARKER: Main is at 470983d2bc1b53bb319d6f8a0415f5513ac5836e. The 17-book 
 6. Continue Firestore rules, reading progress and annotation account-isolation, Writer Studio, auth/admin/email APIs, accessibility and responsive route audits.
 
 RESUME MARKER: Last verified implementation commit is ad556a3f8dcf7ed0c56acfd5adb65a1e6e44371f (docs may be newer). Static JSON asset delivery and reader timer cleanup passed 263 tests, TypeScript and production build. Next: inspect and improve book selection without weakening rights or completeness gates.
+
+
+## Continuation checkpoint — 2026-11-06 — 24-book library, balanced selection and duplicate provenance
+
+### Verified code/data commits
+- e5491dc7a8ea6880370b661b4549dd23eb7b207c — introduced book-level near-duplicate group filtering and a target-length selection strategy; subsequent fixes below complete this change.
+- fe62eafc38013b22e838f462808a1496d9cb7a79 — corrected the generated rights notice and ensured duplicate-group checks are applied in every selection pass.
+- 8201550335be10c8bc0f5612facb8d695548b390 — set target book length to 50,000 words while retaining the 1.5-million-word total budget and existing completeness/rights thresholds.
+- 57269378be3e0625d5f53fdfd2d2bd8e7d348674 and 053dc317183ea8127b555daf64e4877cceb0e0c0 — added typed book-level duplicate provenance and a declaration for the independently testable selector.
+- 2114ffc492373a87a88f88c20074899b35e9f896 — reject candidate rows with no verifiable author metadata before selection, preventing a selected book from being discarded later during extraction.
+- 968d0dcc28c791300d8fde215a99b40a19aa28a2 — preserve upstream chapter-level exact/near-duplicate markers in every generated chapter and disclose their counts in NOTICE.md.
+- d0bb5d78cc342c08ce5dfb4fe05e2277e109fa13 — deployment gate now requires book-level and chapter-level duplicate metadata to be present and correctly typed.
+- 7ce0581fdd54758d708ee8c0ff0595386af78df4 — regression tests require complete duplicate provenance in the deployment gate and real generated library.
+- 9a48dadab7271f5241f4e8329ddb9592123241a0 — regenerated and committed the final 24-book batch with chapter duplicate markers retained.
+
+### First full library batch — independent audit
+- 24 books accepted; 0 selected books rejected during final extraction.
+- 529 sections, 1,144,156 words, 2,283 footnotes; approximately 12.57 MiB of static JSON book assets.
+- The 24 full-text Git blobs were independently parsed in three batches. All books had an author, 3+ chapters, matching declared and summed chapter word counts, matching independently counted text words, contiguous chapter numbering, correct chapter ownership, ready/non-empty chapter text, 64-character source hashes, attribution, licence notice, source URL and history URL. No structural or rights-metadata failures were found.
+- Omitted source assets: 204 images, 0 SVG elements and 14 tables. These are disclosed in NOTICE.md; they are not silently represented as included.
+- The selection now targets 50,000 words per book and still caps the batch at 1.5 million words. It uses the upstream book-level near_duplicate_group when present and rejects books without author metadata. The 362 rights-eligible candidates had 0 populated book-level near-duplicate groups; the selected 529 chapters had 0 exact and 0 near duplicate markers. The fields are nevertheless retained for future source revisions.
+- The source metadata schema and extractor were inspected. Chapter-level exact_duplicate_group and near_duplicate_group fields are included in extraction and preserved in each generated chapter. The deployment gate requires both fields to exist and be string/null. Book-level nearDuplicateGroup is also retained in rights metadata.
+- Current source category coverage has no eligible books tagged in the religions category; the fallback selection currently includes three travel-literature titles. The next content expansion should add a separate, clearly licensed Islamic/classical source rather than mislabel the current batch.
+
+### CI and deployment evidence
+- GitHub Actions verification run https://github.com/ifawz40-boop/HUKM/actions/runs/42182855973 — SUCCESS for commit 7ce0581fdd54758d708ee8c0ff0595386af78df4.
+- 266 tests passed; TypeScript passed; Vite production build passed. The real generated-library gate and duplicate-provenance assertions ran against the populated 24-book library.
+- Full-text delivery remains independent static JSON assets via Vite ?url and fetch(), with in-memory caching and in-flight request de-duplication. The previous per-book JavaScript chunk warning remains eliminated.
+- Vercel combined status still fails with target https://vercel.com/ifawz40-boop?upgradeToPro=build-rate-limit. This is the previously observed Vercel deployment API quota block. No successful production deployment is confirmed.
+
+### New source research — candidate for the next library expansion
+- Identified Bayanat Labs' Arabic Wikisource Public-Domain Works dataset: https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd, pinned release v0.1.0 at revision 7f7de3a3e95e3f4e0e29c72588fd73ad2a636ccd.
+- Its works-pd-core config contains whole Arabic Wikisource works, chapter text, footnotes, source page/revision links, genre, contributor/person metadata, proofreading metrics and a book-level near_dup_group. It includes prose/religious genres such as hadith, tafsir, fiqh, creed, history and language, so it can fill the current religion-category gap.
+- Licensing is materially different: transcribed text is CC BY-SA 4.0; Bayanat Labs metadata/statistics are CC BY 4.0. Do not label these works as plain public-domain text or merge them under the Hindawi CC BY 4.0 tier. Add a separate CC BY-SA 4.0 rights tier, preserve Arabic Wikisource contributor attribution and page links, and distribute any adapted text under the same licence.
+- Quality limitations in the dataset card: 36 incomplete works, 29 works with unclosed wikitext, and only 23 scan-backed works. The dataset is predominantly poetry. Candidate extraction must exclude incomplete/malformed works, exclude poetry and religious-primary-text/Quran entries, use works-pd-core only (not works-life50), deduplicate near_dup_group, retain source_pages/revision IDs and inspect proofreading/scan metrics. Do not ingest the whole dataset.
+- Exact next actions: (1) add a metadata-only streaming audit for works-pd-core at the pinned revision; (2) emit candidate titles grouped by genre with word/chapter counts, author/death-year evidence, proofread/scan status, near_dup_group and source URLs; (3) manually review the candidate list before selecting a small high-value set; (4) extend BookRights, NOTICE.md and assert-library-ready for a distinct CC BY-SA 4.0 tier; (5) only then extract full text as separate lazy JSON assets and add regression tests for attribution/share-alike and source-page provenance.
+
+RESUME MARKER: Last verified code commit is 7ce0581fdd54758d708ee8c0ff0595386af78df4; last generated-data commit is 9a48dadab7271f5241f4e8329ddb9592123241a0. The 24-book Hindawi batch passed 266 tests, TypeScript and production build. Next: audit and curate the pinned Arabic Wikisource PD dataset with a separate CC BY-SA 4.0 license tier; do not mix its rights with existing books.
