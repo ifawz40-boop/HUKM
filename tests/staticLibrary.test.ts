@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { selectBooks } from '../scripts/sync-public-library.mjs';
 
 const read = (relativePath: string) => fs.readFileSync(path.resolve(process.cwd(), relativePath), 'utf8');
 
@@ -362,6 +363,52 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.ok(libraryIndex.includes('if (!response.ok)'));
     assert.equal(libraryIndex.includes("const bookLoaders = import.meta.glob"), false);
     assert.match(libraryIndex, /import\.meta\.glob\('\.\/catalog\.json'/);
+  });
+
+  it('must select one book per upstream near-duplicate group and balance book length', () => {
+    const makeRow = (book_id: string, n_words: number, near_duplicate_group?: string) => ({
+      book_id,
+      title: book_id,
+      n_words,
+      n_chapters: 3,
+      category_main: 'history',
+      is_translation: false,
+      original_text_status: 'public-domain',
+      credits: [{ role: 'author', name: 'Author', death_year: 1900 }],
+      book_url: 'https://example.org/books/' + book_id,
+      attribution: 'Source attribution',
+      source_file_sha256: 'a'.repeat(64),
+      near_duplicate_group,
+    });
+
+    const selected = selectBooks([
+      makeRow('book-a', 50000, 'near-group-1'),
+      makeRow('book-b', 40000, 'near-group-1'),
+      makeRow('book-c', 30000),
+      makeRow('book-d', 20000),
+    ], {
+      targetBooks: 3,
+      minimumBooks: 3,
+      minimumWords: 8000,
+      maximumWordsPerBook: 120000,
+      minimumChapters: 3,
+      maximumTotalWords: 100000,
+      targetWordsPerBook: 50000,
+      categories: [{ id: 'history', quota: 3 }],
+      fallbackCategories: [],
+    });
+
+    assert.deepEqual(selected.map((row) => row.book_id), ['book-a', 'book-c', 'book-d']);
+    const selectedGroups = selected.map((row) => row.near_duplicate_group).filter(Boolean);
+    assert.equal(new Set(selectedGroups).size, selectedGroups.length);
+  });
+
+  it('must regenerate an accurate rights and automated-selection notice on every sync', () => {
+    assert.ok(syncScript.includes('CC BY 4.0 does not impose a ShareAlike condition'));
+    assert.ok(syncScript.includes('automatically selected, rights-screened books'));
+    assert.ok(syncScript.includes('near_duplicate_group'));
+    assert.ok(syncScript.includes('totalFootnotes'));
+    assert.ok(syncScript.includes('batchOmissions'));
   });
 
   it('must gate legacy Firestore deletion behind founder verification and exact confirmation', () => {
