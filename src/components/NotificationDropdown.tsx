@@ -12,6 +12,17 @@ import {
 } from 'lucide-react';
 import { AppNotification } from '../types/auth';
 
+const formatNotificationTimestamp = (value: string): string => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return value;
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60_000));
+  if (elapsedMinutes < 1) return 'الآن';
+  if (elapsedMinutes < 60) return 'منذ ' + elapsedMinutes + ' دقيقة';
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return 'منذ ' + elapsedHours + ' ساعة';
+  return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+};
+
 interface NotificationDropdownProps {
   notifications: AppNotification[];
   isOwner: boolean;
@@ -172,7 +183,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                       {notif.message}
                     </p>
                     <span className="text-[10px] text-[#64748b] block mt-1">
-                      {notif.timestamp}
+                      {formatNotificationTimestamp(notif.timestamp)}
                     </span>
                   </div>
                 </div>
