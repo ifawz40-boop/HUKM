@@ -28,6 +28,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const deploymentGate = read('scripts/assert-library-ready.mjs');
   const libraryManifest = JSON.parse(read('src/data/library/manifest.json'));
   const libraryNotice = read('src/data/library/NOTICE.md');
+  const curationPanel = read('src/components/LibraryCurationPanel.tsx');
+  const navbar = read('src/components/HukmNavbar.tsx');
 
   it('must quarantine the legacy batch and expose no book before editorial approval', () => {
     const catalog = JSON.parse(read('src/data/library/catalog.json'));
@@ -49,6 +51,15 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(libraryIndex, /approvedBookIds/);
     assert.match(app, /المكتبة قيد إعادة الانتقاء/);
     assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
+  });
+
+  it('must keep the curation dashboard owner-only, read-only and safe-link constrained', () => {
+    assert.match(navbar, /isEffectiveOwner && onOpenCurationPanel/);
+    assert.match(app, /\{isOwner && \(\s*<LibraryCurationPanel/);
+    assert.match(curationPanel, /filterLibraryCandidates/);
+    assert.match(curationPanel, /لا يوجد هنا زر لاعتماد الكتب أو نشرها/);
+    assert.match(curationPanel, /rel="noopener noreferrer"/);
+    assert.doesNotMatch(curationPanel, /\b(?:fetch|setDoc|updateDoc|addDoc)\s*\(/);
   });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
