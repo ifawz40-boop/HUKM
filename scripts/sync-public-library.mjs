@@ -47,7 +47,9 @@ async function requestJson(endpoint, params, label) {
         try { payload = JSON.parse(body); }
         catch { throw new Error(`Invalid JSON from Dataset Viewer for ${label}: ${body.slice(0, 400)}`); }
         if (payload.partial === true) {
-          throw new Error(`Dataset Viewer marked ${label} partial; refusing incomplete source data.`);
+          const partialError = new Error(`Dataset Viewer marked ${label} partial; refusing incomplete source data.`);
+          partialError.name = 'NonRetryableSourceError';
+          throw partialError;
         }
         return payload;
       }
@@ -63,7 +65,9 @@ async function requestJson(endpoint, params, label) {
       console.log(`Dataset Viewer temporary HTTP ${response.status} for ${label} (attempt ${attempt}/${MAX_ATTEMPTS}); retrying in ${waitMs / 1000}s.`);
       await sleep(waitMs);
     } catch (error) {
-      if (error instanceof SyntaxError || (error instanceof Error && error.message.startsWith('Invalid JSON'))) {
+      if (error instanceof SyntaxError || (error instanceof Error && (
+        error.message.startsWith('Invalid JSON') || error.name === 'NonRetryableSourceError'
+      ))) {
         throw error;
       }
       lastError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -129,10 +133,19 @@ async function fetchChapters(bookId) {
       offset: String(offset),
       length: '100',
     }, `chapters for ${bookId} at ${offset}`);
-    total = Number(payload.num_rows_total || 0);
+    const pageTotal = Number(payload.num_rows_total || 0);
+    if (total === null) total = pageTotal;
+    else if (pageTotal !== total) throw new Error(`Chapter row count changed during pagination for ${bookId}.`);
     all.push(...(payload.rows || []).map((item) => item.row).filter(Boolean));
   }
-  return all.sort((a, b) => Number(a.chapter_index || 0) - Number(b.chapter_index || 0));
+  if (total === null || all.length !== total) {
+    throw new Error(`Chapter row count mismatch for ${bookId}: expected ${total}, received ${all.length}.`);
+  }
+  const indices = all.map((row) => Number(row.chapter_index));
+  if (indices.some((index) => !Number.isSafeInteger(index)) || new Set(indices).size !== indices.length) {
+    throw new Error(`Chapter indices are missing or duplicated for ${bookId}.`);
+  }
+  return all.sort((a, b) => Number(a.chapter_index) - Number(b.chapter_index));
 }
 
 function isTranslationExplicitlyLicensed(row) {
@@ -186,6 +199,19 @@ function getRightsKind(row) {
   return null;
 }
 
+function isSafeBookId(value) {
+  return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+}
+
+function isSafeHttpUrl(value) {
+  try {
+    const parsed = new URL(safeText(value));
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 function categoryLabel(category) {
   const labels = {
     history: 'التاريخ',
@@ -224,7 +250,7 @@ function selectBooks(metadata, manifest) {
     const chapters = Number(row.n_chapters || 0);
     return (
       getRightsKind(row) !== null &&
-      Boolean(row.book_id && row.title && row.book_url && row.attribution && /^[a-f0-9]{64}$/i.test(safeText(row.source_file_sha256))) &&
+      Boolean(isSafeBookId(row.book_id) && safeText(row.title) && isSafeHttpUrl(row.book_url) && safeText(row.attribution) && /^[a-f0-9]{64}$/i.test(safeText(row.source_file_sha256))) &&
       words >= manifest.minimumWords &&
       words <= manifest.maximumWordsPerBook &&
       chapters >= manifest.minimumChapters
@@ -307,12 +333,13 @@ function buildBook(metadata, sourceChapters, manifest) {
   if (!author) throw new Error(`${metadata.title}: no verifiable author credit in the source metadata.`);
   const chapters = sourceChapters.map((row, index) => {
     const content = toParagraphs(row.text_raw);
-    const wordCount = Number(row.n_words || countWords(row.text_raw || ''));
+    const wordCount = countWords(String(row.text_raw || ''));
     const footnotes = mapFootnotes(row.footnotes);
+    const sourceChapterIndex = Number(row.chapter_index);
     return {
-      id: `${metadata.book_id}-chapter-${Number(row.chapter_index || index + 1)}`,
+      id: `${metadata.book_id}-chapter-${sourceChapterIndex}`,
       bookId: metadata.book_id,
-      chapterNumber: Number(row.chapter_index || index + 1),
+      chapterNumber: index + 1,
       title: safeText(row.chapter_title || row.chapter_label || row.part_title || row.volume_title || row.title) || `القسم ${index + 1}`,
       subtitle: [safeText(row.volume_title), safeText(row.part_title)].filter(Boolean).join(' • '),
       content,
@@ -336,8 +363,12 @@ function buildBook(metadata, sourceChapters, manifest) {
   if (chapters.length < manifest.minimumChapters) {
     throw new Error(`${metadata.title}: only ${chapters.length} non-empty sections after extraction.`);
   }
-  if (expectedWords > 0 && words < expectedWords * 0.95) {
-    throw new Error(`${metadata.title}: chapter extraction contains ${words} words vs metadata ${expectedWords}; below 95% completeness threshold.`);
+  if (expectedWords > 0 && (words < expectedWords * 0.95 || words > expectedWords * 1.10)) {
+    throw new Error(`${metadata.title}: extracted text contains ${words} words vs metadata ${expectedWords}; outside the 95–110% integrity range.`);
+  }
+  if (new Set(chapters.map((chapter) => chapter.id)).size !== chapters.length ||
+      new Set(chapters.map((chapter) => chapter.chapterNumber)).size !== chapters.length) {
+    throw new Error(`${metadata.title}: duplicate chapter identifiers or display numbers.`);
   }
 
   const totalOmissions = chapters.reduce((sum, chapter) => ({
@@ -437,8 +468,8 @@ async function main() {
     await sleep(1100);
     try {
       const sourceChapters = await fetchChapters(metadata.book_id);
-      if (sourceChapters.length < Number(metadata.n_chapters || 0)) {
-        throw new Error(`expected ${metadata.n_chapters} sections, received ${sourceChapters.length}`);
+      if (sourceChapters.length !== Number(metadata.n_chapters || 0)) {
+        throw new Error(`expected exactly ${metadata.n_chapters} source sections, received ${sourceChapters.length}`);
       }
       const book = buildBook(metadata, sourceChapters, manifest);
       const outputPath = path.join(OUTPUT_DIR, `${book.id}.json`);
@@ -466,7 +497,7 @@ async function main() {
 
   const totalWords = generated.reduce((sum, book) => sum + book.wordCount, 0);
   const totalChapters = generated.reduce((sum, book) => sum + book.chapterCount, 0);
-  const totalBytes = generated.reduce((sum, book) => sum + Buffer.byteLength(JSON.stringify(book), 'utf8'), 0);
+  const totalBytes = generated.reduce((sum, book) => sum + Buffer.byteLength(JSON.stringify(book, null, 2) + '\\n', 'utf8'), 0);
   const notice = [
     '# HUKM static Arabic library — source and licensing notice',
     '',
@@ -503,7 +534,7 @@ async function main() {
     `- Sections: ${totalChapters}`,
     `- Words: ${totalWords.toLocaleString('en-US')}`,
     `- JSON payload: ${(totalBytes / (1024 * 1024)).toFixed(2)} MiB before compression.`,
-    `- Generated at: ${new Date().toISOString()}`,
+    `- Generated snapshot: ${manifest.snapshotDate} (deterministic source snapshot)`,
     '',
     '## Limitations',
     '',
