@@ -172,6 +172,14 @@ class WikisourceCandidateAuditTests(unittest.TestCase):
             "source": "wikidata",
         })
         row["text_raw"] = "نص مرشح للمراجعة " * 200
+        row["tier"] = "works-pd-core"
+        row["pd_reason"] = "all credited persons died by 1955"
+        row["first_publication_year"] = 1880
+        row["publication_year"] = 1890
+        row["diacritization_ratio"] = 0.25
+        row["footnotes"] = 7
+        row["author_qid"] = "Q123"
+        row["genre_labels"] = ["حديث"]
 
         summary = public_summary(row)
 
@@ -187,6 +195,13 @@ class WikisourceCandidateAuditTests(unittest.TestCase):
         self.assertIn("CC BY-SA 4.0", summary["dataset_citation"])
         self.assertIn("persons", summary["source_record_fields"])
         self.assertIn("text_raw", summary["source_record_fields"])
+        self.assertEqual(summary["tier"], "works-pd-core")
+        self.assertEqual(summary["first_publication_year"], 1880)
+        self.assertEqual(summary["publication_year"], 1890)
+        self.assertEqual(summary["diacritization_ratio"], 0.25)
+        self.assertEqual(summary["footnotes"], 7)
+        self.assertEqual(summary["author_qid"], "Q123")
+        self.assertEqual(summary["genre_labels"], ["حديث"])
 
 
 if __name__ == "__main__":
