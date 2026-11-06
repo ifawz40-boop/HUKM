@@ -3,10 +3,10 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current continuation branch: `fix/curation-dialog-focus-restoration` (PR #28)
-Verified application-code HEAD before the documentation-only checkpoint: `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`
+Current documentation branch: `docs/checkpoint-curation-focus-restoration-merged` (checkpoint PR #29)
+Verified application-code HEAD after PR #28: `320b73c099932cecbea818db6c8002f5d449d8ad`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest documentation-only main HEAD after PR #27: `39f1ec926b15c228936575ace7c73c464e72bfbe`.
+Latest main HEAD after PR #28: `320b73c099932cecbea818db6c8002f5d449d8ad`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -73,15 +73,15 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Arabic PDF text search is enabled only for extractable text PDFs. The scanned fixture has no OCR and `searchAvailable: false`.
 - EPUB is not implemented. Continue only with a bounded Readium preprocessing prototype after the curated library workflow stabilizes.
 
-## Pending PR #28 — curation dialog focus restoration
+## Latest merged feature — PR #28 curation dialog focus restoration
 
-- PR: https://github.com/ifawz40-boop/HUKM/pull/28
-- Branch: `fix/curation-dialog-focus-restoration`.
-- Code/test commit `37d1effbf9db79238e45c16f79060b75f8b0eb81` passed CI run #42237351405 (tests, TypeScript and production build).
-- The dialog now restores focus to its opener, locks background scrolling, and uses a document-level Tab/Escape handler; existing candidate metadata and scroll containment are preserved.
-- The final documentation-inclusive PR head must also pass CI. PR is not merged.
-- Changed files: `src/components/LibraryCurationPanel.tsx`, `tests/staticLibrary.test.ts`, plus this checkpoint's two documentation files.
-- No publication, allowlist, database, authentication, API or Vercel behavior changed.
+- PR #28 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/28
+- Merge commit / verified main HEAD: `320b73c099932cecbea818db6c8002f5d449d8ad`.
+- PR CI run #42237516574 passed on code/test head `7a0e0f12eb91063e403e2bc64f784ffe5b4776ed`.
+- Post-merge main CI run #42237608247 passed on the exact merge commit: tests, TypeScript and production build.
+- Focus now moves to the dialog close control, remains contained at document level, and returns to the opener after close when possible. Background scrolling is locked/restored. Existing candidate metadata, report links and overscroll containment are retained.
+- Regression assertions cover focus restoration, keyboard listener cleanup, Escape and body overflow restoration.
+- No editorial approval, database, API, authentication or deployment behavior changed.
 
 ## Immediate next actions
 

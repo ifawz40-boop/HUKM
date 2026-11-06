@@ -366,6 +366,22 @@
 - Preserved the existing `overscroll-contain`, candidate publisher/edition/scan-page metadata and candidate-specific review-report links. The older unmerged accessibility branch was not merged because it removed some of those current-main details.
 - Added static regression assertions for listener registration/removal, focus restoration, Escape handling, body scroll locking and retained scroll containment.
 - Scope is limited to `src/components/LibraryCurationPanel.tsx` and `tests/staticLibrary.test.ts`; no curation status, allowlist, Firestore/API, publication or deployment behavior changed.
-- PR #28 remains open pending validation of its final documentation-inclusive head and independent merge review. Do not claim this change is merged.
+- PR #28 was subsequently merged after final-head CI and independent diff review; the exact merge and post-merge verification are recorded in the following checkpoint section.
 - Current live `main` HEAD at PR creation: `39f1ec926b15c228936575ace7c73c464e72bfbe`.
 - Vercel still reports `build-rate-limit`; no production deployment is confirmed.
+
+
+## Curation dialog focus restoration — merged and verified (2026-11-06)
+
+- PR #28 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/28
+- Merge commit and verified live `main` HEAD: `320b73c099932cecbea818db6c8002f5d449d8ad`.
+- PR head `7a0e0f12eb91063e403e2bc64f784ffe5b4776ed` passed CI run #42237516574: full test suite, TypeScript check and production build.
+- Post-merge main CI run #42237608247 passed on the exact merge commit `320b73c099932cecbea818db6c8002f5d449d8ad`.
+- The owner-only curation dialog now moves focus to its close control on open, contains Tab/Shift+Tab at document level, closes on Escape, restores focus to the invoking element when it remains connected, and locks background scrolling while open.
+- Existing candidate metadata (publisher, publication year, printed/scan page counts), candidate-specific review-report links and `overscroll-contain` were preserved.
+- Added regression assertions for focus restoration, keyboard listener registration/removal, Escape handling, background scroll lock/restore and overscroll containment.
+- Changed application files: `src/components/LibraryCurationPanel.tsx`, `tests/staticLibrary.test.ts`; documentation checkpoint was included in PR #28.
+- No book approval, allowlist, Firestore/API, authentication, publication or Vercel deployment behavior changed.
+- Main-only Git deployment policy remains `{"*": false, "main": true}`; the existing Vite build command, API function duration and API/SPA rewrites remain intact.
+- Combined Vercel status on the merge commit still reports `build-rate-limit`; no production deployment is confirmed. Google AI Studio synchronization remains unverified.
+- Next: manual browser/mobile/screen-reader accessibility audit; verify effective Vercel Project Settings; obtain an authorized complete edition before full-text review of *Fasl fi Tazkiyat al-Nafs*. Do not mark any of these complete without evidence.
