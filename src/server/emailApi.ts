@@ -16,16 +16,17 @@ const sendEmailRateLimit = createRateLimiter({
  * Check whether email provider credentials are configured on the server
  */
 emailApiRouter.get('/status', authenticateToken, async (_req: Request, res: Response) => {
-  const apiKey = process.env.RESEND_API_KEY;
-  const isConfigured = Boolean(apiKey && apiKey.trim().length > 0);
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const fromAddress = process.env.EMAIL_FROM?.trim();
+  const isConfigured = Boolean(apiKey && fromAddress);
 
   return res.json({
     success: true,
     configured: isConfigured,
     provider: isConfigured ? 'Resend API' : null,
     message: isConfigured
-      ? 'تم ضبط مفتاح Resend على الخادم. لم يتم التحقق من صلاحيته أو اعتماد نطاق المرسل حتى تنفيذ إرسال فعلي.'
-      : 'مزود البريد غير مهيأ. يجب ضبط متغير البيئة RESEND_API_KEY على الخادم لتفعيل الإرسال الحقيقي.',
+      ? 'تم ضبط مفتاح Resend وعنوان المرسل على الخادم. لم يتم التحقق من صلاحية المفتاح أو اعتماد النطاق حتى تنفيذ إرسال فعلي.'
+      : 'مزود البريد غير مهيأ بالكامل. يجب ضبط RESEND_API_KEY و EMAIL_FROM في متغيرات بيئة الخادم.',
   });
 });
 
@@ -92,14 +93,16 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     });
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey || !apiKey.trim()) {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const fromAddress = process.env.EMAIL_FROM?.trim();
+  if (!apiKey || !fromAddress) {
     return res.status(503).json({
       success: false,
       delivered: false,
       configured: false,
-      message:
-        'خدمة البريد الإلكتروني غير مهيأة على الخادم. لم يتم العثور على مفتاح RESEND_API_KEY في متغيرات البيئة. لم يتم إرسال أي بريد تجنباً للادعاءات الوهمية.',
+      message: !apiKey
+        ? 'خدمة البريد الإلكتروني غير مهيأة: متغير RESEND_API_KEY غير موجود. لم يتم إرسال أي بريد.'
+        : 'خدمة البريد الإلكتروني غير مهيأة: متغير EMAIL_FROM غير موجود. لم يتم إرسال أي بريد بعنوان مرسل افتراضي أو غير موثّق.',
     });
   }
 
@@ -131,7 +134,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
 
     // 3. Dispatch in batches of 50. Once a batch is accepted, never report a later
     // provider/network failure as if nothing was sent; that could cause duplicate retries.
-    const fromAddress = process.env.EMAIL_FROM || 'HUKM MEDIA <updates@hukm.media>';
+    // The sender must be explicitly configured and verified with the provider.
     const BATCH_SIZE = 50;
 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
