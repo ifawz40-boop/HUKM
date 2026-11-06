@@ -526,3 +526,13 @@
 - The author describes, in first person and positively, touching the Prophet's chamber, old minbar and a piece attributed to the palm trunk, while also describing people kissing it and rubbing their faces on it.
 - The excerpt does not invoke the relic or state that it has independent power; it must not be labelled automatically as major shirk. However, this is a devotional tabarruk practice that is disputed among Sunni scholars and may conflict with the owner's stricter editorial standard.
 - The candidate remains hidden and unapproved pending owner policy clarification. No public library file was added. If the owner excludes this practice, delete the candidate record and report from the current tree rather than archiving it.
+
+
+## PR #47 merged — Ibn Jubayr editorial concern (2026-11-06)
+
+- PR #47 merged at `f8f5724e6198a950dde40843e31187ce582c9598`.
+- Pre-merge CI run #42244946009 passed; post-merge main CI run #42245165847 passed on the exact merge SHA.
+- Added `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md` and linked it from the hidden candidate record.
+- The reviewed passage shows Ibn Jubayr personally and positively describing touching the Prophet's chamber, old minbar and an attributed piece of the palm trunk, and describes people kissing/rubbing faces on it.
+- This is a disputed tabarruk practice among Sunni scholars. The reviewed excerpt does not invoke the relic or state it has independent power, so it is not automatically labelled major shirk. The candidate remains hidden and unapproved pending the owner's policy decision.
+- If the owner excludes this practice, remove the candidate record and report from the current project tree; do not move it to an archive.
