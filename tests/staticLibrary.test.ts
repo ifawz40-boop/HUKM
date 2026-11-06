@@ -12,6 +12,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const data = read('src/data/hukmData.ts');
   const libraryIndex = read('src/data/library/index.ts');
   const syncScript = read('scripts/sync-public-library.mjs');
+  const syncWorkflow = read('.github/workflows/sync-public-library.yml');
+  const chapterExtractor = read('scripts/extract-library-chapters.py');
   const serverApi = read('src/server/authClaimsApi.ts');
   const firebaseConfig = JSON.parse(read('firebase.json'));
   const bootstrapScript = read('scripts/bootstrap-owner.ts');
@@ -259,8 +261,20 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.equal(app.includes('void loadPublicLibraryBook(bookParam)'), false);
   });
 
+  it('must extract complete selected-book chapters through the pinned Parquet stream, not per-book Dataset Viewer calls', () => {
+    assert.match(syncScript, /extractSelectedChapters\(selected, manifest\)/);
+    assert.match(syncScript, /extract-library-chapters\.py/);
+    assert.match(syncScript, /execFileAsync/);
+    assert.doesNotMatch(syncScript, /async function fetchChapters\(bookId\)/);
+    assert.match(syncWorkflow, /setup-python/);
+    assert.match(syncWorkflow, /datasets==5\.1\.0/);
+    assert.match(chapterExtractor, /revision=revision/);
+    assert.match(chapterExtractor, /streaming=True/);
+    assert.match(chapterExtractor, /chapter indexes are not contiguous/);
+    assert.match(chapterExtractor, /All selected book sections are complete/);
+  });
+
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
-    assert.match(syncScript, /fetchChapters/);
     assert.match(syncScript, /text_raw/);
     assert.match(syncScript, /mapFootnotes/);
     assert.match(syncScript, /licenseQuote/);
