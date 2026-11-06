@@ -289,3 +289,68 @@ Latest merged PR at checkpoint creation: #50 (`342ac0bad42c7610099fdc5383f401ec9
 - Last verified main GitHub Actions run: #42246576624, success on `342ac0bad42c7610099fdc5383f401ec91f32adb`.
 - Vercel status: `build-rate-limit`, failure; deployment not confirmed.
 - No production deployment, Google AI Studio sync, or dashboard setting change was performed.
+
+
+---
+
+# CURRENT VERIFIED CHECKPOINT — 2026-11-06 (after PR #51 merge)
+
+Repository: `ifawz40-boop/HUKM`  
+Default / Google AI Studio branch: `main`  
+Main HEAD at checkpoint creation: `fbcdf057c54baaddeb39f0784720e4ef1df1023a`  
+Current working branch: `docs/review-aqeedat-ahl-al-sunnah-candidate`  
+Latest merged PR: #51, squash merge SHA `fbcdf057c54baaddeb39f0784720e4ef1df1023a`
+
+## Verified state
+
+- PR #51 exact head `146aab796f1bdee164640828fe8633ae19cea86d` passed run #42250694790: test suite, Firestore Emulator rules tests, TypeScript and production build.
+- PR #51 is merged. The exact main merge SHA is `fbcdf057c54baaddeb39f0784720e4ef1df1023a`.
+- Post-merge main run #42250859548 was still running when this checkpoint was written; re-check its exact SHA and final conclusion before marking post-merge CI complete.
+- Vercel combined status remains `build-rate-limit`; production deployment is not confirmed.
+- `vercel.json` still has `git.deploymentEnabled: {"*": false, "main": true}`.
+- Candidate inventory is 25 before the current branch; `approvedBookIds: []`; public book directory remains empty except `.gitkeep`; no archive/quarantine exists.
+
+## New candidate — شرح عقيدة أهل السنة والجماعة
+
+- Branch: `docs/review-aqeedat-ahl-al-sunnah-candidate`, based on `fbcdf057c54baaddeb39f0784720e4ef1df1023a`.
+- Candidate ID: `ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah` (inventory 26).
+- Official publisher page identifies the work as a commentary/report on the author's own book `عقيدة أهل السنة والجماعة`, based on his lessons in Unaizah; the broadest first recording is from 1416 AH.
+- Edition: first edition 1437 AH, one volume, 549 pages.
+- Report: `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md`.
+- Full text, comparison against recordings, editorial layers and digital redistribution rights remain pending. Candidate is hidden and unapproved; no PDF/full text was copied.
+
+## Next actions
+
+1. Re-check post-merge CI run #42250859548 on exact SHA `fbcdf057c54baaddeb39f0784720e4ef1df1023a`. If failed, investigate before proceeding.
+2. Review PR for the new creed candidate on its exact head; require tests, Firestore Emulator rules, TypeScript and production build to pass before merge.
+3. Keep all candidates hidden until complete author/methodology/text/edition/rights review.
+4. Revisit Ibn Jubayr only after applying the owner's actual policy to the full text. The current report records positive endorsement of disputed tabarruk but does not establish invocation or major shirk. If rejected, delete the candidate and report from the current tree, never archive them.
+5. Continue source-based reviews from official publishers and lawful complete editions. Do not add protected full text or PDFs.
+6. Manual keyboard/mobile/screen-reader QA of the curation dialog remains outstanding.
+7. Vercel dashboard project settings and quota remain unverified; do not manually deploy or alter settings without explicit authorization.
+8. Keep review API routes unmounted and writes disabled until a production Firebase Admin adapter and verified-owner middleware are separately implemented and reviewed.
+
+## Files to inspect
+
+- `src/data/library/candidates.json`
+- `src/data/library/curation.json`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md`
+- `HUKM_DEVELOPMENT_LOG.md`
+- `HUKM_NEXT_TASK.md`
+- `vercel.json`
+- `firestore.rules`
+
+## Validation truth
+
+- PR #51 head CI: PASS.
+- PR #51 post-merge main CI: pending at checkpoint creation.
+- Vercel: `build-rate-limit`, failure; deployment not confirmed.
+- Google AI Studio synchronization: unverified.
+
+
+## PR #51 post-merge CI result — verified
+
+- Main workflow run #42250859548 completed successfully on exact merge SHA `fbcdf057c54baaddeb39f0784720e4ef1df1023a`.
+- Test suite, Firestore Emulator rules tests, TypeScript and production build all passed after merge.
+- Vercel still reports `build-rate-limit`; no deployment is confirmed.

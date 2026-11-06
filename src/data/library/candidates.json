@@ -315,6 +315,23 @@
       "authorBiographyUrl": "https://foundation.binothaimeen.net/static/about_shekh",
       "reviewReportUrl": "https://github.com/ifawz40-boop/HUKM/blob/main/docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-al-sharh-al-mumti.md",
       "initialSpotCheck": "فحص مصدري أولي: صفحة الجهة الناشرة تسجل أحدث طبعة للمؤسسة في 10 مجلدات، وتذكر أن الشيخ شرح زاد المستقنع مرات، وأن النص المطبوع مر بمراجعاته وتحريراته في حياته. مكتبة ابن عثيمين الرقمية تعرض نسخة/طبعة أخرى في 15 مجلدًا، منها نسخة موصوفة بـ6753 صفحة؛ لا يجوز دمج بيانات النسختين. سجل الوقفية لطبعة دار ابن الجوزي (1422–1428هـ) يذكر 15 مجلدًا و7129 صفحة وتحقيق عمر سليمان الحفيان، وهي طبعة مستقلة. لم تتم مقابلة النص الكامل أو فحص المقدمات والحواشي، ولم تُحسم حقوق الاستضافة الرقمية؛ يبقى مرشحًا مخفيًا غير معتمد."
+    },
+    {
+      "id": "ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah",
+      "title": "شرح عقيدة أهل السنة والجماعة",
+      "author": "الشيخ محمد بن صالح بن محمد العثيمين (1347–1421هـ)",
+      "category": "religious",
+      "sourceUrl": "https://foundation.binothaimeen.net/ar/books/show/cb539224-64e9-4545-a36a-01fb317776fb",
+      "source": "مؤسسة الشيخ محمد بن صالح العثيمين الخيرية",
+      "edition": "الطبعة الأولى، 1437هـ",
+      "publisher": "مؤسسة الشيخ محمد بن صالح العثيمين الخيرية",
+      "pages": 549,
+      "volumes": 1,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "شرح وتقرير لكتاب المؤلف نفسه «عقيدة أهل السنة والجماعة»؛ تسجل المؤسسة أن الشرح مأخوذ من دروسه العلمية في عنيزة وأن أوسع الشرحين سُجل عام 1416هـ.",
+      "authorBiographyUrl": "https://foundation.binothaimeen.net/static/about_shekh",
+      "reviewReportUrl": "https://github.com/ifawz40-boop/HUKM/blob/main/docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md",
+      "initialSpotCheck": "بيانات المؤسسة الناشرة تثبت أن العمل شرح وتقرير لكتاب المؤلف «عقيدة أهل السنة والجماعة»، وأن مادته من دروسه في عنيزة، وأن أوسع الشرحين سُجل عام 1416هـ. الطبعة الأولى 1437هـ، مجلد واحد، 549 صفحة. هذه مطابقة قوية مبدئيًا لقسم العقيدة، لكنها ليست اعتمادًا للمحتوى؛ يلزم فحص المتن كاملًا ومقدمته وحواشيه ومقابلة ما طبع بما سُجل، وحسم حقوق النشر الرقمي."
     }
   ]
 }

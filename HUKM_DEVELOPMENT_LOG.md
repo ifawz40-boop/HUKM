@@ -582,3 +582,27 @@
 - The official Foundation biography supports the author's scholarly career and institutional roles; the Foundation's library also lists works in creed. The report does not claim that this replaces a complete methodology/content review.
 - Candidate status is `candidate`, not approved. Full text, editorial layers, hadith/athar citations, exact digital edition and redistribution rights remain unreviewed/unresolved.
 - No PDF/full text was copied. Public `approvedBookIds` remains empty; no archive/quarantine is introduced.
+
+
+## PR #51 merged — al-Sharh al-Mumti candidate (2026-11-06)
+
+- PR #51 merged by squash at `fbcdf057c54baaddeb39f0784720e4ef1df1023a`.
+- PR head `146aab796f1bdee164640828fe8633ae19cea86d` passed the exact-head CI run #42250694790: test suite, Firestore Emulator rules, TypeScript and production build.
+- Re-read the main tree after merge: candidate inventory is 25; `approvedBookIds` remains empty; the new report and candidate record are present.
+- Post-merge main CI run #42250859548 was queued/in progress at the time of this checkpoint; verify its final conclusion on the exact merge SHA before marking post-merge validation complete.
+- Vercel status on the merge SHA remains `build-rate-limit`; no production deployment is confirmed. `vercel.json` remains main-only for Git deployments.
+
+## New candidate research — شرح عقيدة أهل السنة والجماعة (2026-11-06)
+
+- Added candidate `ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah` (inventory 26) on branch `docs/review-aqeedat-ahl-al-sunnah-candidate`.
+- The official Ibn Uthaymeen Foundation page identifies it as a commentary/report on the author's own book `عقيدة أهل السنة والجماعة`, based on his lessons in Unaizah; it identifies the first/broadest recording as 1416 AH.
+- Publisher metadata: first edition 1437 AH, one volume, 549 pages.
+- The author biography and publication metadata are sourced. The complete text, printed-text/audio comparison, editorial layers and digital redistribution rights remain pending.
+- Candidate remains hidden and unapproved. No full text or PDF is copied.
+
+
+## PR #51 post-merge verification — completed (2026-11-06)
+
+- Post-merge main workflow run #42250859548 completed successfully on exact merge SHA `fbcdf057c54baaddeb39f0784720e4ef1df1023a`.
+- This confirms tests, Firestore Emulator rules tests, TypeScript and production build passed after merge.
+- Vercel status remains `build-rate-limit`; production deployment is not confirmed.
