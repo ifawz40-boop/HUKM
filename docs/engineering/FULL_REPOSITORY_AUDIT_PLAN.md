@@ -127,3 +127,13 @@ The large deployment branch has many commits ahead but its inspected key files (
 - Static library sync: https://github.com/ifawz40-boop/HUKM/actions/runs/42170669881 — inspect current status; it was still running at last check.
 - First next action: inspect sync result/logs, then correct the next exact source/API/schema issue without weakening rights checks.
 - Notification implementation commits: `dc420681`, `c7a80420`, `e334a2ec`, `d5e9562a`, `07a1df5d`, `f9d72fcd`, `673ca23f`, `928fe524`, `091baba2`, `168ad837`, `331de1b0`, `695f9202`, `a8c9a3dd`, `edfae2b8`. Latest CI on `edfae2b8`: https://github.com/ifawz40-boop/HUKM/actions/runs/42172633996 — SUCCESS.
+
+
+## Continuation update — 2026-11-06 07:12 UTC
+
+- The earlier chapter sync failure is confirmed in run `42173326152`: Dataset Viewer chapter requests repeatedly returned HTTP 500 / timeout, leaving 0 books against the minimum 15.
+- Main now routes selected-book chapter extraction through the pinned Hugging Face Datasets Parquet stream (`datasets==5.1.0`) and verifies exact section counts plus contiguous indexes. The previous per-book Dataset Viewer chapter `/filter` calls have been removed.
+- The streaming extractor stops after all selected books have their expected section counts. The sync workflow installs Python 3.12 before invoking the Node sync script.
+- The public catalogue is still empty. The implementation is committed, but latest GitHub Actions tests/typecheck/build and the new sync run are not yet independently verified through the currently available GitHub run interface. Vercel reports a daily deployment API quota failure; no production deployment is confirmed.
+- A separate UI reliability batch now prevents false clipboard success, makes book-card reading actions keyboard-accessible, and displays the library word count.
+- **Resume first:** verify CI for `d120b8d4e8769c59aaa8bc7f0fbc31ed8a11840f`; inspect the streaming sync run triggered by `9073cbad9297b644ef6baf884f30cbf4c6250eda`; only then curate generated books and continue visual/library work. Full details and exact next actions are in `docs/engineering/WORK_SESSION_CHECKPOINT.md`.
