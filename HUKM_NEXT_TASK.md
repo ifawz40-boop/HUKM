@@ -172,3 +172,15 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Spot checks show historical/travel description, not proof of full compliance. The index calls the alleged graves of Eve and Fatima `المزعوم`; descriptions of caves are not automatically endorsements of worship.
 - A separate 2026 edition from Dar al-Kutub wa al-Watha'iq al-Qawmiyya exists; its new introduction and edition rights must be cleared separately.
 - Next: obtain/inspect the complete two volumes under lawful access, review all text and images against HUKM's policy, then either approve with rights clearance or delete the candidate entirely if it fails. Do not publish based on the preliminary samples.
+
+
+## PR #46 — verified merge
+- PR #46 merged at `9a0653dd242adae2cbd8601ab72715eb4813b86f`; post-merge main CI #42244683279 passed.
+- Mirat al-Haramayn remains hidden/unapproved pending full-text and rights review.
+
+## Current editorial review — رحلة ابن جبير
+- Branch: `docs/review-ibn-jubayr-tabarruk`.
+- The author personally describes touching the Prophet's chamber, minbar and an attributed piece of the palm trunk, and praises completing this act. He also describes people kissing and rubbing faces on the relic.
+- This is a disputed tabarruk practice, not automatically shirk; Azhar and other Sunni authorities differ in the exact ruling. The report carefully distinguishes it from invoking or worshipping the object.
+- Keep the candidate hidden. Owner decision is needed on whether HUKM excludes books that positively endorse this type of tabarruk, even where it is disputed among Sunni scholars. If excluded, delete the candidate and report entirely from the current tree; do not archive.
+- Next: finish the 23-candidate author/content audit and proceed only with full-text sources; never publish an unapproved candidate.
