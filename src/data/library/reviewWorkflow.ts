@@ -139,13 +139,21 @@ export function transitionRightsStatus(
 }
 
 export function isReviewSnapshotCurrent(
-  review: ReviewSnapshot,
-  current: ReviewSnapshot,
+  review: ReviewSnapshot | null | undefined,
+  current: ReviewSnapshot | null | undefined,
 ): boolean {
+  if (!review || !current) return false;
+  if (
+    typeof review.candidateFingerprint !== 'string' ||
+    typeof current.candidateFingerprint !== 'string' ||
+    typeof review.policyVersion !== 'string' ||
+    typeof current.policyVersion !== 'string'
+  ) return false;
+
   return /^[a-f0-9]{64}$/i.test(review.candidateFingerprint) &&
     /^[a-f0-9]{64}$/i.test(current.candidateFingerprint) &&
-    Boolean(review.policyVersion) &&
-    Boolean(current.policyVersion) &&
+    review.policyVersion.trim().length > 0 &&
+    current.policyVersion.trim().length > 0 &&
     review.candidateFingerprint === current.candidateFingerprint &&
     review.policyVersion === current.policyVersion;
 }
@@ -157,8 +165,9 @@ export function isReviewSnapshotCurrent(
 export function isPublicLibraryEligible(
   editorialStatus: EditorialReviewStatus,
   rightsStatus: RightsClearanceStatus,
-  context: CurrentReviewContext,
+  context: CurrentReviewContext | null | undefined,
 ): boolean {
+  if (!context || context.allowlisted !== true) return false;
   const currentSnapshot = {
     candidateFingerprint: context.candidateFingerprint,
     policyVersion: context.policyVersion,
