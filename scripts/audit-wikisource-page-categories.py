@@ -202,6 +202,10 @@ def audit_candidates(candidates: list[dict], fetcher=fetch_json, pause_seconds: 
             {"title": page["title"], "categories": page["flagged_categories"]}
             for page in pages if page["flagged_categories"]
         ]
+        revision_drift_pages = [
+            {"title": page["title"], "source_revision_id": page["source_revision_id"], "current_revision_id": page["current_revision_id"]}
+            for page in pages if page.get("revision_matches_pinned_source") is False
+        ]
         reports.append({
             "id": candidate.get("id"),
             "title": candidate.get("title"),
@@ -212,6 +216,8 @@ def audit_candidates(candidates: list[dict], fetcher=fetch_json, pause_seconds: 
             "missing_or_unreturned_page_count": missing_count,
             "flagged_page_count": len(flagged_pages),
             "flagged_pages": flagged_pages,
+            "revision_drift_page_count": len(revision_drift_pages),
+            "revision_drift_pages": revision_drift_pages,
             "page_audit_status": "complete" if missing_count == 0 and not failures else "incomplete",
             "source_pages": pages,
             "author_pages": author_pages,
