@@ -5,12 +5,14 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   collection,
+  connectFirestoreEmulator,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
   getFirestore,
   setDoc,
+  terminate,
   updateDoc,
 } from 'firebase/firestore';
 import { after, before, test } from 'node:test';
@@ -24,6 +26,14 @@ const REVIEW_COLLECTIONS = [
 ] as const;
 
 let testEnvironment: RulesTestEnvironment;
+const namedFirestoreClients: ReturnType<typeof getFirestore>[] = [];
+
+function namedDatabase(context: { firestore: () => ReturnType<typeof getFirestore> }) {
+  const database = getFirestore(context.firestore().app, DATABASE_ID);
+  connectFirestoreEmulator(database, '127.0.0.1', 8080);
+  namedFirestoreClients.push(database);
+  return database;
+}
 
 async function assertPermissionDenied(operation: Promise<unknown>, label: string): Promise<void> {
   await assert.rejects(
@@ -48,7 +58,7 @@ before(async () => {
   // firebase.json binds firestore.rules to the project's named production database ID;
   // the CLI emulator loads that same rules file for this named database at startup.
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
-    const adminDb = getFirestore(context.firestore().app, DATABASE_ID);
+    const adminDb = namedDatabase(context);
     for (const collectionName of REVIEW_COLLECTIONS) {
       await setDoc(doc(adminDb, `${collectionName}/existing`), {
         candidateId: 'sample-book',
@@ -63,6 +73,7 @@ before(async () => {
 });
 
 after(async () => {
+  await Promise.all(namedFirestoreClients.map((database) => terminate(database).catch(() => undefined)));
   await testEnvironment.cleanup();
 });
 
@@ -75,7 +86,7 @@ test('all direct client reads and writes to review collections are denied for ev
   ];
 
   for (const { name, context } of contexts) {
-    const clientDb = getFirestore(context.firestore().app, DATABASE_ID);
+    const clientDb = namedDatabase(context);
 
     for (const collectionName of REVIEW_COLLECTIONS) {
       const existingDocument = doc(clientDb, `${collectionName}/existing`);
