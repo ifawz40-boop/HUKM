@@ -351,6 +351,7 @@ export function selectBooks(metadata, manifest) {
       .filter((row) => row.category_main === category && isUnused(row))
       .sort(compareCandidates);
     for (const row of candidates) {
+      if (!isUnused(row)) continue;
       if (selected.length >= manifest.targetBooks || selected.filter((item) => item.category_main === category).length >= quota) break;
       const words = Number(row.n_words || 0);
       if (totalWords + words > manifest.maximumTotalWords) continue;
@@ -371,11 +372,12 @@ export function selectBooks(metadata, manifest) {
       .filter(isUnused)
       .sort(compareCandidates);
     for (const row of remaining) {
+      if (!isUnused(row)) continue;
       if (selected.length >= manifest.targetBooks) break;
       const words = Number(row.n_words || 0);
       if (totalWords + words > manifest.maximumTotalWords) continue;
       selected.push(row);
-      usedIds.add(row.book_id);
+      markUsed(row);
       totalWords += words;
     }
   }
@@ -612,9 +614,9 @@ async function main() {
     '- Selected books follow one of two rights paths: (1) explicit CC BY 4.0 colophon for the Arabic translation plus public-domain original; or (2) public-domain original with all credited rights-relevant persons recorded as deceased by 1955 (life+70 screen as of 2026).',
     '- CC BY 4.0 translations retain their required attribution and licence notices; CC BY 4.0 does not impose a ShareAlike condition. Public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.',
     '- Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.',
-    '- The underlying source dataset contains 1,545 books. This HUKM batch contains ${generated.length} automatically selected, rights-screened books from a ${manifest.targetBooks}-book target; selection uses category quotas and a target length of about ${Number(manifest.targetWordsPerBook || manifest.minimumWords).toLocaleString('en-US')} words. It is not yet manually curated or individually proofread.
-    '- The selector keeps at most one book per upstream book-level near_duplicate_group; the group identifier is retained in each book's rights metadata.
-    `- First-batch integrity totals: ${generated.length} books, ${totalChapters} sections, ${totalWords.toLocaleString('en-US')} words and ${totalFootnotes.toLocaleString('en-US')} footnotes. The source metadata records ${batchOmissions.images} omitted images, ${batchOmissions.svgs} omitted SVG elements and ${batchOmissions.tables} omitted tables across this batch; these assets are not embedded in the reader.`',
+    `- The underlying source dataset contains 1,545 books. This HUKM batch contains ${generated.length} automatically selected, rights-screened books from a ${manifest.targetBooks}-book target; selection uses category quotas and a target length of about ${Number(manifest.targetWordsPerBook || manifest.minimumWords).toLocaleString('en-US')} words. It is not yet manually curated or individually proofread.`,
+    '- The selector keeps at most one book per upstream book-level near_duplicate_group; the group identifier is retained in each book\'s rights metadata.',
+    `- First-batch integrity totals: ${generated.length} books, ${totalChapters} sections, ${totalWords.toLocaleString('en-US')} words and ${totalFootnotes.toLocaleString('en-US')} footnotes. The source metadata records ${batchOmissions.images} omitted images, ${batchOmissions.svgs} omitted SVG elements and ${batchOmissions.tables} omitted tables across this batch; these assets are not embedded in the reader.`,
     '',
     '## Included books',
     '',
