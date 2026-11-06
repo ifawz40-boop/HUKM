@@ -54,7 +54,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
       const book = JSON.parse(fs.readFileSync(path.join(bookDirectory, file), 'utf8'));
       return sum + book.chapters.reduce((chapterSum: number, chapter: any) => chapterSum + (chapter.footnotes?.length || 0), 0);
     }, 0);
-    assert.equal(Number(totals[7]), actualFootnotes);
+    assert.equal(Number(totals[7].replaceAll(',', '')), actualFootnotes);
   });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
