@@ -29,6 +29,10 @@ const PUBLIC_NOTIFICATION_TYPES: NotificationType[] = [
   'milestone',
 ];
 
+function isNonNull<T>(value: T | null): value is T {
+  return value !== null;
+}
+
 function isSafeNotificationLinkId(value: unknown): value is string {
   return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
 }
@@ -65,7 +69,7 @@ export async function fetchPublicNotificationsFromFirestore(): Promise<AppNotifi
           targetRole: 'all' as const,
         };
       })
-      .filter((item): item is AppNotification => item !== null)
+      .filter(isNonNull)
       .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, path);
