@@ -98,15 +98,16 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(route, /status: 'failed'/);
   });
 
-  it('must retain source and rights details for every generated full-text book', (t) => {
+  it('must retain at least the manifest minimum of complete, rights-cleared full-text books', () => {
     const directory = path.resolve(process.cwd(), 'src/data/library/books');
     const files = fs.existsSync(directory)
       ? fs.readdirSync(directory).filter((file) => file.endsWith('.json'))
       : [];
-    if (files.length === 0) {
-      t.skip('The GitHub Actions dataset sync has not committed generated full-text books yet.');
-      return;
-    }
+    const manifest = JSON.parse(read('src/data/library/manifest.json'));
+    assert.ok(
+      files.length >= manifest.minimumBooks,
+      `The static library is not deployment-ready: expected at least ${manifest.minimumBooks} full-text books, found ${files.length}.`
+    );
     const catalog = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'src/data/library/catalog.json'), 'utf8'));
     assert.equal(catalog.length, files.length);
     for (const file of files) {
