@@ -639,3 +639,89 @@ Approved public IDs: 0
 5. Keep review API unmounted and Firestore client writes denied until production Admin adapter and verified-owner middleware are reviewed.
 6. Resolve Vercel `build-rate-limit` and verify dashboard settings without manual deployment.
 7. Confirm Google AI Studio synchronization to main.
+
+
+---
+
+# CURRENT VERIFIED CHECKPOINT — 2026-11-06 (after PR #55 merge)
+
+Repository: `ifawz40-boop/HUKM`  
+Default / Google AI Studio branch: `main`  
+Main HEAD: `e6c949c357be2cc75cb1907f07f4d693bb168caf`  
+Checkpoint branch: `docs/checkpoint-after-pr55`  
+Latest merged PR: #55 at `e6c949c357be2cc75cb1907f07f4d693bb168caf`  
+Open PRs at checkpoint creation: none
+
+## Verified CI and deployment state
+
+- PR #51 exact-head and post-merge main CI: PASS.
+- PR #52 exact-head and post-merge main CI: PASS.
+- PR #53 exact-head and post-merge main CI: PASS.
+- PR #54 exact-head and post-merge main CI: PASS.
+- PR #55 final exact-head run #42252848089: PASS; post-merge main run #42253029679: PASS on exact SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf`.
+- All runs passed tests, Firestore Emulator security-rules tests, TypeScript and production build.
+- Vercel status on exact main SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf`: **success**. Earlier commits had `build-rate-limit` failures. This verifies the GitHub Vercel status only; the actual Vercel dashboard and public production URL have not been independently smoke-tested.
+- `vercel.json` still restricts Git-triggered deployments to `main`.
+- No manual deploy or Vercel setting change was performed.
+- Google AI Studio synchronization remains unverified.
+
+## Library state
+
+- 28 hidden candidates; 0 approved public IDs (`approvedBookIds: []`). The public book library is currently empty by design until full editorial review and rights approval.
+- Category counts: religious 15, self-development 6, Islamic-philosophy critique 4, travel 3.
+- Candidate #25 `الشرح الممتع على زاد المستقنع`: full text, detailed methodology, editorial layers and rights pending.
+- Candidate #26 `شرح عقيدة أهل السنة والجماعة`: full text, recording comparison, editorial layers and rights pending.
+- Candidate #27 `الرحلة الحجازية`: multiple conflicting edition records; full text not retrieved. Review of Khedive praise, shrines, local religious practices and political/historical content pending.
+- Candidate #28 `درء تعارض العقل والنقل`: second edition 1411 AH/1991, edited by Muhammad Rashad Salim, published by Imam Muhammad ibn Saud Islamic University. Catalogues disagree between 10 parts and 11 volumes. Full-text, quotation/context and rights review pending.
+- No PDF/full text copied. No archive/quarantine created. Confirmed non-compliant books must be deleted from the current tree, not isolated.
+
+## PR #14 sync diagnosis
+
+- PR #14 remains merged at `175356b3632f1f054c6280e5c986761cf2d07059`; source branch remains at historical head `5a3e0eb9da0920c54494abbfab2cef61e54bc2ba`.
+- Its historical `sync-library` run failed because the old manifest did not pin `datasetRevision`.
+- Current main is fail-closed: manual-dispatch/non-main workflow guard, `syncEnabled: false`, empty `editoriallyApprovedSourceIds`, and the sync script aborts before external requests when disabled.
+- Do not enable ingestion or add a revision just to turn the old failure green. Future ingestion requires exact approved source IDs, complete editorial review, rights screening, pinned dataset revision and a reviewed PR.
+
+## Security and UI
+
+- `api/index.ts` mounts only auth, email and health; library review router is not mounted.
+- Firestore rules explicitly deny client access to `libraryEditorialStates`, `libraryRightsStates` and `libraryReviewEvents`, plus default deny.
+- Review API/repository remain scaffolding, not a live production feature.
+- Curation panel has code-level focus trap, Escape handling and focus restoration. Manual keyboard/mobile/screen-reader QA remains outstanding.
+
+## Exact next actions
+
+1. Obtain a complete, precisely identified copy of the 1911 NYU edition or another chosen edition of `الرحلة الحجازية`; review the full text before deciding whether it passes HUKM's standards. If it fails, delete the candidate record/report from the current tree, never archive.
+2. Resolve the Ibn Jubayr travelogue from its full context and the owner's actual standard for the disputed tabarruk passage; do not label it shirk without evidence. If it fails the standard, delete it from the current tree.
+3. Complete full-text and editorial review of candidates #25 and #26, including edition consistency and rights.
+4. Complete full-text, quotation/context and edition reconciliation for candidate #28. Avoid adding more Ibn Taymiyyah titles until existing works are reviewed and author balance improves.
+5. Continue reviewing the existing 28 candidates before adding more titles; do not increase the count merely for appearance.
+6. Complete manual keyboard, mobile and screen-reader QA of the curation panel.
+7. Keep Firestore review writes disabled and API unmounted until a production Admin adapter and verified-owner middleware are implemented and reviewed.
+8. Verify Vercel dashboard settings and perform a public production smoke test; current GitHub Vercel status is success, but the dashboard/alias has not been independently inspected.
+9. Confirm Google AI Studio remains connected to `main`.
+
+## Files to inspect
+
+- `src/data/library/candidates.json`
+- `src/data/library/curation.json`
+- `docs/library/CANDIDATE_REVIEWS/al-batnuni-al-rihla-al-hijaziyya.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-al-sharh-al-mumti.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md`
+- `api/index.ts`
+- `src/server/libraryReviewApi.ts`
+- `firestore.rules`
+- `scripts/sync-public-library.mjs`
+- `.github/workflows/sync-public-library.yml`
+- `HUKM_DEVELOPMENT_LOG.md`
+- `HUKM_NEXT_TASK.md`
+- `vercel.json`
+
+## Validation truth
+
+- PR #55 exact-head CI: PASS; post-merge main CI: PASS on `e6c949c357be2cc75cb1907f07f4d693bb168caf`.
+- Vercel Git status on `e6c949c357be2cc75cb1907f07f4d693bb168caf`: SUCCESS; public production alias smoke test not completed.
+- Historical PR #14 sync-library: FAIL (missing pinned dataset revision in the old manifest); current ingestion path is disabled and guarded.
+- No manual deployment, source ingestion, or copyrighted full-text upload performed.
