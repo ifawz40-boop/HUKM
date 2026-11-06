@@ -122,18 +122,17 @@ export function transitionRightsStatus(
   const note = validateReviewerNote(noteValue);
   const evidence = validateEvidenceReferences(evidenceValue);
 
-  if (next === 'cleared' || next === 'public_domain_verified' || next === 'restricted') {
-    requireDecisionEvidence(note, evidence);
-  }
-
-  if (
+  const isRightsRevocation =
     ((current === 'cleared' || current === 'public_domain_verified') &&
       (next === 'permission_requested' || next === 'restricted')) ||
-    (current === 'restricted' && next === 'permission_requested')
-  ) {
-    if (note.length < MIN_DECISION_NOTE_LENGTH || evidence.length === 0) {
-      throw new Error('RIGHTS_REVOCATION_REQUIRES_EXPLANATION_AND_EVIDENCE');
-    }
+    (current === 'restricted' && next === 'permission_requested');
+
+  if (isRightsRevocation && (note.length < MIN_DECISION_NOTE_LENGTH || evidence.length === 0)) {
+    throw new Error('RIGHTS_REVOCATION_REQUIRES_EXPLANATION_AND_EVIDENCE');
+  }
+
+  if (next === 'cleared' || next === 'public_domain_verified' || next === 'restricted') {
+    requireDecisionEvidence(note, evidence);
   }
 
   return next;
@@ -144,7 +143,9 @@ export function isReviewSnapshotCurrent(
   current: ReviewSnapshot,
 ): boolean {
   return /^[a-f0-9]{64}$/i.test(review.candidateFingerprint) &&
+    /^[a-f0-9]{64}$/i.test(current.candidateFingerprint) &&
     Boolean(review.policyVersion) &&
+    Boolean(current.policyVersion) &&
     review.candidateFingerprint === current.candidateFingerprint &&
     review.policyVersion === current.policyVersion;
 }
