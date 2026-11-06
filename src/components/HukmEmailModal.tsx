@@ -183,19 +183,21 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
 
   if (previewTemplate === 'welcome') {
     currentSubject = 'أهلاً بك في منصة حُكم | HUKM MEDIA';
-    currentHtml = generateWelcomeEmailHtml('أحمد المنصور', 'ahmed.reader@example.com');
+    currentHtml = generateWelcomeEmailHtml('أحمد المنصور', 'ahmed.reader@example.com', window.location.origin);
   } else if (previewTemplate === 'release') {
     currentSubject = `إصدار استقصائي جديد: ${currentBook?.title || 'كتاب حُكم'}`;
     currentHtml = generateNewReleaseEmailHtml(
       currentBook,
       currentBook?.chapters[0],
-      'عزيزنا المشترك'
+      'عزيزنا المشترك',
+      window.location.origin
     );
   } else {
     currentSubject = customSubject || 'بيان رسمي وتحديث جديد من منصة حُكم';
     currentHtml = generateCustomBroadcastEmailHtml(
       currentSubject,
-      customBody || 'يسرنا إحاطتكم علماً ببدء العمل على السلسلة الوثائقية الجديدة وفتح باب النقاش حول الوثائق المسربة.'
+      customBody || 'يسرنا إحاطتكم علماً ببدء العمل على السلسلة الوثائقية الجديدة وفتح باب النقاش حول الوثائق المسربة.',
+      window.location.origin
     );
   }
 
@@ -214,7 +216,7 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
     }
 
     setIsSending(true);
-    const html = generateCustomBroadcastEmailHtml(customSubject, customBody);
+    const html = generateCustomBroadcastEmailHtml(customSubject, customBody, window.location.origin);
 
     const res = await dispatchRealEmail({
       subject: customSubject.trim(),
@@ -255,7 +257,7 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
   const handleSendTestWelcome = async () => {
     setIsSending(true);
     const testEmail = 'ifawz40@gmail.com';
-    const html = generateWelcomeEmailHtml('إبراهيم فوزي', testEmail);
+    const html = generateWelcomeEmailHtml('إبراهيم فوزي', testEmail, window.location.origin);
 
     const res = await dispatchRealEmail({
       subject: 'أهلاً بك في منصة حُكم | HUKM MEDIA (رسالة ترحيب)',
