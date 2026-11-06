@@ -34,11 +34,11 @@ test('PDF zoom is finite and bounded', () => {
 
 test('saved progress is parsed defensively and clamped to document length', () => {
   assert.deepEqual(parsePdfReaderProgress(null, 79), { page: 1, zoom: 1, fitToWidth: true });
-  assert.deepEqual(parsePdfReaderProgress('not-json', 79), { page: 1, zoom: 1 });
+  assert.deepEqual(parsePdfReaderProgress('not-json', 79), { page: 1, zoom: 1, fitToWidth: true });
   assert.deepEqual(parsePdfReaderProgress('{"page":500,"zoom":4}', 79), { page: 79, zoom: 2.5, fitToWidth: true });
   assert.deepEqual(parsePdfReaderProgress('{"page":-3,"zoom":0.2}', 79), { page: 1, zoom: 0.7, fitToWidth: true });
 });
 
-test('serialized PDF progress contains only normalized page and zoom', () => {
+test('serialized PDF progress contains normalized page, zoom and fit-width mode', () => {
   assert.equal(serializePdfReaderProgress(5.9, 4, false), '{"page":5,"zoom":2.5,"fitToWidth":false}');
 });
