@@ -29,12 +29,20 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const libraryManifest = JSON.parse(read('src/data/library/manifest.json'));
   const libraryNotice = read('src/data/library/NOTICE.md');
 
-  it('must describe CC BY 4.0 accurately without adding a ShareAlike condition', () => {
-    assert.match(libraryNotice, /CC BY 4\.0 does not impose a ShareAlike condition/);
+  it('must describe CC BY 4.0 accurately and keep generated batch totals in sync with the catalogue', () => {
+    assert.match(libraryNotice, /CC BY 4\\.0 does not impose a ShareAlike condition/);
     assert.doesNotMatch(libraryNotice, /share-alike-compatible/i);
-    assert.match(libraryNotice, /17 automatically selected, rights-screened books/);
-    assert.match(libraryNotice, /not yet a manually curated or individually proofread collection/);
-    assert.match(libraryNotice, /969 footnotes/);
+    assert.match(libraryNotice, /automatically selected, rights-screened books/);
+    assert.match(libraryNotice, /not yet manually curated or individually proofread/);
+    const catalog = JSON.parse(read('src/data/library/catalog.json'));
+    const bookCount = libraryNotice.match(/This HUKM batch contains (\\d+) automatically selected, rights-screened books/);
+    assert.ok(bookCount, 'notice must state the generated book count');
+    assert.equal(Number(bookCount[1]), catalog.length);
+    const totals = libraryNotice.match(/First-batch integrity totals: (\\d+) books, ([\\d,]+) sections, ([\\d,]+) words and ([\\d,]+) footnotes/);
+    assert.ok(totals, 'notice must state generated books, sections, words and footnotes');
+    assert.equal(Number(totals[1]), catalog.length);
+    assert.equal(Number(totals[2].replaceAll(',', '')), catalog.reduce((sum: number, book: any) => sum + book.chapterCount, 0));
+    assert.equal(Number(totals[3].replaceAll(',', '')), catalog.reduce((sum: number, book: any) => sum + book.wordCount, 0));
   });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
