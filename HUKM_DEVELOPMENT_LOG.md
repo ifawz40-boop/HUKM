@@ -272,3 +272,17 @@
 - Vercel also posted a quota-failure comment on PR #16 despite the repository's `git.deploymentEnabled: {"*": false, "main": true}`. Official docs describe this property as branch deployment control with minimatch support. Effective project behavior must be checked in Vercel Project Settings before claiming branch previews are disabled.
 - Google AI Studio synchronization remains unverified.
 - Next: add focused regression tests for panel access/filtering/HTTPS/read-only invariants; investigate Vercel project settings without disabling main; continue the private full-text editorial review process.
+
+
+## Curation dashboard regression tests — merged and verified (2026-11-06)
+
+- PR #18 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/18
+- Merge commit / current main HEAD at checkpoint: `bd99aac3e4cc47b4eb5b947961612f8312707dae`.
+- Extracted `filterLibraryCandidates` and `isSafeExternalUrl` into `src/utils/libraryCuration.ts`; the UI now uses the tested pure helpers.
+- Added `src/utils/libraryCuration.test.ts` to the full test command. Coverage includes HTTPS-only source URLs, rejection of embedded credentials, Arabic search over title/author/edition/reason, combined category/status filters and empty filters.
+- Added static regression assertions in `tests/staticLibrary.test.ts` for owner-only navigation/mounting, read-only behavior and safe external links.
+- PR CI #42233338320 and post-merge push CI #42233459070 both completed successfully.
+- Post-merge exact test totals: 292 tests, 291 passed, 0 failed, 1 skipped. TypeScript check and production build passed.
+- Vercel status remains quota-limited (>100 deployments/day); no latest production deployment is confirmed. Effective branch deployment behavior remains to be checked in Vercel Project Settings.
+- Current public library still has 22 candidates, zero approved IDs and 24 quarantined legacy records.
+- Next: accessibility/mobile audit of the dialog; verify Vercel project-level branch settings; continue private full-text editorial review.
