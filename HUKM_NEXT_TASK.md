@@ -150,3 +150,16 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Explicitly deny client reads/writes to `libraryEditorialStates`, `libraryRightsStates`, and `libraryReviewEvents` for all roles, including owner. Emulator tests cover unauthenticated, reader, admin and owner contexts.
 - Current rebased branch must pass fresh CI before merge. Keep API routes unmounted and write operations disabled until the real Firebase Admin adapter and verified-owner middleware are separately reviewed.
 - Next: finish the emulator rules PR, then type-check the production repository adapter; continue candidate full-text reviews only from verified editions and keep every unapproved book hidden.
+
+
+## PR #44 — verified merge state
+- PR #44 merged at `d6523ab6841f88720e8a48166af3eec79c78d5fa`; pre-merge CI run #42243550198 passed tests, emulator rules, TypeScript and build.
+- Post-merge main CI is still queued/running; verify exact merge SHA before marking complete.
+- Client Firestore access to review state and event collections is denied for all roles; server API remains unmounted.
+- Vercel status remains `build-rate-limit`; no deployment has been confirmed or manually triggered.
+
+## Current library research task
+- Branch: `docs/review-mirat-al-haramayn-v2`.
+- Added a preliminary source review for `مرآة الحرمين` by Ibrahim Rifaat. The source record supports its travel/geography category and edition metadata; complete text review and rights clearance remain pending.
+- The candidate remains hidden and unapproved. No book content has been copied into the repository.
+- Next: merge the report only after CI; continue candidate reviews from full verified editions, and delete any candidate that fails the owner's requirements rather than archiving it.
