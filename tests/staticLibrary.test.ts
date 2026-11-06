@@ -15,6 +15,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const syncWorkflow = read('.github/workflows/sync-public-library.yml');
   const chapterExtractor = read('scripts/extract-library-chapters.py');
   const bookOverview = read('src/components/BookOverviewView.tsx');
+  const bookCard = read('src/components/BookCard.tsx');
+  const hero = read('src/components/HukmHero.tsx');
   const serverApi = read('src/server/authClaimsApi.ts');
   const firebaseConfig = JSON.parse(read('firebase.json'));
   const bootstrapScript = read('scripts/bootstrap-owner.ts');
@@ -279,6 +281,17 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(bookOverview, /const handleShare = async \(\) => \{/);
     assert.match(bookOverview, /await navigator\.clipboard\?\.writeText|await navigator\.clipboard\.writeText/);
     assert.match(bookOverview, /catch \{[\s\S]*تعذر نسخ الرابط تلقائيًا/);
+  });
+
+  it('must expose book-card reading actions through keyboard-accessible controls', () => {
+    assert.match(bookCard, /<article[\s\S]*className=/);
+    assert.doesNotMatch(bookCard, /<article[\s\S]*onClick=\{onRead\}/);
+    assert.match(bookCard, /<button[\s\S]*type="button"[\s\S]*onClick=\{onRead\}/);
+    assert.match(bookCard, /aria-label=\{.*فتح كتاب.*book\.title/);
+  });
+
+  it('must display the total word count passed to the library hero', () => {
+    assert.match(hero, /totalWordsCount\.toLocaleString\('ar-EG'\)/);
   });
 
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
