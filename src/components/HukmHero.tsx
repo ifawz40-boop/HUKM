@@ -68,6 +68,11 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
               <span className="font-black text-white block text-sm">{totalChaptersCount}</span>
               <span className="text-[10px] text-[#94a3b8]">أقسام وفصول</span>
             </div>
+            <div className="h-6 w-px bg-white/10" />
+            <div>
+              <span className="font-black text-white block text-sm">{totalWordsCount.toLocaleString('ar-EG')}</span>
+              <span className="text-[10px] text-[#94a3b8]">كلمة</span>
+            </div>
           </div>
 
           <button
