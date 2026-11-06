@@ -13,7 +13,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check metadata.tsv download from the official corpus record
         shell: bash
@@ -46,3 +46,19 @@ jobs:
           echo '--- metadata preview ---'
           head -n 3 /tmp/hukm-metadata.tsv
           test -s /tmp/hukm-metadata.tsv
+
+      - name: Verify the public Hugging Face Arrow mirror and pinned SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://huggingface.co/datasets/mohres/The_Arabic_E-Book_Corpus/resolve/2d5c131050b7572a345ebf740caee24739f7a09e/data-00000-of-00002.arrow'
+          curl --fail --location --show-error --silent \
+            --retry 3 --retry-all-errors --connect-timeout 30 --max-time 900 \
+            --output /tmp/hukm-arrow-00000.arrow \
+            --write-out 'HTTP=%{http_code}\nFINAL_URL=%{url_effective}\nBYTES=%{size_download}\n' \
+            "$url"
+          actual="$(sha256sum /tmp/hukm-arrow-00000.arrow | awk '{print $1}')"
+          expected='1d1acb60a0bad8cbf1580656615f5388703d263c917f8f52892155f8cc15981d'
+          echo "SHA256=$actual"
+          test "$actual" = "$expected"
+          stat -c 'FILE_BYTES=%s' /tmp/hukm-arrow-00000.arrow
