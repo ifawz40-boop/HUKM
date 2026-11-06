@@ -34,7 +34,7 @@ function isSafeHttpUrl(value) {
 }
 
 function countWords(value) {
-  return (String(value || '').match(/[\\p{L}\\p{N}]+/gu) || []).length;
+  return (String(value || '').match(/[\p{L}\p{N}]+/gu) || []).length;
 }
 
 
