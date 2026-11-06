@@ -218,6 +218,9 @@ test('review API is not mounted in the production or development entry points ye
   assert.equal(serverEntry.includes('/api/library/reviews'), false);
   assert.equal(vercelEntry.includes('libraryReviewApi'), false);
   assert.equal(vercelEntry.includes('/api/library/reviews'), false);
+
+  const firestoreRules = readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
+  assert.match(firestoreRules, /match \/\{document=\*\*\}[\s\S]*?allow read, write: if false;/);
 });
 
 test('repository conflicts are mapped to safe HTTP conflicts', async () => {
