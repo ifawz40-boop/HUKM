@@ -39,9 +39,8 @@ export const BookCard: React.FC<BookCardProps> = ({
   const resumeChapterId = readingProgress.lastChapterId || null;
 
   return (
-    <div
-      onClick={onRead}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#0a1329] p-4 text-right transition-all duration-300 hover:-translate-y-1 hover:border-[#c59b27]/60 hover:shadow-2xl hover:shadow-black/70 cursor-pointer"
+    <article
+      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#0a1329] p-4 text-right transition-all duration-300 hover:-translate-y-1 hover:border-[#c59b27]/60 hover:shadow-2xl hover:shadow-black/70"
     >
       <div>
         {/* Cover Poster (3:4 ratio like truthnovel.top) */}
@@ -121,8 +120,15 @@ export const BookCard: React.FC<BookCardProps> = ({
 
         {/* Title & Author */}
         <div className="mt-3.5 space-y-1">
-          <h3 className="text-base font-black text-white font-cairo leading-snug group-hover:text-[#f0cb69] transition-colors line-clamp-2">
-            {book.title}
+          <h3 className="text-base font-black font-cairo leading-snug line-clamp-2">
+            <button
+              type="button"
+              onClick={onRead}
+              className="w-full text-right text-white transition-colors hover:text-[#f0cb69] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f0cb69]"
+              aria-label={`فتح كتاب ${book.title}`}
+            >
+              {book.title}
+            </button>
           </h3>
 
           <p className="text-xs text-[#94a3b8] flex items-center gap-1">
@@ -188,6 +194,6 @@ export const BookCard: React.FC<BookCardProps> = ({
           </button>
         )}
       </div>
-    </div>
+    </article>
   );
 };
