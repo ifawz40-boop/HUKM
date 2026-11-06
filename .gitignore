@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Firebase Admin service-account credentials must never be committed.
+serviceAccountKey.json
+firebase-adminsdk-*.json
+firebase-service-account*.json
