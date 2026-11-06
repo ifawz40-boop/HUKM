@@ -152,9 +152,10 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
       const batch = recipients.slice(i, i + BATCH_SIZE);
 
       if (providerConfig.kind === 'gmail' && gmailTransporter) {
-        let info: Awaited<ReturnType<typeof gmailTransporter.sendMail>>;
+        let acceptedCount = 0;
+        let messageId = '';
         try {
-          info = await gmailTransporter.sendMail({
+          const info = await gmailTransporter.sendMail({
             from: providerConfig.from,
             to: recipientTarget.kind === 'individual' ? batch : providerConfig.user,
             bcc: recipientTarget.kind === 'individual' ? undefined : batch,
@@ -162,6 +163,9 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
             subject: subject.trim(),
             html: htmlContent,
           });
+          // Broadcasts include one sender copy in the visible To field plus BCC recipients.
+          acceptedCount = Math.min(batch.length, Array.isArray(info.accepted) ? info.accepted.length : batch.length);
+          messageId = info.messageId || '';
         } catch (providerError) {
           console.error(`Gmail SMTP failure at batch index ${i}.`, providerError);
           if (actualDispatchedCount === 0) throw providerError;
@@ -169,9 +173,8 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
           break;
         }
 
-        const acceptedCount = Array.isArray(info.accepted) ? info.accepted.length : batch.length;
         actualDispatchedCount += acceptedCount;
-        if (info.messageId) providerIds.push(info.messageId);
+        if (messageId) providerIds.push(messageId);
         if (acceptedCount !== batch.length || (Array.isArray(info.rejected) && info.rejected.length > 0)) {
           partialDispatch = true;
           break;
