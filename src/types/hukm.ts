@@ -21,6 +21,8 @@ export interface BookChapter {
   title: string;
   subtitle?: string;
   content: string[];
+  exactDuplicateGroup?: string | null;
+  nearDuplicateGroup?: string | null;
   footnotes?: BookFootnote[];
   omittedMedia?: { images: number; svgs: number; tables: number };
   notes?: string;
