@@ -28,7 +28,7 @@ Add secrets only in **Vercel → Project → Settings → Environment Variables*
 
 - Value: the complete JSON document for a Google Cloud service account.
 - Project must be exactly `gen-lang-client-0492732633`.
-- The account needs only the IAM permissions required by the server routes: Firebase Authentication user/claims operations and read/write access to the HUKM Firestore database.
+- Grant the narrow IAM roles required by the server routes: **Firebase Authentication Admin** (`roles/firebaseauth.admin`) for user/claim operations and **Cloud Datastore User** (`roles/datastore.user`) for Firestore reads/writes. Do not grant project Owner or Editor just for this integration.
 - Keep this value server-side. Never prefix it with `VITE_`, commit it, paste it into source files, or send it in chat.
 - The application also pins Firestore database ID `ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96`; do not substitute the default database.
 
