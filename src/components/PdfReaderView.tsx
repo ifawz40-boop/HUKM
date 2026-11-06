@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Minus, Plus, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Bookmark, ChevronLeft, ChevronRight, ExternalLink, Minus, Plus, RotateCcw, Save, Search, StickyNote } from 'lucide-react';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { PdfLibraryItem } from '../types/pdfLibrary';
@@ -9,6 +9,7 @@ import {
   getPdfReaderProgressKey,
   parsePdfReaderProgress,
   serializePdfReaderProgress,
+  searchPdfPages,
 } from '../utils/pdfReaderProgress';
 
 type PdfDocument = Awaited<ReturnType<typeof getDocument>['promise']>;
@@ -25,7 +26,7 @@ const getStoredProgress = (key: string, totalPages: number) => {
   try {
     return parsePdfReaderProgress(window.localStorage.getItem(key), totalPages);
   } catch {
-    return { page: 1, zoom: 1, fitToWidth: true };
+    return { page: 1, zoom: 1, fitToWidth: true, bookmarks: [], notes: {} };
   }
 };
 
@@ -39,6 +40,7 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
   const documentRef = useRef<PdfDocument | null>(null);
   const loadingTaskRef = useRef<ReturnType<typeof getDocument> | null>(null);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
 
   const progressKey = getPdfReaderProgressKey(item.id, currentUserId);
   const [totalPages, setTotalPages] = useState(0);
@@ -51,6 +53,15 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
   const [isDocumentReady, setIsDocumentReady] = useState(false);
   const [renderedPage, setRenderedPage] = useState(0);
   const [error, setError] = useState('');
+  const [bookmarks, setBookmarks] = useState<number[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [noteDraft, setNoteDraft] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchProgress, setSearchProgress] = useState(0);
+  const [searchMessage, setSearchMessage] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +91,9 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
       setPageInput(String(saved.page));
       setZoom(saved.zoom);
       setFitToWidth(saved.fitToWidth);
+      setBookmarks(saved.bookmarks);
+      setNotes(saved.notes);
+      setNoteDraft(saved.notes[String(saved.page)] || '');
       setRenderedPage(0);
       setIsDocumentReady(true);
       setIsLoading(false);
@@ -92,6 +106,7 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
 
     return () => {
       cancelled = true;
+      searchAbortRef.current?.abort();
       renderTaskRef.current?.cancel();
       renderTaskRef.current = null;
       documentRef.current = null;
@@ -121,11 +136,15 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
   useEffect(() => {
     if (!isDocumentReady || totalPages < 1) return;
     try {
-      window.localStorage.setItem(progressKey, serializePdfReaderProgress(pageNumber, zoom, fitToWidth));
+      window.localStorage.setItem(progressKey, serializePdfReaderProgress(pageNumber, zoom, fitToWidth, bookmarks, notes));
     } catch {
       // Private browsing or storage limits must not interrupt reading.
     }
-  }, [isDocumentReady, progressKey, pageNumber, zoom, fitToWidth, totalPages]);
+  }, [isDocumentReady, progressKey, pageNumber, zoom, fitToWidth, bookmarks, notes, totalPages]);
+
+  useEffect(() => {
+    setNoteDraft(notes[String(pageNumber)] || '');
+  }, [notes, pageNumber]);
 
   useEffect(() => {
     const pdf = documentRef.current;
@@ -193,6 +212,70 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
     setZoom((current) => clampPdfZoom(current + delta));
   };
 
+  const toggleBookmark = () => {
+    setBookmarks((current) => current.includes(pageNumber)
+      ? current.filter((page) => page !== pageNumber)
+      : [...current, pageNumber].sort((a, b) => a - b));
+  };
+
+  const savePageNote = () => {
+    const cleanNote = noteDraft.trim().slice(0, 5_000);
+    setNotes((current) => {
+      const next = { ...current };
+      if (cleanNote) next[String(pageNumber)] = cleanNote;
+      else delete next[String(pageNumber)];
+      return next;
+    });
+  };
+
+  const runSearch = async () => {
+    const pdf = documentRef.current;
+    const query = searchQuery.trim();
+    if (!pdf || !query || !item.searchAvailable) return;
+
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    setSearching(true);
+    setSearchProgress(0);
+    setSearchResults([]);
+    setSearchMessage('');
+
+    try {
+      const results = await searchPdfPages(
+        pdf.numPages,
+        query,
+        async (pageIndex) => {
+          const page = await pdf.getPage(pageIndex);
+          const content = await page.getTextContent();
+          return content.items.map((entry) => ('str' in entry ? entry.str : '')).join(' ');
+        },
+        (completed) => setSearchProgress(completed),
+        controller.signal
+      );
+
+      if (!controller.signal.aborted) {
+        setSearchResults(results);
+        setSearchMessage(results.length
+          ? 'عُثر على الكلمة في ' + results.length + ' صفحة.'
+          : 'لم يتم العثور على تطابق. إذا كانت النسخة مصورة فقد تحتاج إلى OCR.');
+      }
+    } catch (searchError: unknown) {
+      if (!controller.signal.aborted) {
+        console.error('PDF text search failed:', searchError);
+        setSearchMessage('تعذر إكمال البحث داخل هذا الملف.');
+      }
+    } finally {
+      if (!controller.signal.aborted) setSearching(false);
+    }
+  };
+
+  const cancelSearch = () => {
+    searchAbortRef.current?.abort();
+    setSearching(false);
+    setSearchMessage('تم إيقاف البحث.');
+  };
+
   return (
     <main className="min-h-[70vh] bg-[#070d1e] px-3 py-5 text-[#f4efe6] sm:px-6" dir="rtl">
       <div className="mx-auto max-w-6xl space-y-4">
@@ -216,8 +299,16 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
             <button type="button" onClick={() => changeZoom(0.15)} disabled={zoom >= 2.5 || fitToWidth} className="rounded-lg border border-white/10 p-2 disabled:opacity-40" aria-label="تكبير">
               <Plus className="h-4 w-4" />
             </button>
-            <button type="button" onClick={() => setFitToWidth(true)} className={`rounded-lg border px-3 py-2 ${fitToWidth ? 'border-[#c59b27]/50 bg-[#c59b27]/10 text-[#f0cb69]' : 'border-white/10 text-slate-300'}`}>
+            <button type="button" onClick={() => setFitToWidth(true)} className="rounded-lg border border-white/10 px-3 py-2 text-slate-300">
               ملاءمة العرض
+            </button>
+            <button type="button" onClick={toggleBookmark} disabled={!isDocumentReady} className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-slate-300">
+              <Bookmark className="h-3.5 w-3.5" />
+              {bookmarks.includes(pageNumber) ? 'إزالة العلامة' : 'حفظ الصفحة'}
+            </button>
+            <button type="button" onClick={() => setShowNotes((value) => !value)} disabled={!isDocumentReady} className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-slate-300">
+              <StickyNote className="h-3.5 w-3.5" />
+              ملاحظاتي
             </button>
           </div>
         </header>
@@ -257,6 +348,37 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
           </div>
         </section>
 
+        {bookmarks.length > 0 && (
+          <section className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-[#0a1329] p-3 text-xs" aria-label="الصفحات المحفوظة">
+            <span className="font-bold text-[#f0cb69]">علاماتي:</span>
+            {bookmarks.map((page) => (
+              <button key={page} type="button" onClick={() => goToPage(page)} className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-300">
+                صفحة {page}
+              </button>
+            ))}
+          </section>
+        )}
+
+        {item.searchAvailable && (
+          <section className="space-y-3 rounded-xl border border-white/10 bg-[#0a1329] p-3" aria-label="البحث داخل ملف PDF">
+            <form className="flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void runSearch(); }}>
+              <div className="flex min-w-[180px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-[#050a16] px-3">
+                <Search className="h-4 w-4 text-slate-500" />
+                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="ابحث داخل النص المستخرج…" className="w-full bg-transparent py-2.5 text-xs text-white outline-none" />
+              </div>
+              <button type="submit" disabled={searching || !searchQuery.trim()} className="rounded-lg bg-[#c59b27] px-4 py-2 text-xs font-bold text-[#070d1e] disabled:opacity-40">بحث</button>
+              {searching && <button type="button" onClick={cancelSearch} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300">إيقاف</button>}
+            </form>
+            {searching && <p className="text-[11px] text-slate-400">جارٍ فحص الصفحات: {searchProgress} / {totalPages}</p>}
+            {searchMessage && <p className="text-[11px] text-slate-300">{searchMessage}</p>}
+            {searchResults.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {searchResults.map((page) => <button key={page} type="button" onClick={() => goToPage(page)} className="rounded-lg border border-white/10 px-3 py-1.5 text-[11px] text-[#f0cb69]">الصفحة {page}</button>)}
+              </div>
+            )}
+          </section>
+        )}
+
         {error && (
           <div role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-7 text-amber-100">
             <p>{error}</p>
@@ -276,6 +398,30 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
           )}
         </div>
 
+        {showNotes && (
+          <section className="space-y-3 rounded-2xl border border-white/10 bg-[#0a1329] p-4" aria-label="ملاحظات الصفحة الحالية">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold text-[#f0cb69]">ملاحظة الصفحة {pageNumber}</h2>
+              <span className="text-[10px] text-slate-500">محفوظة محليًا</span>
+            </div>
+            <textarea
+              value={noteDraft}
+              onChange={(event) => setNoteDraft(event.target.value.slice(0, 5_000))}
+              maxLength={5_000}
+              rows={4}
+              placeholder="اكتب ملاحظتك أو خلاصة هذه الصفحة…"
+              className="w-full resize-y rounded-xl border border-white/10 bg-[#050a16] p-3 text-sm leading-7 text-white outline-none focus:border-[#c59b27]/50"
+            />
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] text-slate-500">{noteDraft.length} / 5000</span>
+              <button type="button" onClick={savePageNote} className="flex items-center gap-2 rounded-lg bg-[#c59b27] px-4 py-2 text-xs font-bold text-[#070d1e]">
+                <Save className="h-3.5 w-3.5" />
+                حفظ الملاحظة
+              </button>
+            </div>
+          </section>
+        )}
+
         <footer className="grid gap-3 rounded-2xl border border-[#c59b27]/20 bg-[#0a1329] p-4 text-xs leading-7 text-slate-300 sm:grid-cols-2">
           <div>
             <p className="font-bold text-[#f0cb69]">بيانات النسخة المصورة</p>
@@ -284,7 +430,7 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
             <p className="mt-1">حالة الملف: {item.license}</p>
           </div>
           <div className="flex flex-col gap-2 sm:items-start">
-            <p>هذه نسخة مصورة؛ البحث النصي وOCR غير متاحين في هذا الإصدار من القارئ. يُحفظ موضع القراءة محليًا على هذا الجهاز والحساب، دون مزامنة سحابية حاليًا.</p>
+            <p>{item.searchAvailable ? 'يدعم هذا الملف البحث في النص المستخرج من صفحاته.' : 'هذه نسخة مصورة؛ البحث النصي وOCR غير متاحين لهذا الملف.'} تُحفظ الصفحة والعلامات والملاحظات محليًا على هذا الجهاز والحساب، دون مزامنة سحابية حاليًا.</p>
             <div className="flex flex-wrap gap-3">
               <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-[#f0cb69] underline underline-offset-4">صفحة المصدر</a>
               <a href={item.licenseUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">بيان الحقوق</a>
