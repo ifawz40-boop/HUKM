@@ -256,7 +256,7 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
 
   const handleSendTestWelcome = async () => {
     setIsSending(true);
-    const testEmail = 'ifawz40@gmail.com';
+    const testEmail = 'hukm.contact@gmail.com';
     const html = generateWelcomeEmailHtml('إبراهيم فوزي', testEmail, window.location.origin);
 
     const res = await dispatchRealEmail({
@@ -417,7 +417,7 @@ export const HukmEmailModal: React.FC<HukmEmailModalProps> = ({
               <div>
                 <p className="font-bold text-amber-300">خدمة إرسال البريد الإلكتروني غير مهيأة على الخادم</p>
                 <p className="text-[11px] text-[#94a3b8] mt-0.5 leading-relaxed">
-                  يجب ضبط <code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">RESEND_API_KEY</code> و<code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">EMAIL_FROM</code> معًا في متغيرات بيئة الخادم. لن يتم الإرسال بعنوان افتراضي أو غير موثّق.
+                  اضبط <code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">GMAIL_USER</code> و<code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">GMAIL_APP_PASSWORD</code> لاستخدام Gmail، أو <code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">RESEND_API_KEY</code> و<code className="text-[#f0cb69] bg-white/5 px-1 py-0.5 rounded">EMAIL_FROM</code> لاستخدام Resend.
                 </p>
               </div>
             </div>
