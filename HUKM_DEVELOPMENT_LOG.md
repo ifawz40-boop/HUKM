@@ -570,3 +570,15 @@
 - IslamHouse metadata identifies the author as the hadith scholar Abd al-Ghani al-Maqdisi (541–600هـ), and describes the work as a collection of legal hadith selected from Sahih al-Bukhari and Sahih Muslim.
 - The candidate edition is reviewed and sourced by Saeed al-Qahtani, who states that the wording was compared against the two Sahihs and the hadith locations documented.
 - This is a strong candidate but remains hidden and unapproved until the complete text, exact edition and rights are checked. No PDF was copied.
+
+
+## PR #51 preparation — new fiqh candidate: al-Sharh al-Mumti (2026-11-06)
+
+- Audited the live repository before work: main HEAD was `342ac0bad42c7610099fdc5383f401ec91f32adb`; no PRs were open; PR #50 was the latest merged PR.
+- Verified PR #50 exact head `e26e49ea758673ebb5b86651742379cb4ffa604d`: GitHub Actions test/typecheck/build passed; post-merge main run #42246576624 passed on `342ac0bad42c7610099fdc5383f401ec91f32adb`.
+- Vercel combined status on `342ac0bad42c7610099fdc5383f401ec91f32adb` remains `failure` with target `build-rate-limit`; this is not a GitHub Actions failure and no production deployment is confirmed.
+- Added a new metadata-only candidate `ibn-uthaymeen-al-sharh-al-mumti` for `الشرح الممتع على زاد المستقنع`, sourced to the current 10-volume edition marketed by the Ibn Uthaymeen Foundation.
+- Distinguished the current 10-volume Foundation edition from the 15-volume digital library record and the separate 15-volume Waqfeya/Dar Ibn al-Jawzi edition (1422–1428 AH, 7129 pages, edited by Umar al-Hufyan). Edition records must not be conflated.
+- The official Foundation biography supports the author's scholarly career and institutional roles; the Foundation's library also lists works in creed. The report does not claim that this replaces a complete methodology/content review.
+- Candidate status is `candidate`, not approved. Full text, editorial layers, hadith/athar citations, exact digital edition and redistribution rights remain unreviewed/unresolved.
+- No PDF/full text was copied. Public `approvedBookIds` remains empty; no archive/quarantine is introduced.
