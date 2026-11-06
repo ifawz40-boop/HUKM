@@ -105,6 +105,22 @@ describe('HUKM — bundled Arabic library architecture', () => {
     }
   });
 
+
+  it('must validate the actual generated library with the Vercel deployment gate when books are present', (context) => {
+    const directory = path.resolve(process.cwd(), 'src/data/library/books');
+    const files = fs.existsSync(directory)
+      ? fs.readdirSync(directory).filter((file) => file.endsWith('.json'))
+      : [];
+    if (files.length === 0) {
+      context.skip('The source-library sync has not committed full-text books yet.');
+      return;
+    }
+    const gatePath = path.resolve(process.cwd(), 'scripts/assert-library-ready.mjs');
+    const result = spawnSync(process.execPath, [gatePath], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /PASS:/);
+  });
+
   it('must bind Firestore rules to the exact named database used by every Admin SDK entry point', () => {
     const expectedDatabase = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
     assert.equal(firebaseConfig.firestore.database, expectedDatabase);
