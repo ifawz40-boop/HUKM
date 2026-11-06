@@ -159,7 +159,7 @@ async function extractSelectedChapters(selected, manifest) {
     if (stdout) process.stdout.write(stdout);
     if (stderr) process.stderr.write(stderr);
 
-    const lines = (await readFile(outputPath, 'utf8')).split(/\\r?\\n/).filter(Boolean);
+    const lines = (await readFile(outputPath, 'utf8')).split(/\r?\n/).filter((line) => line.trim().length > 0);
     if (lines.length === 0) throw new Error('The pinned streaming extractor returned no chapter rows.');
 
     const rowsByBook = new Map();
