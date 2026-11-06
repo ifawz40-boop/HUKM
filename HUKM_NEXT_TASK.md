@@ -100,15 +100,18 @@ Confirmed current state:
 - `BookReaderView.tsx` currently renders the existing structured text-book format; there is no PDF or EPUB rendering path yet.
 
 Open-source candidates reviewed:
-- **PDF.js / `pdfjs-dist`** — Mozilla's browser PDF renderer, Apache-2.0. Use the package and locally pinned worker; build a HUKM-styled custom reader rather than copying the full generic viewer. Official project: https://github.com/mozilla/pdf.js
-- **epub.js** — BSD-2-Clause browser EPUB renderer. Its 0.3.88 release includes RTL-related fixes; it is a lighter fit for the current static React/Vite app than a full publication server. Project: https://github.com/futurepress/epub.js
-- **Readium Web / TS toolkit** — BSD-3-Clause and more standards-oriented, but the current web path is EPUB-focused and expects Web Publication Manifest/streaming infrastructure. Keep as a future option if HUKM later adds a publication service rather than making it the first static reader dependency. Project: https://github.com/readium/ts-toolkit
+- **PDF.js / `pdfjs-dist`** — Mozilla's browser PDF renderer, Apache-2.0. npm latest at review: 6.5.438, published 2026-11-01, zero runtime dependencies; Snyk reported no direct vulnerabilities for this version. Use the package and locally pinned worker; build a HUKM-styled custom reader rather than copying the full generic viewer. Official project: https://github.com/mozilla/pdf.js
+- **epub.js** — BSD-2-Clause browser EPUB renderer. npm latest stable at review: 0.3.93 with 9 dependencies; security review shows no direct vulnerability for latest, but maintenance is inactive/low cadence and the last stable release is old. Do not install without reviewing dependency health and testing RTL behavior. Project: https://github.com/futurepress/epub.js
+- **foliate-js** — MIT, small modular browser e-book library with EPUB support and experimental PDF support through PDF.js; no hard dependencies and does not load the whole file into memory. However, its README explicitly says the library API is unstable and may change; pin an exact commit and vendor with license if selected. Project: https://github.com/johnfactotum/foliate-js
+- **Readium TS toolkit** — BSD-3-Clause, standards-oriented and actively developed, but the web path is EPUB-focused and expects Web Publication Manifest/streaming infrastructure. Keep as a future option if HUKM later adds a publication service. Project: https://github.com/readium/ts-toolkit
+- **Readest** — active modern EPUB/PDF reader but AGPL-3.0; inspect its UI ideas only, do not copy or bundle code unless HUKM intentionally adopts AGPL compatibility. Project: https://github.com/readest/readest
 
-Preliminary implementation choice (validate package health and security advisories before installation):
-1. PDF: `pdfjs-dist` with a local worker, page virtualization, zoom, page navigation, fit-width, text selection/search only when the PDF has an embedded text layer, and persistent page position/bookmarks.
-2. EPUB: `epub.js` with RTL direction, TOC navigation, CFI-based position, font scale, theme, pagination/scroll mode, and persistent reading position/bookmarks.
-3. Do not promise text search in scanned/image-only PDFs without OCR. Avoid adding OCR dependencies until there is a justified need and performance review.
-4. Test with Arabic RTL EPUB plus a legal PDF fixture before accepting the feature.
+Preliminary implementation decision:
+1. PDF: proceed with `pdfjs-dist@6.5.438` after lockfile update and local-worker integration. Build page virtualization, zoom, page navigation, fit-width, and persistent page position/bookmarks.
+2. EPUB: do not lock the choice yet. Run a focused spike comparing epub.js 0.3.93 (maintenance/dependency risk), foliate-js (unstable API), and Readium (more complex publication infrastructure). Choose only after Arabic RTL, CSP, annotation, CFI/progress, and bundle-size tests.
+3. Keep EPUB scripted content disabled. Enforce CSP/sandboxing and test hostile EPUB fixtures; never enable scripted content by default.
+4. Do not promise text search in scanned/image-only PDFs without OCR. Avoid OCR dependencies until there is a justified need and performance review.
+5. Test with an Arabic RTL EPUB plus the legal PDF fixture before accepting the feature.
 
 Legal PDF fixture for the PDF reader:
 - `لسان غصن لبنان في انتقاد العربية العصرية` has an original 1891 scan on Wikimedia Commons: https://commons.wikimedia.org/wiki/File:كتاب_لسان_غصن_لبنان_في_انتقاد_العربية_العصرية.pdf
