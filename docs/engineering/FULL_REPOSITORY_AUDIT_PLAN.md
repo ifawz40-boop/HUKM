@@ -171,3 +171,13 @@ The large deployment branch has many commits ahead but its inspected key files (
 - Build improvement: previous per-book JS chunks up to 1.39 MB / 412 kB gzip and chunk warning are gone. Full texts are separate JSON assets; largest is 1.46 MB / 417 kB gzip. App entry JS is 343.07 kB / 74.13 kB gzip.
 - Vercel deployment status remains blocked by the reported API build-rate-limit quota; no production deployment is confirmed.
 - Resume next: audit source metadata/selection, curate a rights-cleared library without lowering gates, investigate duplicates from actual schema, design cleared/original covers, then continue Firestore/account isolation and route/API audit.
+
+
+## Continuation update — 2026-11-06 — 24-book batch and Wikisource source research
+
+- Library selection now targets 50k words per book (total ceiling 1.5M), filters out rows without author metadata, skips repeated upstream book-level near_duplicate_group values, and retains the original fail-closed rights/completeness gates.
+- The committed static library now contains 24 accepted books, 529 sections, 1,144,156 words and 2,283 footnotes. Independent parsing of all 24 full-text blobs found no structural or rights-metadata failures. Omitted assets disclosed: 204 images and 14 tables.
+- Source chapter exact/near-duplicate group fields are now preserved in generated chapters and validated by the deployment gate. No book-level or chapter-level duplicate groups were populated among this eligible batch, but the metadata is retained for future releases.
+- GitHub Actions run https://github.com/ifawz40-boop/HUKM/actions/runs/42182855973 passed 266 tests, TypeScript and production build against the populated library. Vercel remains blocked by the build/deployment API rate limit; no production deployment is confirmed.
+- New expansion source identified: Arabic Wikisource Public-Domain Works (Bayanat Labs), release v0.1.0 pinned to 7f7de3a3e95e3f4e0e29c72588fd73ad2a636ccd. Text is CC BY-SA 4.0 while metadata is CC BY 4.0. Add a separate rights tier; never mislabel it as plain public-domain or CC BY 4.0.
+- Next: run a metadata-only streaming audit of works-pd-core, select a small manually reviewed non-poetry Islamic/classical set, exclude incomplete/unclosed-wikitext works and works-life50, preserve source pages/revisions and near-duplicate groups, then add the separate CC BY-SA license path and lazy JSON assets.
