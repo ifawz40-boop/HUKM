@@ -3,30 +3,30 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current development branch: `feat/owner-library-curation-dashboard`
-Verified main HEAD at checkpoint: `d9ffac968aac9f629c46b0a81f00fa7d877c2cd8`
+Current documentation branch: `docs/checkpoint-curation-dashboard-merged`
+Verified main HEAD at checkpoint: `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`
 
 ## Verified repository and merge state
 
-- PR #14 (Islamic library curation) is **merged**. Merge commit: `175356b3632f1f054c6280e5c986761cf2d07059`.
-- PR #15 (Vercel Git deployments from main only) is **merged**. Merge commit and current main HEAD: `d9ffac968aac9f629c46b0a81f00fa7d877c2cd8`.
-- PR #15 preserves Vite, Bun install, API function duration, API rewrite and SPA fallback configuration.
-- `vercel.json` contains `git.deploymentEnabled: {"*": false, "main": true}`.
-- GitHub Actions push workflow #42231218981 completed successfully on the exact main HEAD `d9ffac9...`.
-- The combined commit status for that exact main HEAD reports Vercel `success`.
-- Vercel's bot posted a **Ready Preview** for PR #15 at `https://hukm-git-fix-vercel-main-only-deployments-ifawz40-boop.vercel.app`. This is a branch preview, not proof of a production deployment.
-- Production deployment and Google AI Studio synchronization have not been independently verified. Do not claim either.
+- PR #14 (Islamic library curation) is merged at `175356b3632f1f054c6280e5c986761cf2d07059`.
+- PR #15 (Vercel Git deployment branch configuration) is merged at `d9ffac968aac9f629c46b0a81f00fa7d877c2cd8`.
+- PR #16 (owner-only read-only library curation dashboard) is merged at `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
+- GitHub Actions push workflow #42232831631 completed successfully on the exact current main HEAD: 286 tests passed, 1 skipped, TypeScript check passed, and production build passed.
+- The combined Vercel status on the current main HEAD reports `failure` with the target `build-rate-limit`. Vercel's bot reports the free-plan limit of more than 100 deployments/day. This is a provider quota limitation, not a GitHub Actions test/build failure.
+- Vercel did not confirm a new production deployment for this merge. Do not claim the site is live from this CI result.
+- Important unresolved deployment check: PR #16 received a Vercel bot failure comment for the same deployment quota while the repo's `vercel.json` contains `git.deploymentEnabled: {"*": false, "main": true}`. Official Vercel documentation says this property controls which branches trigger deployments and supports minimatch patterns. The effective Vercel project behavior still needs confirmation in Project Settings; do not assume the JSON rule has been enforced until verified.
+- Google AI Studio synchronization remains unverified.
 
 ## Current public-library state
 
-1. All 24 legacy full-text books remain archived under `src/data/library/archive/books/`; the former catalogue and PDF fixture metadata are also archived.
+1. All 24 legacy full-text books remain archived under `src/data/library/archive/books/`; their old catalogue and PDF fixture metadata are preserved in the archive.
 2. The public text catalogue and public PDF shelf are empty.
 3. `src/data/library/curation.json` has an empty `approvedBookIds` allowlist and 24 quarantined legacy IDs.
 4. The only allowed categories are `religious`, `self-development`, `travel`, and `islamic-philosophy-critique`.
-5. `src/data/library/candidates.json` currently contains **22** bibliographic candidates. Every candidate remains `metadata-verified-content-review-pending`; none is approved.
-6. The candidate set is bibliographic metadata, not permission to publish full text. Full-text, footnote, author-methodology and edition review remain required.
-7. The deployment gate permits the explicit empty-curation state. A populated public catalogue still requires at least 15 complete books and all editorial, integrity and rights checks.
-8. Legacy Hindawi synchronization remains manual-only. Never restore the old automatic sync.
+5. `src/data/library/candidates.json` contains 22 bibliographic candidates. All remain `metadata-verified-content-review-pending`; none is approved.
+6. Candidate metadata and opening-page spot checks are not full-text approval. Full text, footnotes, introductions, author methodology, editor and edition must be reviewed before a decision.
+7. The deployment gate allows the explicit empty-curation state. A populated public catalogue still requires at least 15 complete books and all editorial, integrity and rights checks.
+8. Legacy Hindawi synchronization remains manual-only.
 
 Read before changing candidate status:
 - `docs/library/EDITORIAL_POLICY.md`
@@ -36,31 +36,33 @@ Read before changing candidate status:
 ## Reader state
 
 - PDF.js reader is implemented with a locally bundled worker and lazy-loaded route.
-- PDF page progress, bookmarks and notes are local-only; no cloud sync is implemented or claimed.
-- Arabic text search is enabled only for PDFs marked as having an extractable text layer.
+- PDF progress, bookmarks and notes are local-only; no cloud sync is implemented or claimed.
+- Arabic PDF text search is enabled only for files marked as having an extractable text layer.
 - The current scanned PDF fixture is image-only and correctly has `searchAvailable: false`; no OCR is claimed.
-- EPUB reader is not implemented. Readium preprocessing remains the preferred prototype direction; do not add an EPUB runtime dependency before an Arabic RTL, CSP, navigation and bundle-size spike.
+- EPUB reader is not implemented. Readium preprocessing remains the preferred prototype direction; test Arabic RTL, TOC/CFI navigation, CSP and bundle size before selecting a runtime.
 
-## Current in-progress change
+## Completed latest milestone — owner-only curation dashboard
 
-Branch: `feat/owner-library-curation-dashboard`
-
-- Adds an owner-only candidate review panel opened from the admin micro-navigation.
-- Shows the 22 candidate records, editorial category, bibliographic edition/page count, current review status, initial spot-check note and source links.
-- Adds search and category/status filtering.
-- The panel is intentionally read-only: it has no approve, reject, publish or database-write action. Candidate status remains controlled by reviewed repository data and the editorial process.
-- Files changed: `src/components/LibraryCurationPanel.tsx`, `src/components/HukmNavbar.tsx`, `src/App.tsx`.
-- CI and production build for this feature branch are pending until its PR workflow completes.
+- PR #16: https://github.com/ifawz40-boop/HUKM/pull/16
+- Merge commit: `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
+- Added `src/components/LibraryCurationPanel.tsx`.
+- Added an owner-only entry point to the admin micro-navigation in `HukmNavbar.tsx` and mounted the panel in `App.tsx`.
+- The panel lists the 22 candidates with category, edition/page metadata, status, reason, initial spot-check note and source links.
+- Search and category/status filters are available.
+- External source links are accepted only when HTTPS.
+- The panel is deliberately read-only. It has no approve/reject/publish action and performs no Firestore/API write.
+- Access is gated by the existing effective verified-owner check; ordinary admins, readers and owner preview mode do not receive the entry point or mounted panel.
+- Exact PR CI run #42232576073 succeeded on PR head `962ca4763e081f0b9946ae3462004a021bc3b4c0`: 286 tests passed, 1 skipped, TypeScript and production build passed.
+- Exact post-merge push CI run #42232831631 succeeded on main merge commit `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
 
 ## Immediate next actions
 
-1. Review the exact feature-branch diff and ensure the curation entry point is visible only to the verified effective owner (not ordinary admins, readers or owner preview mode).
-2. Run the full test suite, TypeScript check and production build through PR CI. Fix any failures without weakening existing security or library gates.
-3. Confirm the dashboard reads the exact 22 candidate records and that all links are safe external links. Confirm it has no approval or publishing mutation path.
-4. Merge only after CI succeeds and the diff is independently reviewed. Re-fetch `main` after merge and verify the merge commit and push workflow.
-5. Next editorial milestone: obtain and review complete source texts for candidates in a controlled/private workflow; record author evidence, edition, introductions, footnotes and review findings per book. Do not approve from title, source page or opening-page spot checks.
-6. Next engineering milestone after the read-only panel: design a durable review-record format and reviewer workflow before implementing any status-changing action. Keep approval and publication as separate, explicitly audited transitions.
-7. Continue the independent accessibility, mobile, security and reader smoke-test audit.
+1. Add focused regression coverage for the new curation panel: owner-only navigation gate, read-only behavior, candidate filtering, and HTTPS-only source links. Keep the test independent of Firebase and do not add approval mutations.
+2. Re-check the Vercel project Git settings to confirm the effective branch deployment rule. The desired behavior is Git-triggered deployments on `main` only; do not disable main production deployments. The current Vercel check is quota-limited and does not prove the rule works.
+3. Continue the independent accessibility/mobile audit of the curation modal: keyboard focus, Escape close, scroll containment, readable long Arabic titles and responsive filters.
+4. Begin private full-text review of the highest-priority candidates. Record review evidence per book; do not approve based on metadata or a title/preview alone.
+5. Design a durable reviewer record and separate audited transitions for editorial approval and rights clearance before adding any state-changing controls to the panel.
+6. Continue reader smoke tests and the EPUB Readium preprocessing prototype only after the curated text workflow is stable.
 
 ## Safety and continuation rules
 
