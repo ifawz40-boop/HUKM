@@ -34,7 +34,6 @@ import { HukmEmailModal } from './components/HukmEmailModal';
 import { BannedNoticeModal } from './components/BannedNoticeModal';
 import { LegacyLibraryPurgeModal } from './components/LegacyLibraryPurgeModal';
 import { HukmFooter } from './components/HukmFooter';
-import { getActiveBanDetails } from './utils/moderationTracker';
 import { auth } from './firebase/config';
 import {
   updateUserBookmarksInFirestore,
@@ -114,7 +113,7 @@ export default function App() {
 
           // Check the authenticated account's cloud moderation status before
           // migrating bookmarks or writing any reader progress to Firestore.
-          let accountBan = profile.email ? getActiveBanDetails(profile.email) : null;
+          let accountBan: BannedAccount | null = null;
           try {
             const token = await auth.currentUser?.getIdToken();
             if (!token) throw new Error('Missing Firebase ID token for account-status check.');
@@ -122,13 +121,24 @@ export default function App() {
               headers: { Authorization: `Bearer ${token}` },
             });
             const payload = await response.json();
-            if (!response.ok || !payload.success) {
+            if (!response.ok || !payload.success || typeof payload.banned !== 'boolean') {
               throw new Error('Account moderation status could not be verified.');
             }
             accountBan = payload.banned && payload.ban ? payload.ban as BannedAccount : null;
           } catch (error) {
-            // Keep the local cache as a fallback if the cloud check is temporarily unavailable.
-            console.warn('Could not verify cloud moderation status:', error);
+            // Moderation status is authoritative server data. Never fall back to a stale,
+            // user-editable local cache or expose an authenticated session when verification fails.
+            console.error('Could not verify cloud moderation status; failing closed:', error);
+            if (authSessionIdRef.current !== currentSessionId) return;
+            authSessionIdRef.current += 1;
+            setCurrentUser(null);
+            setActiveBan(null);
+            setAuthLoading(false);
+            showToast('تعذر التحقق من حالة الحساب حاليًا. تم إيقاف تسجيل الدخول مؤقتًا حفاظًا على أمان المنصة؛ يمكنك التصفح كزائر والمحاولة لاحقًا.');
+            await logoutUser().catch((signOutError) => {
+              console.error('Could not clear unverified Firebase session:', signOutError);
+            });
+            return;
           }
 
           if (accountBan) {
@@ -673,7 +683,7 @@ export default function App() {
             currentUser={currentUser}
             isOwner={isOwner}
             onLoginSuccess={(user) => {
-              setCurrentUser(user);
+              // The auth-state listener commits the session only after server-side moderation verification.
               showToast(`أهلاً بك يا ${user.name} في منصة حُكم.`);
             }}
             onEnterLibrary={() => {
@@ -953,7 +963,7 @@ export default function App() {
         initialMode={authModalMode}
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={(user) => {
-          setCurrentUser(user);
+          // The auth-state listener commits the session only after server-side moderation verification.
           showToast(`مرحباً بك يا ${user.name}!`);
         }}
       />
