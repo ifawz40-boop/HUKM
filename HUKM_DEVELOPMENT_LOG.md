@@ -91,6 +91,20 @@
 - Post-merge CI run #42189392670 on code merge `a628012...` passed; post-merge full candidate + page-category audit run #42189392657 also passed. Latest documentation-only main HEAD before this log refresh was `6c1be44352e20c31ecfecf7ac9bf0a2739f251cb`; CI run #42189485397 passed tests, TypeScript and build on that exact HEAD.
 - The current Vercel status remains a free-plan daily deployment quota failure; no production deployment or Google AI Studio synchronization has been independently confirmed.
 
+## Reader and legal test-fixture research — 2026-11-06
+
+- Current repository inspection confirms `BookReaderView.tsx` has no PDF or EPUB rendering path and `package.json` has no PDF/EPUB reader dependency.
+- PDF.js: `pdfjs-dist@6.5.438`, Apache-2.0, zero runtime dependencies; latest npm version at research time. Official getting-started guidance recommends building/re-skinning a custom viewer rather than embedding the generic viewer unchanged.
+- EPUB.js: `epubjs@0.3.93`, BSD-2-Clause, nine dependencies. Latest version has no direct vulnerabilities reported in the reviewed security source, but maintenance cadence is weak/inactive; do not install without a dependency and RTL spike.
+- foliate-js: MIT, modular and small, but explicitly warns its API is unstable; consider only with exact commit pinning and a compatibility/security spike.
+- Readium TS toolkit: BSD-3-Clause and standards-oriented, but heavier Web Publication Manifest/streaming requirements.
+- Readest: AGPL-3.0; do not copy/bundle its code unless HUKM deliberately adopts compatible licensing.
+- Preliminary choice: PDF.js for PDF; keep EPUB library undecided pending RTL/CSP/annotation/bundle-size tests.
+- Legal PDF fixture identified: Wikimedia Commons scan of `لسان غصن لبنان في انتقاد العربية العصرية`, original 1891, 79 pages, about 2.35 MB, marked public domain. The separate Wikisource transcription is CC BY-SA 4.0; keep the scan and transcription rights paths separate.
+- Exact source file page: https://commons.wikimedia.org/wiki/File:كتاب_لسان_غصن_لبنان_في_انتقاد_العربية_العصرية.pdf
+- Latest docs-only main HEAD before the EPUB-stack refinement was `757c68b5c79c092dc6d00593b82ee32d99ecceed`; CI run #42189922389 passed. The subsequent next-task research refinement is documentation-only and needs its own exact-HEAD CI verification.
+- Latest combined status on the last verified docs HEAD still shows Vercel `build-rate-limit`; no production deployment or Google AI Studio sync was verified.
+
 ## Work completed in this session
 1. Verified repository metadata, default branch, visibility and write permissions.
 2. Enumerated branches (14 total from the connector's paginated search) and reviewed recent PR history (#1–#8).
@@ -110,5 +124,5 @@
 - TEST_STATUS: Full tests, TypeScript and production build passed on exact docs HEAD `6c1be...` in run #42189485397; main page-category audit run #42189392657 passed with 2,253 pages, 0 missing, 0 API failures and 0 revision drift
 - MAIN_SYNC_STATUS: main is current GitHub default branch; Google AI Studio sync itself unverified
 - PENDING_TASKS: Manually review the revised three-book shortlist and source text/edition; design and test a separate CC BY-SA 4.0 rights tier only after human allowlist; make source labels/provenance UI generic; full application/security/UI audit remains pending
-- NEXT_ACTION: Re-fetch main, then manually review the three remaining candidates against source-page texts, edition provenance and contributor records. Do not import until a per-book allowlist and rights evidence are complete.
+- NEXT_ACTION: Re-fetch main; manually review the three remaining candidates against source-page texts, edition provenance and contributor records. Then implement the PDF.js reader spike and compare EPUB.js/Foliate/Readium for Arabic RTL, CSP, progress and annotation. Do not import until a per-book allowlist and rights evidence are complete.
 - KNOWN_ISSUES: Vercel daily deployment quota (>100/day); main/preparation branch divergence; no independently confirmed live deployment or Google AI Studio sync; current docs-only HEAD CI pending; candidate text quality/provenance still needs human review.
