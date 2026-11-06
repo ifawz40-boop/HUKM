@@ -32,14 +32,26 @@ Add secrets only in **Vercel → Project → Settings → Environment Variables*
 
 The server uses Application Default Credentials in AI Studio/Cloud Run, and this variable on Vercel. If Vercel is missing the variable or the JSON targets another project, Admin SDK initialization fails closed rather than silently using another Firebase project.
 
-### Current email sender
+### Email sender — Gmail SMTP first, Resend fallback
 
-The current `src/server/emailApi.ts` implementation still uses Resend and therefore expects:
+The server now supports Gmail SMTP through Nodemailer and keeps Resend as an optional fallback.
+
+**Preferred Gmail settings:**
+
+- `GMAIL_USER`: the sending Gmail address (for this project, `hukm.contact@gmail.com`).
+- `GMAIL_APP_PASSWORD`: the Google App Password generated for that account. Enter it only in Vercel's encrypted Environment Variables. The code removes display spaces automatically.
+- The visible sender name is `HUKM MEDIA`; replies are directed to the Gmail account.
+
+When either Gmail variable is present, Gmail is treated as the intended provider. A partial Gmail configuration fails closed and does not silently fall back to Resend.
+
+**Optional Resend fallback** (used only when Gmail variables are absent):
 
 - `RESEND_API_KEY`
 - `EMAIL_FROM` (must be a sender address verified by the Resend account)
 
-A Gmail App Password is **not** a Resend API key and will not work in `RESEND_API_KEY`. Gmail SMTP migration is a separate code change and must be completed before expecting the site to send through `hukm.contact@gmail.com`.
+Never put an App Password in `RESEND_API_KEY`, GitHub, source code, or a `VITE_` variable. Do not send it in chat.
+
+Vercel permits outbound SMTP connections except port 25, although its guidance recommends a specialist email API for reliability and scale. Gmail SMTP uses port 465 here. A personal Gmail account is suitable only for low-volume early testing; it is not a bulk newsletter service and may impose sending limits or spam protections. Keep batches small and verify real delivery before enabling broadcasts.
 
 ### Client Firebase configuration
 
