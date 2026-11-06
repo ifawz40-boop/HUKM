@@ -49,6 +49,19 @@
 - No Vercel production deployment, Firebase rules deployment, owner bootstrap, or Google AI Studio sync was independently confirmed here.
 - Never request or commit service-account JSON, Gmail App Passwords, or other secrets.
 
+## Wikisource candidate audit — verified result
+- Workflow run #3: https://github.com/ifawz40-boop/HUKM/actions/runs/42183574861 — SUCCESS on code/data commit `8368cf9825aeee8847ecc3113dbe9ef3ec39101b`.
+- Candidate-filter suite: 11 tests passed. Dataset scan: 40,782 rows; 38 eligible before and after near-duplicate deduplication.
+- Full 38-row title/author/genre/word/chapter/source summary is preserved in `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md`.
+- No candidate is approved for import. The script's public report truncates source pages to five and omits the full `persons` credits; complete source-page revision lineage and full contributor credits must be extracted from the pinned source before any import.
+- Dataset publisher states the transcribed text is CC BY-SA 4.0, and the release QA is automated rather than human text review; it also reports 36 incomplete-marked works and 29 works with unclosed markup in the release. See https://www.bayanatlabs.com/open/arabic-wikisource-pd.
+- Candidate classifications need editorial review: e.g. `إحياء علوم الدين` was surfaced under `science`. Several candidates exceed current `manifest.maximumWordsPerBook=120000`; do not raise limits without review.
+
+## Current CI verification
+- CI run #484 for commit `44e4001ca811b1ad3c2ae9b962b20371aa67842b`: SUCCESS. Job steps confirm full tests, TypeScript check, and production Vite build succeeded; test log reports 266/266 passing.
+- The later candidate audit workflow #3 also passed its 11 dedicated filter tests and full pinned scan.
+- Vercel combined status remains `failure` with target `build-rate-limit`; this is a provider quota/rate-limit indicator, not evidence of a source build failure and not a successful deployment.
+
 ## Work completed in this session
 1. Verified repository metadata, default branch, visibility and write permissions.
 2. Enumerated branches (14 total from the connector's paginated search) and reviewed recent PR history (#1–#8).
@@ -57,14 +70,16 @@
 5. Confirmed the old deployment checkpoint is stale: it still describes an empty library and must not be used as current state.
 6. Compared `main` with `deploy/vercel-preparation`; found severe divergence and explicitly deferred merging.
 7. Created this durable project-level log and a precise next-task file; marked the earlier deployment checkpoint as historical.
+8. Retrieved and inspected the completed candidate audit workflow logs and the exact current CI run/job steps.
+9. Recorded all 38 candidate summaries and explicit no-import/rights-review caveats in `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md`.
 
 ## HUKM_CHECKPOINT
-- LAST_COMPLETED_MILESTONE: Repository intelligence / current-state verification (partial; not a full file-by-file source audit)
-- LAST_COMPLETED_TASK: Verify main HEAD, inspect core build/library/audit files, reconcile branch state, document current facts
+- LAST_COMPLETED_MILESTONE: Repository intelligence and initial Wikisource candidate discovery (partial; not a full file-by-file source audit)
+- LAST_COMPLETED_TASK: Verify candidate audit run #3 (38 eligible candidates), record report, verify CI run #484 (266 tests + typecheck + build)
 - CURRENT_BRANCH: main
-- LAST_STABLE_COMMIT: 8368cf9825aeee8847ecc3113dbe9ef3ec39101b (repository head verified; exact-head CI not yet verified)
-- TEST_STATUS: 266 tests + typecheck + production build passed at prior 7ce0581 checkpoint; exact current HEAD status pending
+- LAST_STABLE_COMMIT: 44e4001ca811b1ad3c2ae9b962b20371aa67842b (CI success; later docs-only commit(s) need their own CI confirmation)
+- TEST_STATUS: 266/266 tests, TypeScript check, and production build passed in CI run #484; 11/11 Wikisource filter tests passed in audit run #3
 - MAIN_SYNC_STATUS: main is current GitHub default branch; Google AI Studio sync itself unverified
-- PENDING_TASKS: Obtain candidate audit workflow output; review candidate list and rights; run/verify CI on current main; full application/security/UI audit remains pending
-- NEXT_ACTION: Read HUKM_NEXT_TASK.md and inspect the actual Wikisource audit output before any book ingestion
-- KNOWN_ISSUES: Vercel build-rate-limit status; main/preparation branch divergence; no independently confirmed live deployment; exact-head CI still pending.
+- PENDING_TASKS: Extract complete candidate records and review them; design CC BY-SA-compatible rights path only after allowlist; verify CI on latest docs commit; full application/security/UI audit remains pending
+- NEXT_ACTION: Retrieve full pinned dataset records for the 38 candidates (all persons, source pages/revisions, quality/completeness fields and text), then prepare a human-review allowlist; no ingestion yet
+- KNOWN_ISSUES: Vercel build-rate-limit status; main/preparation branch divergence; no independently confirmed live deployment; latest docs commit CI pending; candidate summary omits full source pages and persons.
