@@ -297,7 +297,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('must keep UI category IDs identical to the curated policy categories', () => {
-    const uiCategoryIds = libraryIndex.split('\\n').filter((line) => line.includes("{ id: '")).map((line) => line.match(/id: '([^']+)'/)?.[1]).filter((id): id is string => Boolean(id));
+    const uiCategoryIds = [...libraryIndex.matchAll(/id: '([^']+)'/g)].map((match) => match[1]);
     assert.deepEqual(uiCategoryIds, libraryManifest.allowedCategories);
     assert.match(app, /book\.category === category\.id/);
   });
