@@ -7,6 +7,8 @@ export type LibrarySelectionRow = Record<string, unknown> & {
 };
 
 export type LibrarySelectionManifest = {
+  syncEnabled?: boolean;
+  editoriallyApprovedSourceIds?: string[];
   targetBooks: number;
   minimumBooks: number;
   minimumWords: number;
