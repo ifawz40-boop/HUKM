@@ -55,6 +55,8 @@ Never put an App Password in `RESEND_API_KEY`, GitHub, source code, or a `VITE_`
 
 Vercel permits outbound SMTP connections except port 25, although its guidance recommends a specialist email API for reliability and scale. Gmail SMTP uses port 465 here. A personal Gmail account is suitable only for low-volume early testing; it is not a bulk newsletter service and may impose sending limits or spam protections. Keep batches small and verify real delivery before enabling broadcasts.
 
+**Firebase Authentication emails are separate.** Account verification and password-reset messages are sent by Firebase Authentication through `sendEmailVerification` and `sendPasswordResetEmail`; this Gmail SMTP integration changes the site's own email/broadcast API only. If those Firebase Auth messages must also use a branded sender, configure Firebase Authentication's email templates / a supported custom SMTP integration separately.
+
 ### Client Firebase configuration
 
 The browser Firebase configuration is read from `firebase-applet-config.json`. Its API key is a Firebase client identifier, not an Admin service-account credential. Firebase Authentication still requires the final Vercel hostname to be added to the Firebase Authentication authorized domains, and Google OAuth settings may also need the same hostname.
