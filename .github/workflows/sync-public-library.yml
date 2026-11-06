@@ -47,4 +47,8 @@ jobs:
             exit 0
           fi
           git commit -m "data: bundle curated Arabic public-domain books"
+          # The sync may take several minutes while other preparation commits land.
+          # Rebase the generated data commit onto the latest branch head; never force-push.
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
