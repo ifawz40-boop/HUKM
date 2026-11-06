@@ -16,7 +16,117 @@ import {
 import { signInWithPopup } from 'firebase/auth';
 import { db, auth, googleProvider, handleFirestoreError, OperationType } from './config';
 import { BookProject, BookChapter, BookDraftChapter, CategoryItem, ReadingProgress, ReadingProgressRecord, ReaderAnnotation } from '../types/hukm';
-import { AdminAccount, BannedAccount, HukmSubscriber } from '../types/auth';
+import { AdminAccount, AppNotification, BannedAccount, HukmSubscriber, NotificationType } from '../types/auth';
+
+// ----------------------------------------------------
+// PUBLIC ANNOUNCEMENTS — SHARED CONTENT, LOCAL PER-USER READ STATE
+// ----------------------------------------------------
+
+const PUBLIC_NOTIFICATION_TYPES: NotificationType[] = [
+  'announcement',
+  'new_chapter',
+  'new_book',
+  'milestone',
+];
+
+function isSafeNotificationLinkId(value: unknown): value is string {
+  return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+}
+
+export async function fetchPublicNotificationsFromFirestore(): Promise<AppNotification[] | null> {
+  const path = 'notifications';
+  try {
+    // This equality filter is required by the public-read Firestore rule.
+    const snapshot = await getDocs(query(
+      collection(db, path),
+      where('targetRole', '==', 'all')
+    ));
+    return snapshot.docs
+      .map((item) => {
+        const data = item.data();
+        if (
+          typeof data.title !== 'string' ||
+          typeof data.message !== 'string' ||
+          !PUBLIC_NOTIFICATION_TYPES.includes(data.type as NotificationType)
+        ) return null;
+        const serverDate = typeof data.createdAt?.toDate === 'function'
+          ? data.createdAt.toDate().toISOString()
+          : '';
+        const timestamp = serverDate || (typeof data.timestamp === 'string' ? data.timestamp : '');
+        return {
+          id: item.id,
+          title: data.title,
+          message: data.message,
+          type: data.type as NotificationType,
+          timestamp,
+          read: false,
+          ...(isSafeNotificationLinkId(data.bookId) ? { bookId: data.bookId } : {}),
+          ...(isSafeNotificationLinkId(data.chapterId) ? { chapterId: data.chapterId } : {}),
+          targetRole: 'all' as const,
+        };
+      })
+      .filter((item): item is AppNotification => item !== null)
+      .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return null;
+  }
+}
+
+export async function savePublicNotificationToFirestore(
+  input: Pick<AppNotification, 'title' | 'message' | 'type' | 'bookId' | 'chapterId'>
+): Promise<AppNotification | null> {
+  const user = auth.currentUser;
+  const title = typeof input.title === 'string' ? input.title.trim() : '';
+  const message = typeof input.message === 'string' ? input.message.trim() : '';
+  const type = input.type;
+  const bookId = input.bookId;
+  const chapterId = input.chapterId;
+
+  // Firestore rules independently require the verified founder/owner claim and registry record.
+  if (
+    !user ||
+    !user.emailVerified ||
+    title.length === 0 || title.length > 120 ||
+    message.length === 0 || message.length > 2000 ||
+    !PUBLIC_NOTIFICATION_TYPES.includes(type) ||
+    (bookId !== undefined && !isSafeNotificationLinkId(bookId)) ||
+    (chapterId !== undefined && !isSafeNotificationLinkId(chapterId))
+  ) return null;
+
+  const notificationRef = doc(collection(db, 'notifications'));
+  const timestamp = new Date().toISOString();
+  const payload = {
+    id: notificationRef.id,
+    title,
+    message,
+    type,
+    timestamp,
+    targetRole: 'all',
+    createdBy: user.uid,
+    createdAt: serverTimestamp(),
+    ...(bookId ? { bookId } : {}),
+    ...(chapterId ? { chapterId } : {}),
+  };
+
+  try {
+    await setDoc(notificationRef, payload);
+    return {
+      id: notificationRef.id,
+      title,
+      message,
+      type,
+      timestamp,
+      read: false,
+      ...(bookId ? { bookId } : {}),
+      ...(chapterId ? { chapterId } : {}),
+      targetRole: 'all',
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `notifications/${notificationRef.id}`);
+    return null;
+  }
+}
 
 // ----------------------------------------------------
 // AUTHENTICATION WITH FIREBASE (Real Google Sign-In)
