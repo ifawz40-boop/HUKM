@@ -86,7 +86,7 @@ export const BannedNoticeModal: React.FC<BannedNoticeModalProps> = ({
           <Mail className="h-4 w-4 text-[#d4af37] shrink-0 mt-0.5" />
           <div className="leading-relaxed">
             لتقديم طلب مراجعة أو استئناف، يرجى مراسلة لجنة الإشراف الرسمية تحت إشراف المؤسس:
-            <span className="block font-bold text-[#f0cb69] mt-0.5">dr.islam.mohamed@hukm.media</span>
+            <a href="mailto:hukm.contact@gmail.com" className="block font-bold text-[#f0cb69] mt-0.5">hukm.contact@gmail.com</a>
           </div>
         </div>
 
