@@ -9,7 +9,7 @@
 - Repository permissions on connected account: Admin / Push.
 - Default branch: `main`.
 - Latest verified PR: #11, merged. PRs #1–#11 are merged/closed as of this checkpoint.
-- Current verified docs-only `main` HEAD: `7a561596a23bd6ae61aa4e9c1f3236206f57f87c`; push CI run #42190859034 passed tests, TypeScript and production build.
+- Latest verified docs-only CI HEAD: `28907a39b891ab3a86e4e10a8131f07c4f2f35b9`; push CI run #42190987662 passed tests, TypeScript and production build.
 - Repository branch inventory returned 14 branches across two pages. Relevant branches include `main`, `deploy/vercel-preparation`, `backup/main-after-deployment-gate-2026-11-06`, `fix/pinned-library-source-main`, and historical fix/test/docs branches.
 
 ## Architecture facts confirmed
@@ -159,8 +159,8 @@
 - LAST_COMPLETED_TASK: Merge PR #11; verify full tests, TypeScript and production build; replace hardcoded source attribution; clarify partial source-page disclosure
 - CURRENT_BRANCH: main
 - LAST_STABLE_COMMIT: 205211ab6238fdbf6835884bb5f3936d488e8a0b
-- CURRENT_MAIN_HEAD: 7a561596a23bd6ae61aa4e9c1f3236206f57f87c (docs-only; exact-head CI #42190859034 passed)
-- TEST_STATUS: PR CI run #42190539425 passed on exact PR head; documentation-only `main` HEAD `7a561596...` also passed exact-head push CI run #42190859034 (tests, TypeScript, production build). Vercel status remains quota-limited, not code CI.
+- LATEST_VERIFIED_CI_HEAD: 28907a39b891ab3a86e4e10a8131f07c4f2f35b9 (docs-only; exact-head CI #42190987662 passed)
+- TEST_STATUS: PR CI run #42190539425 passed on exact PR head; documentation-only `main` HEAD `28907a39...` also passed exact-head push CI run #42190987662 (tests, TypeScript, production build). Vercel status remains quota-limited, not code CI.
 - MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
 - PENDING_TASKS: Design and test a distinct CC BY-SA 4.0 transcription rights tier only after human-approved allowlist; continue PDF.js integration spike; EPUB engine still unselected; full application/security/UI audit remains pending
 - NEXT_ACTION: Review the exact Wikisource scan against the transcription page by page for additions/omissions, then implement a PDF.js-based reader route for legally cleared PDF files using a locally pinned worker. Do not add a package until the lockfile can be regenerated and CI validates it. Keep existing text reader intact.

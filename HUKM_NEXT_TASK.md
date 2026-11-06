@@ -1,7 +1,7 @@
 # HUKM MEDIA — Exact Next Task
 
 **Current branch:** `main`  
-**Current verified docs-only main HEAD:** `7a561596a23bd6ae61aa4e9c1f3236206f57f87c` — push CI #42190859034 SUCCESS  
+**Latest verified docs-only CI HEAD:** `28907a39b891ab3a86e4e10a8131f07c4f2f35b9` — push CI #42190987662 SUCCESS; re-fetch `main` before writing  
 **Last verified code merge:** `205211ab6238fdbf6835884bb5f3936d488e8a0b` (PR #11; re-fetch `main` before every write)  
 **Last stable code merge:** `205211ab6238fdbf6835884bb5f3936d488e8a0b`  
 **Latest CI on provenance UI PR:** run #42190539425 — SUCCESS (tests, TypeScript, build)  
@@ -13,11 +13,11 @@
 - PR CI run #42190539425 passed full tests, TypeScript and production build.
 - Multi-source attribution helpers and regression tests are in `src/utils/bookProvenance.ts` and `src/utils/bookProvenance.test.ts`.
 - Reader source footer is dynamic; overview labels source links correctly and discloses the 12-page preview.
-- Latest docs-only `main` HEAD `7a561596a23bd6ae61aa4e9c1f3236206f57f87c` passed exact-head push CI run #42190859034 (tests, TypeScript, production build).
+- Latest docs-only CI HEAD `28907a39b891ab3a86e4e10a8131f07c4f2f35b9` passed exact-head push CI run #42190987662 (tests, TypeScript, production build).
 
 ## Phase A — exact-head verification complete
-- `main` is confirmed at `7a561596a23bd6ae61aa4e9c1f3236206f57f87c`.
-- Push CI #42190859034 succeeded on this exact HEAD: test suite, TypeScript and production build.
+- `main` was confirmed at `28907a39b891ab3a86e4e10a8131f07c4f2f35b9` before this documentation-only checkpoint refresh.
+- Push CI #42190987662 succeeded on this exact HEAD: test suite, TypeScript and production build.
 - Both checkpoint files are present and readable on `main`.
 
 ## Phase B — manual review status
@@ -144,7 +144,7 @@ Legal PDF fixture for the PDF reader:
 - LAST_COMPLETED_TASK: Merge PR #9; verify full CI and pinned candidate audit on main; publish full provenance artifact; spot-check Wikisource work, chapter and author pages; identify page-level category gap and Ibn Khaldun author-page date error
 - CURRENT_BRANCH: main
 - LAST_STABLE_COMMIT: 205211ab6238fdbf6835884bb5f3936d488e8a0b (PR #11 merge; PR CI passed)
-- CURRENT_MAIN_HEAD: 1951fcbf5f7726e5282fd4b29dc3f666951d2bfa (documentation checkpoint; CI pending)
+- LATEST_VERIFIED_CI_HEAD: 28907a39b891ab3a86e4e10a8131f07c4f2f35b9 (docs-only; CI #42190987662 passed)
 - TEST_STATUS: Full tests, TypeScript and build passed on exact PR #11 head in run #42190539425 and on exact docs-only main HEAD `7a561596...` in run #42190859034; page-category audit run #42189392657 passed with 2,253 pages, zero missing, zero API errors, zero revision drift
 - MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
 - PENDING_TASKS: Human-review three-book shortlist; implement CC BY-SA rights tier after allowlist; fix generic source attribution UI; continue full repository audit
