@@ -599,3 +599,10 @@
 - Publisher metadata: first edition 1437 AH, one volume, 549 pages.
 - The author biography and publication metadata are sourced. The complete text, printed-text/audio comparison, editorial layers and digital redistribution rights remain pending.
 - Candidate remains hidden and unapproved. No full text or PDF is copied.
+
+
+## PR #51 post-merge verification — completed (2026-11-06)
+
+- Post-merge main workflow run #42250859548 completed successfully on exact merge SHA `fbcdf057c54baaddeb39f0784720e4ef1df1023a`.
+- This confirms tests, Firestore Emulator rules tests, TypeScript and production build passed after merge.
+- Vercel status remains `build-rate-limit`; production deployment is not confirmed.
