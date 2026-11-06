@@ -91,10 +91,12 @@ try {
         new Set(chapterNumbers).size !== chapterNumbers.length ||
         book.chapters.some((chapter) => chapter.bookId !== book.id) ||
         book.chapters.some((chapter) =>
+          !Object.hasOwn(chapter, 'exactDuplicateGroup') ||
+          !Object.hasOwn(chapter, 'nearDuplicateGroup') ||
           (chapter.exactDuplicateGroup != null && typeof chapter.exactDuplicateGroup !== 'string') ||
           (chapter.nearDuplicateGroup != null && typeof chapter.nearDuplicateGroup !== 'string')
         )) {
-      stop(`Book ${entry.id} has missing, mismatched or non-contiguous chapter identifiers/order.`);
+      stop(`Book ${entry.id} has missing, mismatched or non-contiguous chapter identifiers/order/duplicate metadata.`);
     }
     if (!book.chapters.every((chapter) =>
       chapter.status === 'ready' &&
@@ -130,7 +132,9 @@ try {
     if (!rightsPathIsValid || rights.originalTextStatus !== 'public-domain') {
       stop(`Book ${entry.id} does not meet an approved per-book rights path.`);
     }
-    if (!/CC BY 4\.0|الملكية العامة/.test(String(rights.license || '')) ||
+    if (!Object.hasOwn(rights, 'nearDuplicateGroup') ||
+        (rights.nearDuplicateGroup != null && typeof rights.nearDuplicateGroup !== 'string') ||
+        !/CC BY 4\.0|الملكية العامة/.test(String(rights.license || '')) ||
         !isSafeHttpUrl(rights.bookUrl) ||
         !isSafeHttpUrl(rights.historyUrl) ||
         !isSafeHttpUrl(rights.licenseUrl) ||
