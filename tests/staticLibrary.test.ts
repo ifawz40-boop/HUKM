@@ -286,32 +286,19 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /const datasetRevisionUrl = revisionUrl\(manifest\.datasetRevision\)/);
   });
 
-  it('must use exact upstream category identifiers and a balanced editorial mix', () => {
+  it('must use only the four HUKM editorial categories and preserve the target collection mix', () => {
     const quotas = libraryManifest.categories as Array<{ id: string; quota: number }>;
+    assert.deepEqual(libraryManifest.allowedCategories, [
+      'religious', 'self-development', 'travel', 'islamic-philosophy-critique',
+    ]);
+    assert.deepEqual(quotas.map((item) => item.id), libraryManifest.allowedCategories);
     assert.equal(quotas.reduce((sum, item) => sum + item.quota, 0), libraryManifest.targetBooks);
-    assert.ok(quotas.some((item) => item.id === 'religions'));
-    assert.ok(quotas.some((item) => item.id === 'social.sciences'));
-    assert.ok(libraryManifest.fallbackCategories.includes('travel.literature'));
-    assert.ok(libraryManifest.fallbackCategories.includes('science.fiction'));
-    assert.equal(quotas.some((item) => item.id === 'social_sciences' || item.id === 'religion'), false);
-    assert.match(syncScript, /'social\.sciences': 'العلوم الاجتماعية'/);
-    assert.match(syncScript, /religions: 'الدراسات الدينية'/);
+    assert.equal(libraryManifest.fallbackCategories.length, 0);
   });
 
-  it('must keep UI category IDs identical to the upstream source category IDs', () => {
-    const uiCategoryIds = libraryIndex.split('\n').filter((line) => line.includes("{ id: '")).map((line) => line.match(/id: '([^']+)'/)?.[1]).filter((id): id is string => Boolean(id));
-    const sourceCategoryIds = new Set([
-      ...libraryManifest.categories.map((category: { id: string }) => category.id),
-      ...(libraryManifest.fallbackCategories || []),
-    ]);
-    assert.ok(uiCategoryIds.length > 0);
-    for (const id of uiCategoryIds) {
-      assert.ok(sourceCategoryIds.has(id), `UI category ${id} does not match a source category ID`);
-    }
-    assert.ok(uiCategoryIds.includes('travel.literature'));
-    assert.ok(uiCategoryIds.includes('social.sciences'));
-    assert.ok(uiCategoryIds.includes('religions'));
-    assert.equal(uiCategoryIds.some((id) => ['travel', 'social_sciences', 'religion'].includes(id)), false);
+  it('must keep UI category IDs identical to the curated policy categories', () => {
+    const uiCategoryIds = libraryIndex.split('\\n').filter((line) => line.includes("{ id: '")).map((line) => line.match(/id: '([^']+)'/)?.[1]).filter((id): id is string => Boolean(id));
+    assert.deepEqual(uiCategoryIds, libraryManifest.allowedCategories);
     assert.match(app, /book\.category === category\.id/);
   });
 
