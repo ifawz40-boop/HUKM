@@ -33,10 +33,10 @@ export function resolveEmailProviderConfig(
   // If either Gmail variable is present, Gmail is the intentional provider.
   // Do not silently fall back to Resend when the Gmail configuration is partial.
   if (gmailUser || gmailPasswordRaw) {
-    if (!gmailUser || !gmailAppPassword) {
+    if (!gmailUser || !gmailAppPassword || gmailAppPassword.toUpperCase().includes('YOUR_GOOGLE_APP_PASSWORD')) {
       return {
         kind: 'misconfigured',
-        message: 'إعداد Gmail غير مكتمل. يجب ضبط GMAIL_USER و GMAIL_APP_PASSWORD معًا.',
+        message: 'إعداد Gmail غير مكتمل. يجب ضبط GMAIL_USER و GMAIL_APP_PASSWORD معًا بقيم حقيقية، وليس بقيم المثال.',
       };
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gmailUser)) {
@@ -56,10 +56,10 @@ export function resolveEmailProviderConfig(
   const apiKey = env.RESEND_API_KEY?.trim() || '';
   const from = env.EMAIL_FROM?.trim() || '';
   if (apiKey || from) {
-    if (!apiKey || !from) {
+    if (!apiKey || !from || apiKey === 'YOUR_RESEND_API_KEY' || from.includes('your-verified-domain.example')) {
       return {
         kind: 'misconfigured',
-        message: 'إعداد Resend غير مكتمل. يجب ضبط RESEND_API_KEY و EMAIL_FROM معًا.',
+        message: 'إعداد Resend غير مكتمل. يجب ضبط RESEND_API_KEY و EMAIL_FROM بقيم إنتاجية موثّقة، وليس بقيم المثال.',
       };
     }
     return { kind: 'resend', apiKey, from };
