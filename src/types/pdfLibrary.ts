@@ -8,6 +8,7 @@ export interface PdfLibraryItem {
   fileUrl: string;
   sourceUrl: string;
   sourceNameAr: string;
+  sourceRevisionId?: number;
   license: string;
   licenseUrl: string;
   attribution: string;
