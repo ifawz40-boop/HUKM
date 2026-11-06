@@ -9,7 +9,7 @@ The full book texts are bundled as one lazy-loaded JSON file per book under `boo
 - Source corpus: Andreas Hallberg, The Arabic E-Book Corpus, version 1, University of Gothenburg, 2024, https://doi.org/10.5878/7rbh-gy93.
 - Publisher: Hindawi Foundation.
 - Selected books follow one of two rights paths: (1) explicit CC BY 4.0 colophon for the Arabic translation plus public-domain original; or (2) public-domain original with all credited rights-relevant persons recorded as deceased by 1955 (life+70 screen as of 2026).
-- CC BY 4.0 translations retain their attribution and share-alike-compatible source terms; public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.
+- CC BY 4.0 translations retain their required attribution and licence notices; CC BY 4.0 does not impose a ShareAlike condition. Public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.
 - Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.
 - The underlying source dataset contains 1,545 books, but this repository includes only the rights-screened curated subset listed below.
 
