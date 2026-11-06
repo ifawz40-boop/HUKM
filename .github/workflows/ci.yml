@@ -2,7 +2,9 @@ name: HUKM verification
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'deploy/**'
   pull_request:
     branches: [main]
 
