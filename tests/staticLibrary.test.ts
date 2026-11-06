@@ -84,18 +84,26 @@ describe('HUKM — bundled Arabic library architecture', () => {
         minimumChapters: 3,
         maximumTotalWords: 100,
       });
-      write(validRoot, 'src/data/library/catalog.json', [{ id: 'book-1', chapterCount: 3 }]);
+      write(validRoot, 'src/data/library/catalog.json', [{
+        id: 'book-1',
+        title: 'كتاب تجريبي',
+        author: 'مؤلف تجريبي',
+        category: 'literature',
+        wordCount: 12,
+        chapterCount: 3,
+      }]);
       write(validRoot, 'src/data/library/books/book-1.json', {
         id: 'book-1',
         title: 'كتاب تجريبي',
         author: 'مؤلف تجريبي',
         status: 'completed',
+        category: 'literature',
         wordCount: 12,
         chapterCount: 3,
         chapters: [
-          { id: 'book-1-chapter-1', chapterNumber: 1, wordCount: 4, status: 'ready', content: ['نص الفصل الأول هنا'] },
-          { id: 'book-1-chapter-2', chapterNumber: 2, wordCount: 4, status: 'ready', content: ['نص الفصل الثاني هنا'] },
-          { id: 'book-1-chapter-3', chapterNumber: 3, wordCount: 4, status: 'ready', content: ['نص الفصل الثالث هنا'] },
+          { id: 'book-1-chapter-1', bookId: 'book-1', chapterNumber: 1, wordCount: 4, status: 'ready', content: ['نص الفصل الأول هنا'] },
+          { id: 'book-1-chapter-2', bookId: 'book-1', chapterNumber: 2, wordCount: 4, status: 'ready', content: ['نص الفصل الثاني هنا'] },
+          { id: 'book-1-chapter-3', bookId: 'book-1', chapterNumber: 3, wordCount: 4, status: 'ready', content: ['نص الفصل الثالث هنا'] },
         ],
         rights: {
           tier: 'cc-by-4-translation',
@@ -113,6 +121,18 @@ describe('HUKM — bundled Arabic library architecture', () => {
       const result = runGate(validRoot);
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.match(result.stdout, /PASS: 1 complete, rights-screened books/);
+
+      write(validRoot, 'src/data/library/catalog.json', [{
+        id: 'book-1',
+        title: 'عنوان مختلف لا يطابق النص',
+        author: 'مؤلف تجريبي',
+        category: 'literature',
+        wordCount: 12,
+        chapterCount: 3,
+      }]);
+      const mismatchedCatalog = runGate(validRoot);
+      assert.equal(mismatchedCatalog.status, 1);
+      assert.match(mismatchedCatalog.stderr, /Catalogue metadata does not match/);
     } finally {
       fs.rmSync(validRoot, { recursive: true, force: true });
     }
