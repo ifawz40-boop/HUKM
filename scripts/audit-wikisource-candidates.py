@@ -184,15 +184,14 @@ def public_summary(row):
             "unresolved_transclusions": _integer(proofreading.get("unresolved_transclusions")),
             "quality_levels": _quality_levels(proofreading),
         },
-        "source_pages": [
-            {
-                "title": page.get("title"),
-                "url": page.get("url"),
-                "revision_id": page.get("revision_id"),
-                "quality_level": page.get("quality_level"),
-            }
-            for page in source_pages[:5]
-        ],
+        # Preserve every source-page revision and all credited people for review.
+        # The previous five-page preview was insufficient for complete provenance checks.
+        "source_pages": source_pages,
+        "persons": row.get("persons") or [],
+        "categories": row.get("categories") or [],
+        "is_incomplete": row.get("is_incomplete"),
+        "text_preview": str(row.get("text_raw") or "")[:1200],
+        "raw_text_characters": len(str(row.get("text_raw") or "")),
         "n_source_pages": len(source_pages),
         "url": row.get("url"),
         "history_url": row.get("history_url"),
@@ -236,6 +235,12 @@ def main():
         group = [row for row in unique if row.get("genre") == genre]
         group.sort(key=candidate_score, reverse=True)
         report.extend(public_summary(row) for row in group[:MAX_PER_GENRE])
+
+    report_path = "wikisource-candidate-report.jsonl"
+    with open(report_path, "w", encoding="utf-8") as report_file:
+        for item in report:
+            report_file.write(json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\\n")
+    print("WIKISOURCE_CANDIDATE_REPORT_FILE=" + report_path)
 
     print("WIKISOURCE_CANDIDATE_REPORT_BEGIN")
     for item in report:
