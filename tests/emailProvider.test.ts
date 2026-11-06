@@ -37,6 +37,23 @@ describe('Email provider configuration', () => {
     );
   });
 
+  it('does not report example placeholders as configured credentials', () => {
+    assert.equal(
+      resolveEmailProviderConfig({
+        GMAIL_USER: 'hukm.contact@gmail.com',
+        GMAIL_APP_PASSWORD: 'YOUR_GOOGLE_APP_PASSWORD',
+      })?.kind,
+      'misconfigured'
+    );
+    assert.equal(
+      resolveEmailProviderConfig({
+        RESEND_API_KEY: 'YOUR_RESEND_API_KEY',
+        EMAIL_FROM: 'HUKM MEDIA <updates@your-verified-domain.example>',
+      })?.kind,
+      'misconfigured'
+    );
+  });
+
   it('does not report a partial Resend configuration as ready', () => {
     assert.equal(resolveEmailProviderConfig({ RESEND_API_KEY: 're_test_placeholder' })?.kind, 'misconfigured');
   });
