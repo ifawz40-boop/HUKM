@@ -445,6 +445,8 @@ function buildBook(metadata, sourceChapters, manifest) {
       chapterNumber: index + 1,
       title: safeText(row.chapter_title || row.chapter_label || row.part_title || row.volume_title || row.title) || `القسم ${index + 1}`,
       subtitle: [safeText(row.volume_title), safeText(row.part_title)].filter(Boolean).join(' • '),
+      exactDuplicateGroup: safeText(row.exact_duplicate_group) || null,
+      nearDuplicateGroup: safeText(row.near_duplicate_group) || null,
       content,
       footnotes,
       omittedMedia: {
@@ -608,6 +610,8 @@ async function main() {
     svgs: sum.svgs + Number(book.rights.omissions?.svgs || 0),
     tables: sum.tables + Number(book.rights.omissions?.tables || 0),
   }), { images: 0, svgs: 0, tables: 0 });
+  const exactDuplicateSections = generated.reduce((sum, book) => sum + book.chapters.filter((chapter) => chapter.exactDuplicateGroup).length, 0);
+  const nearDuplicateSections = generated.reduce((sum, book) => sum + book.chapters.filter((chapter) => chapter.nearDuplicateGroup).length, 0);
   const totalBytes = generated.reduce((sum, book) => sum + Buffer.byteLength(JSON.stringify(book, null, 2) + '\n', 'utf8'), 0);
   const notice = [
     '# HUKM static Arabic library — source and licensing notice',
@@ -625,6 +629,7 @@ async function main() {
     '- Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.',
     `- The underlying source dataset contains 1,545 books. This HUKM batch contains ${generated.length} automatically selected, rights-screened books from a ${manifest.targetBooks}-book target; selection uses category quotas and a target length of about ${Number(manifest.targetWordsPerBook || manifest.minimumWords).toLocaleString('en-US')} words. It is not yet manually curated or individually proofread.`,
     '- The selector keeps at most one book per upstream book-level near_duplicate_group; the group identifier is retained in each book\'s rights metadata.',
+    `- Upstream chapter duplicate annotations are preserved on each chapter without removing or merging text: ${exactDuplicateSections} sections carry exact_duplicate_group and ${nearDuplicateSections} carry near_duplicate_group.`,
     `- First-batch integrity totals: ${generated.length} books, ${totalChapters} sections, ${totalWords.toLocaleString('en-US')} words and ${totalFootnotes.toLocaleString('en-US')} footnotes. The source metadata records ${batchOmissions.images} omitted images, ${batchOmissions.svgs} omitted SVG elements and ${batchOmissions.tables} omitted tables across this batch; these assets are not embedded in the reader.`,
     '',
     '## Included books',
@@ -658,6 +663,7 @@ async function main() {
   ].join('\n');
   await writeFile(NOTICE_PATH, notice, 'utf8');
 
+  console.log(`Chapter duplicate annotations preserved: ${exactDuplicateSections} exact-tagged sections; ${nearDuplicateSections} near-tagged sections.`);
   console.log(`SUCCESS: generated ${generated.length} complete books, ${totalChapters} sections, ${totalWords} words, ${(totalBytes / (1024 * 1024)).toFixed(2)} MiB.`);
   if (rejected.length) console.warn(`Skipped ${rejected.length} source books after validation failures: ${JSON.stringify(rejected)}`);
 }
