@@ -293,7 +293,7 @@ function categoryLabel(category) {
   return labels[category] || 'متنوع';
 }
 
-function selectBooks(metadata, manifest) {
+export function selectBooks(metadata, manifest) {
   const eligible = metadata.filter((row) => {
     const words = Number(row.n_words || 0);
     const chapters = Number(row.n_chapters || 0);
@@ -312,19 +312,50 @@ function selectBooks(metadata, manifest) {
   };
   console.log(`Rights-screened metadata: ${eligible.length} eligible (${byRights.ccByTranslation} CC BY 4.0 translations; ${byRights.life70Screen} public-domain life+70-screened).`);
 
+  const duplicateGroupSizes = new Map();
+  const categoryCounts = new Map();
+  for (const row of eligible) {
+    const group = safeText(row.near_duplicate_group);
+    if (group) duplicateGroupSizes.set(group, (duplicateGroupSizes.get(group) || 0) + 1);
+    const category = safeText(row.category_main) || 'other';
+    categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+  }
+  const duplicateBookCount = [...duplicateGroupSizes.values()].reduce((sum, count) => sum + count, 0);
+  console.log('Upstream book near-duplicate metadata: ' + duplicateGroupSizes.size + ' groups cover ' + duplicateBookCount + ' eligible books.');
+  console.log('Eligible category counts: ' + [...categoryCounts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([category, count]) => category + ': ' + count).join(', '));
+
+  const targetWords = Number(manifest.targetWordsPerBook) || manifest.minimumWords;
+  const compareCandidates = (a, b) => {
+    const aWords = Number(a.n_words || 0);
+    const bWords = Number(b.n_words || 0);
+    return Math.abs(aWords - targetWords) - Math.abs(bWords - targetWords) ||
+      Number(b.n_chapters || 0) - Number(a.n_chapters || 0) ||
+      String(a.title).localeCompare(String(b.title), 'ar');
+  };
+
   const selected = [];
   const usedIds = new Set();
+  const usedDuplicateGroups = new Set();
+  const isUnused = (row) => {
+    const group = safeText(row.near_duplicate_group);
+    return !usedIds.has(row.book_id) && (!group || !usedDuplicateGroups.has(group));
+  };
+  const markUsed = (row) => {
+    usedIds.add(row.book_id);
+    const group = safeText(row.near_duplicate_group);
+    if (group) usedDuplicateGroups.add(group);
+  };
   let totalWords = 0;
   const addFromCategory = (category, quota) => {
     const candidates = eligible
-      .filter((row) => row.category_main === category && !usedIds.has(row.book_id))
-      .sort((a, b) => Number(b.n_words || 0) - Number(a.n_words || 0) || String(a.title).localeCompare(String(b.title), 'ar'));
+      .filter((row) => row.category_main === category && isUnused(row))
+      .sort(compareCandidates);
     for (const row of candidates) {
       if (selected.length >= manifest.targetBooks || selected.filter((item) => item.category_main === category).length >= quota) break;
       const words = Number(row.n_words || 0);
       if (totalWords + words > manifest.maximumTotalWords) continue;
       selected.push(row);
-      usedIds.add(row.book_id);
+      markUsed(row);
       totalWords += words;
     }
   };
@@ -337,8 +368,8 @@ function selectBooks(metadata, manifest) {
 
   if (selected.length < manifest.targetBooks) {
     const remaining = eligible
-      .filter((row) => !usedIds.has(row.book_id))
-      .sort((a, b) => Number(b.n_words || 0) - Number(a.n_words || 0));
+      .filter(isUnused)
+      .sort(compareCandidates);
     for (const row of remaining) {
       if (selected.length >= manifest.targetBooks) break;
       const words = Number(row.n_words || 0);
@@ -348,6 +379,12 @@ function selectBooks(metadata, manifest) {
       totalWords += words;
     }
   }
+
+  const selectedDuplicateGroups = selected.map((row) => safeText(row.near_duplicate_group)).filter(Boolean);
+  if (new Set(selectedDuplicateGroups).size !== selectedDuplicateGroups.length) {
+    throw new Error('Book selection contains more than one item from an upstream near-duplicate group.');
+  }
+  console.log('Selection result: ' + selected.length + ' books / target ' + manifest.targetBooks + ', ' + totalWords + ' words, ' + selectedDuplicateGroups.length + ' selected near-duplicate groups, target length ' + targetWords + ' words per book.');
 
   if (selected.length < manifest.minimumBooks) {
     throw new Error(`Only ${selected.length} books passed the rights and completeness screen; minimum is ${manifest.minimumBooks}. Eligible metadata rows: ${eligible.length}.`);
@@ -492,6 +529,7 @@ function buildBook(metadata, sourceChapters, manifest) {
       sourceHash: safeText(metadata.source_file_sha256),
       sourceFile: safeText(metadata.source_file),
       omissions: totalOmissions,
+      nearDuplicateGroup: safeText(metadata.near_duplicate_group) || null,
       bookId: safeText(metadata.book_id),
       hindawiId: safeText(metadata.hindawi_id),
       bookUrl: safeText(metadata.book_url),
@@ -552,6 +590,13 @@ async function main() {
 
   const totalWords = generated.reduce((sum, book) => sum + book.wordCount, 0);
   const totalChapters = generated.reduce((sum, book) => sum + book.chapterCount, 0);
+  const totalFootnotes = generated.reduce((sum, book) =>
+    sum + book.chapters.reduce((chapterSum, chapter) => chapterSum + (Array.isArray(chapter.footnotes) ? chapter.footnotes.length : 0), 0), 0);
+  const batchOmissions = generated.reduce((sum, book) => ({
+    images: sum.images + Number(book.rights.omissions?.images || 0),
+    svgs: sum.svgs + Number(book.rights.omissions?.svgs || 0),
+    tables: sum.tables + Number(book.rights.omissions?.tables || 0),
+  }), { images: 0, svgs: 0, tables: 0 });
   const totalBytes = generated.reduce((sum, book) => sum + Buffer.byteLength(JSON.stringify(book, null, 2) + '\n', 'utf8'), 0);
   const notice = [
     '# HUKM static Arabic library — source and licensing notice',
@@ -565,9 +610,11 @@ async function main() {
     '- Source corpus: Andreas Hallberg, The Arabic E-Book Corpus, version 1, University of Gothenburg, 2024, https://doi.org/10.5878/7rbh-gy93.',
     '- Publisher: Hindawi Foundation.',
     '- Selected books follow one of two rights paths: (1) explicit CC BY 4.0 colophon for the Arabic translation plus public-domain original; or (2) public-domain original with all credited rights-relevant persons recorded as deceased by 1955 (life+70 screen as of 2026).',
-    '- CC BY 4.0 translations retain their attribution and share-alike-compatible source terms; public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.',
+    '- CC BY 4.0 translations retain their required attribution and licence notices; CC BY 4.0 does not impose a ShareAlike condition. Public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.',
     '- Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.',
-    '- The underlying source dataset contains 1,545 books, but this repository includes only the rights-screened curated subset listed below.',
+    '- The underlying source dataset contains 1,545 books. This HUKM batch contains ${generated.length} automatically selected, rights-screened books from a ${manifest.targetBooks}-book target; selection uses category quotas and a target length of about ${Number(manifest.targetWordsPerBook || manifest.minimumWords).toLocaleString('en-US')} words. It is not yet manually curated or individually proofread.
+    '- The selector keeps at most one book per upstream book-level near_duplicate_group; the group identifier is retained in each book's rights metadata.
+    `- First-batch integrity totals: ${generated.length} books, ${totalChapters} sections, ${totalWords.toLocaleString('en-US')} words and ${totalFootnotes.toLocaleString('en-US')} footnotes. The source metadata records ${batchOmissions.images} omitted images, ${batchOmissions.svgs} omitted SVG elements and ${batchOmissions.tables} omitted tables across this batch; these assets are not embedded in the reader.`',
     '',
     '## Included books',
     '',
@@ -604,7 +651,9 @@ async function main() {
   if (rejected.length) console.warn(`Skipped ${rejected.length} source books after validation failures: ${JSON.stringify(rejected)}`);
 }
 
-main().catch((error) => {
-  console.error('Static library sync failed:', error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error('Static library sync failed:', error);
+    process.exitCode = 1;
+  });
+}
