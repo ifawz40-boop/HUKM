@@ -1,13 +1,18 @@
 import copy
+import importlib.util
 import unittest
+from pathlib import Path
 
-from scripts.audit_wikisource_candidates import (
-    SOURCE_LICENSE,
-    SOURCE_LICENSE_URL,
-    candidate_score,
-    deduplicate_candidates,
-    is_candidate,
-)
+MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "audit-wikisource-candidates.py"
+SPEC = importlib.util.spec_from_file_location("audit_wikisource_candidates", MODULE_PATH)
+AUDIT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(AUDIT)
+
+SOURCE_LICENSE = AUDIT.SOURCE_LICENSE
+SOURCE_LICENSE_URL = AUDIT.SOURCE_LICENSE_URL
+candidate_score = AUDIT.candidate_score
+deduplicate_candidates = AUDIT.deduplicate_candidates
+is_candidate = AUDIT.is_candidate
 
 
 def valid_row():
