@@ -182,24 +182,24 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
   // Typography & Reader Preferences (stored in localStorage)
   const [fontSize, setFontSize] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem('hukm_reader_fontsize');
-      if (saved) return parseInt(saved);
+      const saved = Number(localStorage.getItem('hukm_reader_fontsize'));
+      if (Number.isFinite(saved) && saved >= 15 && saved <= 32) return saved;
     } catch {}
     return 20;
   });
 
   const [fontFamily, setFontFamily] = useState<'amiri' | 'cairo' | 'tajawal' | 'readex'>(() => {
     try {
-      const saved = localStorage.getItem('hukm_reader_font') as any;
-      if (saved) return saved;
+      const saved = localStorage.getItem('hukm_reader_font');
+      if (saved === 'amiri' || saved === 'cairo' || saved === 'tajawal' || saved === 'readex') return saved;
     } catch {}
     return 'amiri';
   });
 
   const [theme, setTheme] = useState<'dark' | 'sepia' | 'light' | 'black'>(() => {
     try {
-      const saved = localStorage.getItem('hukm_reader_theme') as any;
-      if (saved) return saved;
+      const saved = localStorage.getItem('hukm_reader_theme');
+      if (saved === 'dark' || saved === 'sepia' || saved === 'light' || saved === 'black') return saved;
     } catch {}
     return 'dark';
   });
@@ -843,10 +843,19 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
     onShowToast?.('تم حذف المقتطف.');
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopiedShare(true);
-    setTimeout(() => setCopiedShare(false), 2000);
+  const handleShare = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API is unavailable in this browser context.');
+      }
+      await navigator.clipboard.writeText(window.location.href);
+      setCopiedShare(true);
+      onShowToast?.('تم نسخ رابط القراءة بنجاح.');
+      setTimeout(() => setCopiedShare(false), 2000);
+    } catch {
+      setCopiedShare(false);
+      onShowToast?.('تعذر نسخ الرابط تلقائيًا. يمكنك نسخ عنوان الصفحة من شريط المتصفح.');
+    }
   };
 
   // Theme styling definitions
