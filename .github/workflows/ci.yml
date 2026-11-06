@@ -19,10 +19,16 @@ jobs:
   verify:
     name: Tests, typecheck and production build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Java for Firestore Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
@@ -34,6 +40,9 @@ jobs:
 
       - name: Run test suite
         run: bun run test
+
+      - name: Firestore review security rules emulator tests
+        run: npx --yes firebase-tools@15.34.2 emulators:exec --only firestore --project demo-hukm-library-review-rules "bun run test:firestore-rules"
 
       - name: TypeScript check
         run: bun run lint
