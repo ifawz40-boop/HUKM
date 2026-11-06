@@ -673,3 +673,21 @@
 - Volume records conflict: Waqfeya/CiNii list 11 volumes, while other digital catalogues list 10 parts. The inventory deliberately omits a definitive volume count until the physical set is identified.
 - The editor's first-volume introduction describes comparison of 12 manuscripts with two printed copies and another manuscript from Riyadh University; the first volume also introduces the book's argument on alleged conflict between transmitted and rational evidence.
 - Full-text review, quotation/context audit, editorial-layer review and digital rights remain pending. Candidate is hidden and unapproved; no PDF/full text copied.
+
+
+## PR #55 merged — checkpoint and philosophy-critique candidate (2026-11-06)
+
+- PR #55 merged by squash at `e6c949c357be2cc75cb1907f07f4d693bb168caf`.
+- Final exact PR head `0b65317edb47b884bad81dd5189dbb2c5023b4a9` passed run #42252848089: tests, Firestore Emulator security-rules tests, TypeScript and production build.
+- Post-merge main run #42253029679 passed on exact merge SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf`.
+- Vercel check on the exact main merge SHA is now `success`. This is a successful Vercel Git status; the dashboard and public production alias were not independently opened, so do not claim a separate live-site smoke test.
+- Re-read main: 28 candidate records, including candidate 28 `درء تعارض العقل والنقل`; `approvedBookIds` remains empty.
+- Category balance: religious 15, self-development 6, philosophy critique 4, travel 3.
+- The new philosophy candidate remains hidden; complete text, quotation/context, volume reconciliation and rights review remain pending. No PDF/full text copied.
+
+## Vercel status update
+
+- Earlier main commits returned `build-rate-limit` failures.
+- The latest main SHA `e6c949c357be2cc75cb1907f07f4d693bb168caf` now has a successful Vercel status check.
+- `vercel.json` still sets Git deployment eligibility to `{"*":false,"main":true}`.
+- No manual deployment or Vercel setting change was performed.
