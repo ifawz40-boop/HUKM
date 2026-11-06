@@ -40,7 +40,7 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-[#c59b27]/15 border border-[#c59b27]/30 px-2.5 py-0.5 text-[11px] font-bold text-[#f0cb69]">
-                مكتبة التراث العربي المفتوحة
+                منصة معرفية للبحث والقراءة
               </span>
               <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1">
                 <Crown className="h-3.5 w-3.5 text-amber-400" />
@@ -48,7 +48,7 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white font-cairo mt-1">
-              مكتبة حُكم للكتب العربية التراثية
+              مكتبة حُكم المعرفية المنتقاة
             </h1>
             <p className="text-xs sm:text-sm text-[#cbd5e1] font-medium font-amiri mt-0.5 text-[#f0cb69]">
               {HUKM_MOTTO}
@@ -58,22 +58,29 @@ export const HukmHero: React.FC<HukmHeroProps> = ({
 
         {/* Quick Highlights & Immediate Call to action */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-3 rounded-2xl bg-[#070d1e]/80 border border-white/5 px-4 py-2 text-xs">
-            <div>
-              <span className="font-black text-[#f0cb69] block text-sm">{totalBooksCount}</span>
-              <span className="text-[10px] text-[#94a3b8]">كتابًا</span>
+          {totalBooksCount > 0 ? (
+            <div className="flex items-center gap-3 rounded-2xl bg-[#070d1e]/80 border border-white/5 px-4 py-2 text-xs">
+              <div>
+                <span className="font-black text-[#f0cb69] block text-sm">{totalBooksCount}</span>
+                <span className="text-[10px] text-[#94a3b8]">كتابًا</span>
+              </div>
+              <div className="h-6 w-px bg-white/10" />
+              <div>
+                <span className="font-black text-white block text-sm">{totalChaptersCount}</span>
+                <span className="text-[10px] text-[#94a3b8]">أقسام وفصول</span>
+              </div>
+              <div className="h-6 w-px bg-white/10" />
+              <div>
+                <span className="font-black text-white block text-sm">{totalWordsCount.toLocaleString('ar-EG')}</span>
+                <span className="text-[10px] text-[#94a3b8]">كلمة</span>
+              </div>
             </div>
-            <div className="h-6 w-px bg-white/10" />
-            <div>
-              <span className="font-black text-white block text-sm">{totalChaptersCount}</span>
-              <span className="text-[10px] text-[#94a3b8]">أقسام وفصول</span>
+          ) : (
+            <div className="max-w-xs rounded-2xl border border-[#c59b27]/25 bg-[#070d1e]/80 px-4 py-3 text-right">
+              <p className="text-xs font-bold text-[#f0cb69]">مكتبة قيد الانتقاء والمراجعة</p>
+              <p className="mt-1 text-[11px] leading-5 text-[#94a3b8]">لا نعرض كتابًا قبل التحقق من محتواه ومصدره وحقوق إتاحته.</p>
             </div>
-            <div className="h-6 w-px bg-white/10" />
-            <div>
-              <span className="font-black text-white block text-sm">{totalWordsCount.toLocaleString('ar-EG')}</span>
-              <span className="text-[10px] text-[#94a3b8]">كلمة</span>
-            </div>
-          </div>
+          )}
 
           <button
             onClick={onExploreBooks}
