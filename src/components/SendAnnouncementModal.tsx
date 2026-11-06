@@ -7,7 +7,7 @@ interface SendAnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
   books: BookProject[];
-  onSendNotification: (notification: AppNotification) => void;
+  onSendNotification: (notification: Pick<AppNotification, 'title' | 'message' | 'type' | 'bookId'>) => Promise<boolean>;
 }
 
 export const SendAnnouncementModal: React.FC<SendAnnouncementModalProps> = ({
@@ -20,28 +20,37 @@ export const SendAnnouncementModal: React.FC<SendAnnouncementModalProps> = ({
   const [message, setMessage] = useState('');
   const [type, setType] = useState<'announcement' | 'new_chapter' | 'new_book'>('announcement');
   const [selectedBookId, setSelectedBookId] = useState<string>('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !message.trim()) return;
+    if (isSending || !title.trim() || !message.trim()) return;
 
-    const newNotif: AppNotification = {
-      id: `notif-${Date.now()}`,
-      title: title.trim(),
-      message: message.trim(),
-      type,
-      timestamp: 'الآن',
-      read: false,
-      bookId: selectedBookId || undefined,
-      targetRole: 'all',
-    };
-
-    onSendNotification(newNotif);
-    setTitle('');
-    setMessage('');
-    onClose();
+    setIsSending(true);
+    setSendError('');
+    try {
+      const succeeded = await onSendNotification({
+        title: title.trim(),
+        message: message.trim(),
+        type,
+        bookId: selectedBookId || undefined,
+      });
+      if (!succeeded) {
+        setSendError('لم يؤكد الخادم حفظ التنبيه. احتفظنا بالنص كما هو؛ حاول مرة أخرى.');
+        return;
+      }
+      setTitle('');
+      setMessage('');
+      setSelectedBookId('');
+      onClose();
+    } catch {
+      setSendError('تعذر الاتصال لحفظ التنبيه. لم يتم إرساله، ويمكنك إعادة المحاولة.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -163,20 +172,28 @@ export const SendAnnouncementModal: React.FC<SendAnnouncementModalProps> = ({
             </select>
           </div>
 
+          {sendError && (
+            <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs leading-6 text-red-200">
+              {sendError}
+            </p>
+          )}
+
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2.5 text-xs font-bold text-[#94a3b8] hover:text-white"
+              disabled={isSending}
+              className="rounded-xl px-4 py-2.5 text-xs font-bold text-[#94a3b8] hover:text-white disabled:opacity-50"
             >
               إلغاء
             </button>
             <button
               type="submit"
+              disabled={isSending || !title.trim() || !message.trim()}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] px-5 py-2.5 text-xs font-black text-[#070d1e] shadow-lg hover:scale-102 active:scale-98 transition-transform"
             >
               <Send className="h-4 w-4" />
-              <span>إرسال التنبيه الآن</span>
+              <span>{isSending ? 'جاري حفظ التنبيه...' : 'إرسال التنبيه الآن'}</span>
             </button>
           </div>
         </form>
