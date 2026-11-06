@@ -3,7 +3,7 @@
 ## Current verified checkpoint — 2026-11-06
 
 - Repository: `ifawz40-boop/HUKM`; default and Google AI Studio-linked branch: `main`.
-- Verified live `main` HEAD after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`.
+- Verified live `main` HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`.
 - PR #30 added the 23rd bibliographic candidate, *مختصر منهاج القاصدين*, with a source-review report and a regression test ensuring it remains outside the public allowlist.
 - PR #30 merge CI run #42238280875 passed on head `be1670acc299470f0cef7222ac2b9f030d4b14db`; post-merge main CI run #42238372655 passed on exact merge commit `1f5c98a918eb491db721270f14a6473dff50c39d` (tests, TypeScript and production build).
 - PR #28's curation-dialog focus restoration and background scroll lock are merged and verified; PR #29's checkpoint is merged and verified.
@@ -432,6 +432,23 @@
 - Next implementation stage: build an unmounted/inert server-side review repository/API with dependency injection, verified-owner middleware, transactional state/event writes, optimistic versions, idempotency and failure-injection tests. Do not mount or enable writes until Firestore deny rules and emulator-backed security tests are ready.
 
 
+## PR #39 — inert review repository/API core merged (2026-11-06)
+
+- PR #39 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/39
+- Merge commit / verified live `main` HEAD: `e619ab711ea2682479c1789b4e720aa4512fd044`.
+- PR head `acfcb19ec43f2760d4d191b8a1b6e5618fc394af` passed CI run #42240951392; post-merge main CI run #42241115451 passed on the exact merge commit (tests, TypeScript and production build).
+- Added `src/server/libraryReviewRepository.ts`: Firestore-like transactional repository for separate editorial/rights projections and append-only events, optimistic versions, deterministic per-owner/candidate idempotency, request fingerprint conflict checks, snapshot staleness/restart requirements, and server timestamp read-back after commit.
+- Added `src/server/libraryReviewApi.ts`: injectable Express router factory with owner middleware dependencies, candidate resolution/fingerprinting, server-derived reviewer UID/role/policy, safe errors and read/list/event endpoints.
+- Added `src/server/libraryReviewRepository.test.ts` and `src/server/libraryReviewApi.test.ts`; package test script includes both. Tests cover event/state transaction behavior, failure injection, idempotency replay/reuse, version conflicts, stale metadata restarts, separate rights state, owner-only API behavior, spoofed request identity, invalid candidates/payloads, default-deny Firestore guard, and the not-mounted activation guard.
+- The API factory is **not mounted** in `server.ts` or `api/index.ts`; no production endpoint, Firestore write, approval UI, client write or publication behavior is active.
+- `firestore.rules` remains default-deny for unmatched paths. Explicit named denies and Firestore Emulator security tests are still pending before any API mounting.
+- `firebase.json` already configures Firestore Emulator on port 8080 (UI disabled); no emulator-backed security test harness exists yet.
+- Candidate inventory remains 23; `approvedBookIds` remains empty; 24 legacy books remain quarantined.
+- Manual accessibility checklist still has nine Not-run items. Vercel Git deployment policy remains `{"*": false, "main": true}`; Vercel status still reports `build-rate-limit`, so production deployment is not confirmed.
+- Next: implement RFC Stage 3 explicit deny rules and emulator-backed tests, and type-check the production Firebase Admin adapter without mounting the API.
+
+
+
 ## Owner-directed legacy library deletion and sync safety — 2026-11-06
 
 - Work branch: `chore/remove-noncompliant-legacy-library-v5`, based on exact `main` HEAD `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92` (after merged PR #39 and checkpoint PR #41).
@@ -443,28 +460,4 @@
 - Added regression coverage requiring no archive path, no quarantine registry, empty public catalogue, disabled source sync and explicit source-ID allowlisting.
 - Candidate list remains 23 bibliographic records, all still pending full editorial review; none is approved or publicly visible. No candidate is declared compliant solely from its title/category.
 - Git history was not rewritten (no force-push); deleted files are absent from the current tree and future main snapshots, while historical commits remain immutable.
-- Original PR #40 failed its first CI attempt because of a malformed regex in the new static test; that exact syntax error was corrected. PR #40 was superseded to rebase the same 37-file diff cleanly on latest main after PR #39/#41 merged. No production deployment was requested or performed.
-
-
-## Main advanced during deletion work — PR #39 and PR #41 (2026-11-06)
-
-- PR #39 — inert owner-only review API core — merged at `e619ab711ea2682479c1789b4e720aa4512fd044`; CI run #42240951392 passed on the final PR head.
-- PR #41 — checkpoint for review repository and inert API core — merged at `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`; main CI run #42241425841 passed on that exact SHA.
-- The API core is intentionally not mounted in `server.ts` or `api/index.ts`; no review write endpoint is active in production. Firestore client access remains denied by default. Emulator-backed security tests and explicit Firestore rules are still required before enabling.
-- The deletion diff was rebuilt on `chore/remove-noncompliant-legacy-library-v5` from the exact latest main SHA above, preserving the PR #39 API files and PR #41 checkpoint. The old PR #40 is superseded; no force-push or main mutation was performed.
-
-
-## PR #42 validation checkpoint — 2026-11-06
-
-- PR #42 head before type fix: `e5fa521bed77aedd6f8a0c428fafd26c68e84f02`.
-- CI run #42241671729: full test suite passed (318 passed, 0 failed, 1 skipped). TypeScript failed only because the declaration `scripts/sync-public-library.d.mts` did not yet include the new `syncEnabled` and `editoriallyApprovedSourceIds` fields in `LibrarySelectionManifest`; production build was skipped after lint failure.
-- Fixed the declaration with optional fields matching the manifest. New exact branch head: `f6e68f05c7722e0140a349c13abb22b01ac3597f`.
-- CI must be re-run on the new exact head; do not merge until tests, TypeScript and production build all pass.
-
-
-## PR #42 TypeScript fixture correction — 2026-11-06
-
-- On intermediate head `f6e68f05c7722e0140a349c13abb22b01ac3597f`, the full tests passed (318 passed, 1 skipped) but TypeScript correctly rejected two abbreviated test manifest objects missing required selection fields.
-- Replaced those objects with a complete typed `minimalManifest` fixture and reused it for the disabled/empty/unknown-ID fail-closed cases.
-- Current branch head after correction: `b1ccbc8bdecc30fc5474c439dc425ade533d5289`.
-- Await CI on this exact head. No merge until TypeScript and production build pass as well as tests.
+- PR #42 CI on final recorded head `320c1c92e9df0d6d9b9c4b30c08cd0450f9dc2b1` passed 318 tests, 1 skipped, TypeScript and production build. Re-run after this checkpoint correction before merge. No deployment was requested or performed.
