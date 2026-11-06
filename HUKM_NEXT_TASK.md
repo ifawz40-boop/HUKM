@@ -1,12 +1,12 @@
 # HUKM MEDIA — Exact Continuation Checkpoint
 
-Last refreshed: 2026-11-06 — owner-directed removal of 24 non-compliant legacy books (PR pending)
+Last refreshed: 2026-11-06 — deletion branch rebased on PR #41 main (PR pending)
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current development branch: `chore/remove-noncompliant-legacy-library` (PR pending CI)
-Verified application/data HEAD on main after PR #38: `b8b6f2fb5de1bd1d418ef94d8b1d1d4028c7f798`
+Current development branch: `chore/remove-noncompliant-legacy-library-v5` (PR pending CI)
+Verified application/data HEAD on main after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #38: `b8b6f2fb5de1bd1d418ef94d8b1d1d4028c7f798`.
+Latest main HEAD after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -123,12 +123,12 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 
 ## Owner-directed legacy library deletion — current working branch
 
-- Base main SHA: `b8b6f2fb5de1bd1d418ef94d8b1d1d4028c7f798`.
-- Branch: `chore/remove-noncompliant-legacy-library`.
+- Base main SHA: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92` (after PR #39 and PR #41).
+- Branch: `chore/remove-noncompliant-legacy-library-v5`.
 - Removed 24 legacy book text JSON files, the archive catalogue, PDF archive catalogue and archive notice (27 deletions). The current branch tree has no `src/data/library/archive/` entries.
 - Cleared all quarantined IDs and removed the quarantine registry. Public catalogue remains empty; approved IDs remain zero.
 - The review report retains only titles/reasons for audit; no book content is retained there.
 - Disabled automatic corpus ingestion by default and added an explicit source-ID editorial allowlist guard. Workflow dispatch cannot run from `main`.
-- Added tests for deletion, no quarantine, and fail-closed sync behavior. CI is the next gate; do not merge until it passes on the exact PR head.
+- Added tests for deletion, no quarantine, and fail-closed sync behavior. Original PR #40's first CI run failed on malformed test regex; the syntax was corrected before rebuilding this branch on latest main. CI is the next gate; do not merge until it passes on the exact PR head.
 - Git history remains immutable; no history rewrite or force-push was performed.
 - Next: run CI and review the exact diff; then audit the 23 pending candidates against author methodology and complete text before deciding which remain candidates and which are deleted. Keep all unapproved books hidden.
