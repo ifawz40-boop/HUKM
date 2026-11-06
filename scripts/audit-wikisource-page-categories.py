@@ -51,7 +51,7 @@ def chunks(items: list[str], size: int = BATCH_SIZE):
         yield items[start : start + size]
 
 
-def fetch_json(params: dict, timeout: int = 30) -> dict:
+def fetch_json(params: dict, timeout: int = 8) -> dict:
     query = dict(params)
     query.setdefault("action", "query")
     query.setdefault("format", "json")
@@ -60,7 +60,7 @@ def fetch_json(params: dict, timeout: int = 30) -> dict:
     url = API_URL + "?" + urlencode(query, doseq=True)
     request = Request(url, headers={"User-Agent": USER_AGENT})
     last_error = None
-    for attempt in range(5):
+    for attempt in range(3):
         try:
             with urlopen(request, timeout=timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
@@ -69,11 +69,11 @@ def fetch_json(params: dict, timeout: int = 30) -> dict:
             if exc.code not in {429, 500, 502, 503, 504}:
                 raise
             retry_after = exc.headers.get("Retry-After")
-            delay = int(retry_after) if retry_after and retry_after.isdigit() else min(2 ** attempt, 20)
+            delay = min(int(retry_after), 10) if retry_after and retry_after.isdigit() else min(2 ** attempt, 4)
             time.sleep(delay)
         except (URLError, TimeoutError) as exc:
             last_error = exc
-            time.sleep(min(2 ** attempt, 20))
+            time.sleep(min(2 ** attempt, 4))
     raise RuntimeError(f"Wikisource API failed after retries: {last_error}")
 
 
