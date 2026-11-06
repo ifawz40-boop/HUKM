@@ -71,5 +71,6 @@
     "business",
     "literary.criticism",
     "other"
-  ]
+  ],
+  "targetWordsPerBook": 50000
 }
