@@ -433,3 +433,47 @@ A stronger primary source was found after the first Wikisource sync attempt:
 ### Current static-library sync
 - The sync run `42171611705` was still running for several minutes against the old 18-attempt timeout policy. A newer bounded-retry script commit `e8d9a04518b8ceb564f204d7d9a06493bd895d13` reduced attempts to 5 and per-request timeout to 20 seconds; its workflow run `42172530466` is queued/in progress behind the older run. Check both. Do not treat the older run's generated data as current if it commits; re-run with the latest script.
 - Latest code commit at this checkpoint update is documentation-only `e3356e9f4fa0e5f3456a8027d775dcaa96811490`; run the latest CI and re-fetch main before more edits.
+
+
+## Continuation checkpoint — library-first repository audit — 2026-11-06 06:31 UTC
+
+### Verified main state
+- Repository: `ifawz40-boop/HUKM`, branch `main`.
+- Latest code commit at checkpoint time: `46a0092e9e82f2b9e36c436bd0e2bff9e893da63`.
+- Latest CI: https://github.com/ifawz40-boop/HUKM/actions/runs/42174734017 — SUCCESS (tests, TypeScript, production build).
+- Earlier CI test failure on intermediate commit `3885b159...` was caused by an incorrectly escaped category-test regex. Replaced that parser with literal line extraction; final category test passed on `08a2b7c...` and all later commits.
+- Vercel combined status still reports the external `build-rate-limit` failure. CI success is not a successful Vercel deployment.
+
+### Library-first findings and fixes already committed
+1. Repository tree has 155 entries; `src/data/library/catalog.json` remains `[]` and `src/data/library/books/` still contains only `.gitkeep` at last tree check. Do not claim books are bundled until sync job commits generated files.
+2. Current static-library sync run: https://github.com/ifawz40-boop/HUKM/actions/runs/42173326152, job `127746287602`, started 06:16:49 UTC on source commit `e5dede0ff7f133e36ce880f82c3b314f0af6fe4d`. It was still `in_progress` at 06:31 UTC, with step “Download, validate and bundle selected works” running; commit step pending. It runs with a 45-minute job timeout. It will rebase its generated-data commit onto the latest main before pushing. Poll this exact run; do not start a competing sync or change its manifest/script until its result is known, because concurrency cancels the previous run.
+3. Fixed three category ID mismatches in `src/data/library/index.ts`:
+   - `travel` → `travel.literature`
+   - `social_sciences` → `social.sciences`
+   - `religion` → `religions`
+   These must match `category_main` from source rows; App filters with strict equality. Added a regression test against manifest source IDs.
+4. Fixed asynchronous reader race in `src/App.tsx`: each static book load now gets a request sequence ID; stale responses are ignored; navigation/back invalidates pending loads; direct book deep links use the same guarded loader. Added a regression test. Verified the code/test diff independently and CI passed.
+5. Full repository audit plan is at `docs/engineering/FULL_REPOSITORY_AUDIT_PLAN.md`. It already records the phase order and confirmed open issues. Continue updating it as findings are resolved.
+
+### Source research and curation evidence
+- Primary corpus: Bayanat Labs Open Arabic Books v0.1.0, pinned revision `39876c0e7f28c2d16887c7c139800e0df9f87263`, based on Andreas Hallberg's Arabic E-Book Corpus. The release has 1,545 of 1,745 books, 54m+ words, chapter rows, footnotes, colophon and per-book rights evidence. Do not treat dataset-level CC BY 4.0 as blanket text licensing: per-book colophon and rights tier govern.
+  - Dataset card: https://www.bayanatlabs.com/open/open-arabic-books
+  - Builder: https://github.com/Bayanat-Labs/open-arabic-books
+  - Upstream source corpus: https://doi.org/10.5878/7rbh-gy93
+- Open Arabic Books builder README confirms it reads each book colophon and only releases (a) non-translations with original text public domain, or (b) translations where the same colophon statement covers the Arabic translation under CC BY 4.0 and the original is public domain/plain CC BY. It also identifies near-duplicate groups. HUKM currently has an additional conservative life+70 death-year screen; keep it fail-closed and explain it as a screening heuristic, not legal advice.
+- Secondary source: Bayanat Labs Arabic Wikisource Public-Domain Works v0.1.0, 40,782 core works / 66m words / 66,093 chapters, CC BY-SA 4.0 text. 40,732 of 40,782 works are classified poetry, so this is not 40k full prose books. It may supply a separate, curated classical-text collection. Its card says 36 works are marked incomplete and 29 contain unclosed wikitext markup; many modern printed editors may be unnamed. Exclude poetry fragments/incomplete/low-quality text from the general books collection; do not market this as 40k books.
+  - Dataset card: https://www.bayanatlabs.com/open/arabic-wikisource-pd
+  - Builder: https://github.com/Bayanat-Labs/arabic-wikisource-pd
+- The source-access branch `debug/snd-source-access` ran successfully (run https://github.com/ifawz40-boop/HUKM/actions/runs/42167771713). It downloaded and SHA-256 verified both Arrow shards of the 1,745-book corpus mirror (347,038,288 bytes for shard 0; shard 1 also passed its pinned hash), confirmed 1,745 rows, full text and category counts. This is candidate metadata, not per-book rights clearance.
+- Candidate examples from that independent corpus scan (NOT yet accepted/rights-cleared by HUKM): `السحاب الأحمر` — مصطفى صادق الرافعي; `رجوع الموجة` — مي زيادة; `علامة الأربعة` — آرثر كونان دويل; `آلة الزمن` — هربرت جورج ويلز; `الشرق والغرب` — أحمد أمين; `المرأة والعمل` — نبوية موسى; `الكنايات العامية` — أحمد تيمور باشا; `رحلة أول شرقي إلى أمركة` — إلياس حنا الموصلي. Before curation, match source IDs to Open Arabic Books metadata and require the sync rights/completeness checks.
+- The upstream corpus contains only one `religions` category book in the mirror metadata; this is not enough for a meaningful Islamic-studies shelf. Investigate Wikisource core for a separate curated classical Islamic-text supplement, while respecting its CC BY-SA 4.0 attribution/share-alike and text-quality limitations.
+
+### Next exact steps
+1. Poll run `42173326152`; if it completes, inspect its logs for eligible count, selected titles, accepted/rejected book reasons, section and word totals, output MiB, and whether the generated-data commit landed on main.
+2. If it fails or times out, inspect logs and fix the exact API/schema/rate-limit issue. Do not relax rights checks, word-count integrity, or minimum-book gate.
+3. Independently inspect every generated JSON and catalogue row: title, author, translator, category, rights tier, colophon, attribution, source URL/hash, word count, section order, footnotes, omission counts, duplicate groups, and text quality. Run `scripts/assert-library-ready.mjs` against the actual files. The existing tests currently skip actual-library checks while the folder is empty; after generation they must execute, not skip.
+4. Improve editorial selection after seeing actual accepted rows: the current selector sorts by descending word count within category quotas and does not use the upstream `near_duplicate_group` field. Add explicit curated preferred IDs per category and ensure only one title per near-duplicate group; log candidate/selection reasons. Prefer meaningful complete works, not just the longest.
+5. Evaluate the Wikisource dataset with a separate candidate audit before adding it. Require full works, useful chapter count/word count, known author/translator/editor rights tier, acceptable proofread/completeness status, no placeholders/unclosed markup, and a distinct CC BY-SA attribution notice. Keep this as a separate classical collection, not merged into modern Hindawi source stats.
+6. Measure repository size, Vite initial bundle and lazy book chunk sizes after generation. No Firebase book reads/writes or runtime Hugging Face fetches.
+7. Continue the full audit plan: Writer Studio route orphan, remaining legacy Firestore book/category CRUD, bookmark pending-sync recovery, all Firestore rules, auth/admin/email routes, reader annotations/progress/account-switch isolation, responsive accessibility.
+8. Re-fetch latest main before every write, commit each tested batch to main, and update this checkpoint. Never merge the deployment or source-debug branches wholesale.
