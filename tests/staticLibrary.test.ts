@@ -53,7 +53,465 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
   });
 
+  it('must display the candidate-specific source audit report when present', () => {
+    const candidates = JSON.parse(read('src/data/library/candidates.json'));
+    const candidate = candidates.books.find((book: { id: string }) => book.id === 'ibn-taymiyyah-tazkiyat-al-nafs');
+    assert.equal(candidate.pages, 63);
+    assert.equal(candidate.scanPages, 68);
+    assert.equal(candidate.publisher, 'مكتبة النهج الواضح — الكويت');
+    assert.match(candidate.reviewReportUrl, /^https:\/\//);
+    assert.match(curationPanel, /reviewReportUrl/);
+    assert.match(curationPanel, /تقرير المراجعة/);
+  });
+
   it('must keep the curation dashboard owner-only, read-only and safe-link constrained', () => {
+    assert.match(navbar, /isEffectiveOwner && onOpenCurationPanel/);
+    assert.match(app, /\{isOwner && \(\s*<LibraryCurationPanel/);
+    assert.match(curationPanel, /filterLibraryCandidates/);
+    assert.match(curationPanel, /لا يوجد هنا زر لاعتماد الكتب أو نشرها/);
+    assert.match(curationPanel, /rel="noopener noreferrer"/);
+    assert.doesNotMatch(curationPanel, /\b(?:fetch|setDoc|updateDoc|addDoc)\s*\(/);
+  });
+
+  it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
+    assert.match(vercelConfig.buildCommand, /node scripts\/assert-library-ready\.mjs/);
+    assert.match(deploymentGate, /manifest\.minimumBooks/);
+    assert.match(deploymentGate, /maximumWordsPerBook/);
+    assert.match(deploymentGate, /maximumTotalWords/);
+    assert.match(deploymentGate, /cc-by-4-translation/);
+    assert.match(deploymentGate, /public-domain-life70-screen/);
+    assert.match(deploymentGate, /sourceHash/);
+    assert.match(deploymentGate, /historyUrl/);
+    assert.match(deploymentGate, /chapterCount !== book\.chapters\.length/);
+    assert.match(deploymentGate, /entry\.title !== book\.title/);
+    assert.match(deploymentGate, /entry\.wordCount !== book\.wordCount/);
+    assert.match(deploymentGate, /number !== index \+ 1/);
+    assert.match(deploymentGate, /chapter\.bookId !== book\.id/);
+    assert.match(deploymentGate, /countWords\(\(chapter\.content \|\| \[\]\)\.join\(' '\)\)/);
+    assert.match(deploymentGate, /isSafeBookId/);
+    assert.match(deploymentGate, /isSafeHttpUrl/);
+    assert.match(deploymentGate, /licenseQuote/);
+  });
+
+
+  it('must fail closed for an empty catalogue and pass a complete rights-screened fixture', () => {
+    const gatePath = path.resolve(process.cwd(), 'scripts/assert-library-ready.mjs');
+    const makeRoot = () => fs.mkdtempSync(path.join(os.tmpdir(), 'hukm-library-gate-'));
+    const write = (root: string, relativePath: string, value: unknown) => {
+      const target = path.join(root, relativePath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, JSON.stringify(value, null, 2), 'utf8');
+    };
+    const runGate = (root: string) => spawnSync(
+      process.execPath,
+      [gatePath, '--root', root],
+      { encoding: 'utf8' }
+    );
+
+    const emptyRoot = makeRoot();
+    try {
+      write(emptyRoot, 'src/data/library/manifest.json', {
+        minimumBooks: 1,
+        allowedCategories: ['religious'],
+        minimumWords: 10,
+        maximumWordsPerBook: 100,
+        minimumChapters: 3,
+        maximumTotalWords: 100,
+      });
+      write(emptyRoot, 'src/data/library/catalog.json', []);
+      const result = runGate(emptyRoot);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Expected at least 1 complete books; found 0/);
+    } finally {
+      fs.rmSync(emptyRoot, { recursive: true, force: true });
+    }
+
+    const validRoot = makeRoot();
+    try {
+      write(validRoot, 'src/data/library/manifest.json', {
+        minimumBooks: 1,
+        allowedCategories: ['religious'],
+        minimumWords: 10,
+        maximumWordsPerBook: 100,
+        minimumChapters: 3,
+        maximumTotalWords: 100,
+      });
+      write(validRoot, 'src/data/library/catalog.json', [{
+        id: 'book-1',
+        title: 'كتاب تجريبي',
+        author: 'مؤلف تجريبي',
+        category: 'religious',
+        wordCount: 12,
+        chapterCount: 3,
+      }]);
+      write(validRoot, 'src/data/library/books/book-1.json', {
+        id: 'book-1',
+        title: 'كتاب تجريبي',
+        author: 'مؤلف تجريبي',
+        status: 'completed',
+        category: 'religious',
+        wordCount: 12,
+        chapterCount: 3,
+        chapters: [
+          { id: 'book-1-chapter-1', bookId: 'book-1', chapterNumber: 1, exactDuplicateGroup: null, nearDuplicateGroup: null, wordCount: 4, status: 'ready', content: ['نص الفصل الأول هنا'] },
+          { id: 'book-1-chapter-2', bookId: 'book-1', chapterNumber: 2, exactDuplicateGroup: null, nearDuplicateGroup: null, wordCount: 4, status: 'ready', content: ['نص الفصل الثاني هنا'] },
+          { id: 'book-1-chapter-3', bookId: 'book-1', chapterNumber: 3, exactDuplicateGroup: null, nearDuplicateGroup: null, wordCount: 4, status: 'ready', content: ['نص الفصل الثالث هنا'] },
+        ],
+        rights: {
+          nearDuplicateGroup: null,
+          tier: 'cc-by-4-translation',
+          translationCovered: true,
+          originalTextStatus: 'public-domain',
+          license: 'CC BY 4.0 — الترجمة العربية',
+          licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+          bookUrl: 'https://example.org/book',
+          historyUrl: 'https://example.org/revision',
+          sourceHash: 'a'.repeat(64),
+          licenseQuote: 'CC BY 4.0',
+          attribution: 'Attribution fixture',
+        },
+      });
+      const result = runGate(validRoot);
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      assert.match(result.stdout, /PASS: 1 complete, rights-screened books/);
+
+      const validBook = JSON.parse(fs.readFileSync(path.join(validRoot, 'src/data/library/books/book-1.json'), 'utf8'));
+      const invalidDuplicateBook = structuredClone(validBook);
+      invalidDuplicateBook.chapters[0].exactDuplicateGroup = 123;
+      write(validRoot, 'src/data/library/books/book-1.json', invalidDuplicateBook);
+      const invalidDuplicateMarker = runGate(validRoot);
+      assert.equal(invalidDuplicateMarker.status, 1);
+      assert.match(invalidDuplicateMarker.stderr, /duplicate metadata/);
+      write(validRoot, 'src/data/library/books/book-1.json', validBook);
+
+      write(validRoot, 'src/data/library/catalog.json', [{
+        id: 'book-1',
+        title: 'عنوان مختلف لا يطابق النص',
+        author: 'مؤلف تجريبي',
+        category: 'literature',
+        wordCount: 12,
+        chapterCount: 3,
+      }]);
+      const mismatchedCatalog = runGate(validRoot);
+      assert.equal(mismatchedCatalog.status, 1);
+      assert.match(mismatchedCatalog.stderr, /Catalogue metadata does not match/);
+    } finally {
+      fs.rmSync(validRoot, { recursive: true, force: true });
+    }
+  });
+
+
+  it('must validate the actual generated library with the Vercel deployment gate when books are present', (context) => {
+    const directory = path.resolve(process.cwd(), 'src/data/library/books');
+    const files = fs.existsSync(directory)
+      ? fs.readdirSync(directory).filter((file) => file.endsWith('.json'))
+      : [];
+    const gatePath = path.resolve(process.cwd(), 'scripts/assert-library-ready.mjs');
+    const result = spawnSync(process.execPath, [gatePath], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    if (files.length === 0) {
+      assert.match(result.stdout, /intentionally empty during editorial curation/);
+      return;
+    }
+    assert.match(result.stdout, /PASS:/);
+  });
+
+  it('must bind Firestore rules to the exact named database used by every Admin SDK entry point', () => {
+    const expectedDatabase = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
+    assert.equal(firebaseConfig.firestore.database, expectedDatabase);
+    assert.equal(firebaseConfig.firestore.rules, 'firestore.rules');
+    for (const source of [bootstrapScript, verifyScript, firebaseAdmin]) {
+      assert.match(source, new RegExp(expectedDatabase));
+    }
+  });
+
+  it('must not load or persist the public book catalogue through Firestore', () => {
+    for (const forbidden of [
+      'fetchBooksFromFirestore',
+      'saveBookToFirestore',
+      'deleteBookFromFirestore',
+      'fetchCategoriesFromFirestore',
+      'saveCategoryToFirestore',
+      'deleteCategoryFromFirestore',
+    ]) {
+      assert.equal(app.includes(forbidden), false, `App must not call ${forbidden}`);
+    }
+    assert.match(libraryIndex, /import\.meta\.glob\('\.\/books\/\*\.json'/);
+    assert.match(libraryIndex, /loadPublicLibraryBook/);
+    assert.equal(app.includes("localStorage.getItem('hukm_books_v1')"), false);
+    assert.equal(app.includes("localStorage.getItem('hukm_books_v2')"), false);
+    assert.equal(app.includes("localStorage.getItem('hukm_books_v3')"), false);
+  });
+
+  it('must clear only obsolete book and category caches while preserving user reading data', () => {
+    assert.match(app, /for \(const key of \['hukm_books_v1', 'hukm_books_v2', 'hukm_books_v3', 'hukm_categories_v1'\]\)/);
+    assert.match(app, /localStorage\.removeItem\(key\)/);
+    assert.match(app, /getAllReadingProgress/);
+    assert.match(app, /getStoredBookmarks/);
+  });
+
+  it('must not ship the old sample media, empty book seed or fictional category seed', () => {
+    assert.equal(data.includes('HUKM_PRESET_MEDIA'), false);
+    assert.equal(data.includes('INITIAL_BOOKS'), false);
+    assert.equal(data.includes('INITIAL_CATEGORIES'), false);
+    assert.match(libraryIndex, /PUBLIC_LIBRARY_CATEGORIES/);
+    assert.match(libraryIndex, /PUBLIC_LIBRARY_BOOKS/);
+  });
+
+  it('must preserve absolute Hugging Face Hub URLs when building dataset revision preflight requests', () => {
+    assert.match(syncScript, /function buildRequestUrl\(endpoint, params\)/);
+    assert.match(syncScript, /endpoint\.startsWith\('https:\/\/'\)/);
+    assert.match(syncScript, /endpoint\.startsWith\('http:\/\/'\)/);
+    assert.match(syncScript, /const url = buildRequestUrl\(endpoint, params\)/);
+    assert.match(syncScript, /https:\/\/huggingface\.co\/api\/datasets\/\$\{DATASET\}/);
+  });
+
+  it('must enforce the explicit per-book CC BY or conservative public-domain rights paths', () => {
+    assert.match(syncScript, /Bayanat-Labs\/open-arabic-books/);
+    assert.match(syncScript, /translation_covered/);
+    assert.match(syncScript, /original_text_status === 'public-domain'/);
+    assert.match(syncScript, /CC BY 4\.0/);
+    assert.match(syncScript, /minimumWords/);
+    assert.match(syncScript, /minimumChapters/);
+    assert.match(syncScript, /maximumTotalWords/);
+    assert.match(syncScript, /rawDeathYear === null \|\| rawDeathYear === undefined/);
+    assert.match(syncScript, /credit\.deathYear !== null && credit\.deathYear <= 1955/);
+    assert.match(syncScript, /getRightsKind/);
+    assert.match(syncScript, /countWords\(String\(row\.text_raw \|\| ''\)\)/);
+    assert.match(syncScript, /row\.n_words/);
+    assert.match(syncScript, /extractedWordCount < declaredWordCount \* 0\.95/);
+    assert.match(syncScript, /\\p\{M\}/);
+    assert.match(deploymentGate, /extractedWordCount < wordCount \* 0\.95/);
+    assert.match(deploymentGate, /\\p\{M\}/);
+    assert.match(syncScript, /sourceChapters\.length !== Number\(metadata\.n_chapters/);
+    assert.match(syncScript, /indices\.some\(\(index, position\) => !Number\.isSafeInteger\(index\) \|\| index !== position \+ 1\)/);
+    assert.ok(syncScript.includes(".split(/\\r?\\n/).filter((line) => line.trim().length > 0)"));
+    assert.match(syncScript, /isSafeBookId\(row\.book_id\)/);
+    assert.match(syncScript, /isExplicitlyOriginal/);
+    assert.match(syncScript, /row\.is_translation === false/);
+    assert.match(syncScript, /row\.is_translation === true/);
+    assert.equal(syncScript.includes('row.translation === false'), false);
+    assert.match(syncScript, /credit\.role \|\| credit\.role_ar/);
+    assert.match(syncScript, /RIGHTS_RELEVANT_ROLES = new Set\(\['author', 'translator', 'editor', 'compiler', 'foreword'\]\)/);
+    assert.match(syncScript, /credit\.role !== 'reviser'/);
+    assert.match(syncScript, /row\.is_translation === true && translationCovered/);
+    assert.match(syncScript, /translatorCredits\.length > 0/);
+    assert.match(syncScript, /rightsCredits\.every\(\(credit\) => credit\.deathYear !== null && credit\.deathYear <= 1955\)/);
+    assert.equal(syncScript.includes('const latestDeathYear = Number(row.latest_death_year)'), false);
+    assert.match(syncScript, /attemptsMade/);
+    assert.match(syncScript, /const MAX_ATTEMPTS = 5/);
+    assert.match(syncScript, /const REQUEST_TIMEOUT_MS = 20_000/);
+    assert.match(syncScript, /verifyDatasetRevision\(manifest\.datasetRevision\)/);
+    assert.match(syncScript, /metadata\.sha/);
+    assert.match(syncScript, /manifest pins/);
+    assert.match(syncScript, /const datasetUrl = `https:\/\/huggingface\.co\/datasets\/\$\{DATASET\}`/);
+    assert.match(syncScript, /const datasetRevisionUrl = revisionUrl\(manifest\.datasetRevision\)/);
+  });
+
+  it('must use only the four HUKM editorial categories and preserve the target collection mix', () => {
+    const quotas = libraryManifest.categories as Array<{ id: string; quota: number }>;
+    assert.deepEqual(libraryManifest.allowedCategories, [
+      'religious', 'self-development', 'travel', 'islamic-philosophy-critique',
+    ]);
+    assert.deepEqual(quotas.map((item) => item.id), libraryManifest.allowedCategories);
+    assert.equal(quotas.reduce((sum, item) => sum + item.quota, 0), libraryManifest.targetBooks);
+    assert.equal(libraryManifest.fallbackCategories.length, 0);
+  });
+
+  it('must keep UI category IDs identical to the curated policy categories', () => {
+    const uiCategoryIds = [...libraryIndex.matchAll(/id: '([^']+)'/g)].map((match) => match[1]);
+    assert.deepEqual(uiCategoryIds, libraryManifest.allowedCategories);
+    assert.match(app, /book\.category === category\.id/);
+  });
+
+  it('must ignore stale static-book loads after a newer book request or navigation', () => {
+    assert.ok(app.includes('const bookLoadRequestIdRef = useRef<number>(0);'));
+    assert.ok(app.includes('const requestId = ++bookLoadRequestIdRef.current;'));
+    assert.ok(app.includes('if (loadedBook?.id === bookId) {\n      setIsLoadingBook(false);\n      return loadedBook;\n    }'));
+    assert.ok(app.includes('if (bookLoadRequestIdRef.current !== requestId) return null;'));
+    assert.ok(app.includes('if (bookLoadRequestIdRef.current === requestId) setIsLoadingBook(false);'));
+    assert.ok(app.includes('const invalidatePendingBookLoad = () => {'));
+    assert.ok(app.includes('invalidatePendingBookLoad();'));
+    assert.equal(app.includes('void loadPublicLibraryBook(bookParam)'), false);
+  });
+
+  it('must extract complete selected-book chapters through the pinned Parquet stream, not per-book Dataset Viewer calls', () => {
+    assert.match(syncScript, /extractSelectedChapters\(selected, manifest\)/);
+    assert.match(syncScript, /extract-library-chapters\.py/);
+    assert.match(syncScript, /execFileAsync/);
+    assert.doesNotMatch(syncScript, /async function fetchChapters\(bookId\)/);
+    assert.match(syncWorkflow, /setup-python/);
+    assert.match(syncWorkflow, /datasets==5\.1\.0/);
+    assert.match(chapterExtractor, /revision=revision/);
+    assert.match(chapterExtractor, /streaming=True/);
+    assert.match(chapterExtractor, /chapter indexes are not contiguous/);
+    assert.match(chapterExtractor, /All selected book sections are complete/);
+  });
+
+  it('must not claim a book link was copied until the browser clipboard confirms it', () => {
+    assert.match(bookOverview, /const handleShare = async \(\) => \{/);
+    assert.match(bookOverview, /await navigator\.clipboard\?\.writeText|await navigator\.clipboard\.writeText/);
+    assert.match(bookOverview, /catch \{[\s\S]*تعذر نسخ الرابط تلقائيًا/);
+  });
+
+  it('must validate persisted reader preferences before using them as UI state', () => {
+    assert.match(bookReader, /saved >= 15 && saved <= 32/);
+    assert.match(bookReader, /saved === 'amiri' \|\| saved === 'cairo' \|\| saved === 'tajawal' \|\| saved === 'readex'/);
+    assert.match(bookReader, /saved === 'dark' \|\| saved === 'sepia' \|\| saved === 'light' \|\| saved === 'black'/);
+    assert.doesNotMatch(bookReader, /localStorage\.getItem\('hukm_reader_font'\) as any/);
+    assert.doesNotMatch(bookReader, /localStorage\.getItem\('hukm_reader_theme'\) as any/);
+  });
+
+  it('must report reader-share success only after the clipboard write resolves', () => {
+    assert.match(bookReader, /const handleShare = async \(\) => \{/);
+    assert.match(bookReader, /await navigator\.clipboard\.writeText\(window\.location\.href\)/);
+    assert.match(bookReader, /catch \{[\s\S]*تعذر نسخ الرابط تلقائيًا/);
+  });
+
+  it('must expose book-card reading actions through keyboard-accessible controls', () => {
+    assert.match(bookCard, /return \(\s*<article\s+className=/);
+    assert.doesNotMatch(bookCard, /<article\s+onClick=/);
+    assert.match(bookCard, /<button[\s\S]*type="button"[\s\S]*onClick=\{onRead\}/);
+    assert.match(bookCard, /aria-label=\{.*فتح كتاب.*book\.title/);
+  });
+
+  it('must display the total word count passed to the library hero', () => {
+    assert.match(hero, /totalWordsCount\.toLocaleString\('ar-EG'\)/);
+  });
+
+  it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
+    assert.match(syncScript, /text_raw/);
+    assert.match(syncScript, /mapFootnotes/);
+    assert.match(syncScript, /licenseQuote/);
+    assert.match(syncScript, /sourceHash/);
+    assert.match(syncScript, /datasetCitation/);
+    assert.match(syncScript, /historyUrl/);
+  });
+
+  it('must lazy-load full book text as independent static JSON assets, not JavaScript modules', () => {
+    assert.match(libraryIndex, /import\.meta\.glob\('\.\/books\/\*\.json'/);
+    assert.ok(libraryIndex.includes("query: '?url'"));
+    assert.ok(libraryIndex.includes('eager: true'));
+    assert.ok(libraryIndex.includes('const response = await fetch(assetUrl);'));
+    assert.ok(libraryIndex.includes('const loadedBooks = new Map<string, BookProject>();'));
+    assert.ok(libraryIndex.includes('const pendingBookLoads = new Map<string, Promise<BookProject>>();'));
+    assert.ok(libraryIndex.includes('if (!response.ok)'));
+    assert.equal(libraryIndex.includes("const bookLoaders = import.meta.glob"), false);
+    assert.match(libraryIndex, /import\.meta\.glob\('\.\/catalog\.json'/);
+  });
+
+  it('must select one book per upstream near-duplicate group and balance book length', () => {
+    const makeRow = (book_id: string, n_words: number, near_duplicate_group?: string, hasAuthor = true) => ({
+      book_id,
+      title: book_id,
+      n_words,
+      n_chapters: 3,
+      category_main: 'history',
+      is_translation: false,
+      original_text_status: 'public-domain',
+      authors: hasAuthor ? ['Author'] : [],
+      credits: hasAuthor ? [{ role: 'author', name: 'Author', death_year: 1900 }] : [],
+      book_url: 'https://example.org/books/' + book_id,
+      attribution: 'Source attribution',
+      source_file_sha256: 'a'.repeat(64),
+      near_duplicate_group,
+    });
+
+    const selected = selectBooks([
+      makeRow('book-a', 50000, 'near-group-1'),
+      makeRow('book-b', 40000, 'near-group-1'),
+      makeRow('book-c', 30000),
+      makeRow('book-d', 20000),
+      makeRow('book-no-author', 60000, undefined, false),
+    ], {
+      targetBooks: 3,
+      minimumBooks: 3,
+      minimumWords: 8000,
+      maximumWordsPerBook: 120000,
+      minimumChapters: 3,
+      maximumTotalWords: 100000,
+      targetWordsPerBook: 50000,
+      categories: [{ id: 'history', quota: 3 }],
+      fallbackCategories: [],
+    });
+
+    assert.deepEqual(selected.map((row) => row.book_id), ['book-a', 'book-c', 'book-d']);
+    const selectedGroups = selected.map((row) => row.near_duplicate_group).filter(Boolean);
+    assert.equal(new Set(selectedGroups).size, selectedGroups.length);
+  });
+
+  it('must preserve source chapter exact/near-duplicate markers through extraction and book generation', () => {
+    assert.ok(chapterExtractor.includes('"exact_duplicate_group"'));
+    assert.ok(chapterExtractor.includes('"near_duplicate_group"'));
+    assert.ok(syncScript.includes('exactDuplicateGroup: safeText(row.exact_duplicate_group) || null'));
+    assert.ok(syncScript.includes('nearDuplicateGroup: safeText(row.near_duplicate_group) || null'));
+    assert.ok(deploymentGate.includes('chapter.exactDuplicateGroup'));
+    assert.ok(deploymentGate.includes('chapter.nearDuplicateGroup'));
+  });
+
+  it('must regenerate an accurate rights and automated-selection notice on every sync', () => {
+    assert.ok(syncScript.includes('CC BY 4.0 does not impose a ShareAlike condition'));
+    assert.ok(syncScript.includes('automatically selected, rights-screened books'));
+    assert.ok(syncScript.includes('near_duplicate_group'));
+    assert.ok(syncScript.includes('totalFootnotes'));
+    assert.ok(syncScript.includes('batchOmissions'));
+  });
+
+  it('must gate legacy Firestore deletion behind founder verification and exact confirmation', () => {
+    const routeStart = serverApi.indexOf("authClaimsRouter.post('/purge-legacy-library'");
+    assert.ok(routeStart >= 0);
+    const routeEnd = serverApi.indexOf("authClaimsRouter.get('/my-claims'", routeStart);
+    const route = serverApi.slice(routeStart, routeEnd > 0 ? routeEnd : undefined);
+    assert.match(route, /authenticateToken, requireFounderOwner/);
+    assert.match(route, /DELETE_ALL_LEGACY_LIBRARY_DATA/);
+    assert.match(route, /\['books', 'bookDraftChapters', 'categories'\]/);
+    assert.match(route, /status: 'completed'/);
+    assert.match(route, /status: 'failed'/);
+  });
+
+  it('must retain source and rights details for every generated full-text book', (t) => {
+    const directory = path.resolve(process.cwd(), 'src/data/library/books');
+    const files = fs.existsSync(directory)
+      ? fs.readdirSync(directory).filter((file) => file.endsWith('.json'))
+      : [];
+    if (files.length === 0) {
+      t.skip('The GitHub Actions dataset sync has not committed generated full-text books yet.');
+      return;
+    }
+    const catalog = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'src/data/library/catalog.json'), 'utf8'));
+    assert.equal(catalog.length, files.length);
+    const seenNearDuplicateGroups = new Set<string>();
+    for (const file of files) {
+      const book = JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
+      assert.ok(book.id && book.title && book.author, `${file} must have grounded identity metadata`);
+      assert.equal(book.status, 'completed');
+      assert.ok(book.chapters.length >= 3, `${file} must include multiple sections`);
+      assert.ok(book.chapters.every((chapter: any) => chapter.status === 'ready' && chapter.content.length > 0));
+      assert.ok(book.rights.translationCovered === true || book.rights.tier === 'public-domain-life70-screen');
+      assert.equal(book.rights.originalTextStatus, 'public-domain');
+      assert.match(book.rights.license, /CC BY 4\.0|الملكية العامة/);
+      assert.ok(book.rights.bookUrl);
+      assert.ok(book.rights.historyUrl);
+      assert.ok(book.rights.sourceHash);
+      assert.ok(book.rights.licenseQuote);
+      assert.ok(book.rights.attribution);
+      assert.ok(Object.hasOwn(book.rights, 'nearDuplicateGroup'));
+      assert.ok(book.rights.nearDuplicateGroup === null || typeof book.rights.nearDuplicateGroup === 'string');
+      for (const chapter of book.chapters) {
+        assert.ok(Object.hasOwn(chapter, 'exactDuplicateGroup'));
+        assert.ok(Object.hasOwn(chapter, 'nearDuplicateGroup'));
+        assert.ok(chapter.exactDuplicateGroup === null || typeof chapter.exactDuplicateGroup === 'string');
+        assert.ok(chapter.nearDuplicateGroup === null || typeof chapter.nearDuplicateGroup === 'string');
+      }
+      const nearDuplicateGroup = book.rights.nearDuplicateGroup;
+      if (nearDuplicateGroup) {
+        assert.equal(seenNearDuplicateGroups.has(nearDuplicateGroup), false, `${file} duplicates an upstream book-level near-duplicate group`);
+        seenNearDuplicateGroups.add(nearDuplicateGroup);
+      }
+    }
+  });
+});
+, read-only and safe-link constrained', () => {
     assert.match(navbar, /isEffectiveOwner && onOpenCurationPanel/);
     assert.match(app, /\{isOwner && \(\s*<LibraryCurationPanel/);
     assert.match(curationPanel, /filterLibraryCandidates/);
