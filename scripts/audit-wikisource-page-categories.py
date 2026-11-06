@@ -69,7 +69,7 @@ def fetch_json(params: dict, timeout: int = 8) -> dict:
             if exc.code not in {429, 500, 502, 503, 504}:
                 raise
             retry_after = exc.headers.get("Retry-After")
-            delay = min(int(retry_after), 10) if retry_after and retry_after.isdigit() else min(2 ** attempt, 4)
+            delay = min(int(retry_after), 4) if retry_after and retry_after.isdigit() else min(2 ** attempt, 4)
             time.sleep(delay)
         except (URLError, TimeoutError) as exc:
             last_error = exc
