@@ -153,8 +153,10 @@ function isTranslationExplicitlyLicensed(row) {
   const translationCovered = row.translation_covered === true || row.translation_covered === 'true' || row.translation_covered === 1;
   const originalIsPublicDomain = row.original_text_status === 'public-domain';
   const mentionsCcBy4 = /(?:المشاع الإبداعي|Creative Commons)[\s\S]{0,180}(?:٤[٫.]٠|4\.0)/i.test(quote);
-  return translationCovered && originalIsPublicDomain && mentionsCcBy4;
+  return row.is_translation === true && translationCovered && originalIsPublicDomain && mentionsCcBy4;
 }
+
+const RIGHTS_RELEVANT_ROLES = new Set(['author', 'translator', 'editor', 'compiler', 'foreword']);
 
 function getCredits(row) {
   return Array.isArray(row.credits)
@@ -164,7 +166,8 @@ function getCredits(row) {
           ? null
           : (Number.isFinite(Number(rawDeathYear)) ? Number(rawDeathYear) : null);
         return {
-          role: safeText(credit.role_ar || credit.role),
+          role: safeText(credit.role || credit.role_ar).toLowerCase(),
+          roleAr: safeText(credit.role_ar),
           name: safeText(credit.name),
           deathYear,
         };
@@ -177,20 +180,24 @@ function getRoleNames(credits, matcher) {
 }
 
 function isPublicDomainByLife70(row) {
-  const translationFlag = String(row.translation).trim().toLowerCase();
-  const isExplicitlyOriginal = row.translation === false || row.translation === 0 || translationFlag === 'false';
-  const isExplicitlyTranslated = row.translation === true || row.translation === 1 || translationFlag === 'true';
+  const isExplicitlyOriginal = row.is_translation === false;
+  const isExplicitlyTranslated = row.is_translation === true;
   const rawCredits = Array.isArray(row.credits) ? row.credits : [];
   const credits = getCredits(row);
-  const translatorCredits = getRoleNames(credits, /translat|مترجم|ترجمة/i);
+  const translatorCredits = getRoleNames(credits, /^translator$/i);
+  const unknownCredits = credits.filter((credit) =>
+    !RIGHTS_RELEVANT_ROLES.has(credit.role) && credit.role !== 'reviser'
+  );
+  const rightsCredits = credits.filter((credit) => RIGHTS_RELEVANT_ROLES.has(credit.role));
 
-  // A translated work must identify its translator; an unknown translation flag is not proof of an original Arabic work.
+  // The upstream builder's is_translation flag is authoritative; unknown values fail closed.
   if (!isExplicitlyOriginal && !(isExplicitlyTranslated && translatorCredits.length > 0)) return false;
+  // Unknown contributor roles or incomplete credit rows must not pass the life+70 screen.
+  if (unknownCredits.length > 0 || credits.length !== rawCredits.length) return false;
 
-  // Never use an author-only latest-death-year shortcut: every credited rights-relevant contributor must be identified and pass.
-  return rawCredits.length > 0 &&
-    credits.length === rawCredits.length &&
-    credits.every((credit) => credit.deathYear !== null && credit.deathYear <= 1955);
+  // Require death-year evidence for each rights-relevant contributor; the upstream author-only shortcut is insufficient here.
+  return rightsCredits.length > 0 &&
+    rightsCredits.every((credit) => credit.deathYear !== null && credit.deathYear <= 1955);
 }
 
 function getRightsKind(row) {
@@ -325,9 +332,9 @@ function mapFootnotes(value) {
 
 function buildBook(metadata, sourceChapters, manifest) {
   const credits = getCredits(metadata);
-  const authors = getRoleNames(credits, /author|مؤلف|كاتب|شاعر/i);
-  const translators = getRoleNames(credits, /translat|مترجم|ترجمة/i);
-  const editors = getRoleNames(credits, /edit|مراجع|محرر|تحرير|محقق/i);
+  const authors = getRoleNames(credits, /^author$/i);
+  const translators = getRoleNames(credits, /^translator$/i);
+  const editors = getRoleNames(credits, /^(editor|compiler|foreword)$/i);
   const fallbackAuthors = Array.isArray(metadata.authors) ? metadata.authors.map((person) => safeText(typeof person === 'string' ? person : person?.name)).filter(Boolean) : [safeText(metadata.original_author || metadata.authors)].filter(Boolean);
   const author = authors.length ? authors.join('، ') : fallbackAuthors.join('، ');
   if (!author) throw new Error(`${metadata.title}: no verifiable author credit in the source metadata.`);
@@ -392,7 +399,7 @@ function buildBook(metadata, sourceChapters, manifest) {
   const book = {
     id: metadata.book_id,
     title: safeText(metadata.title),
-    subtitle: translatorsText ? `ترجمة: ${translatorsText}` : 'نسخة عربية مرخصة',
+    subtitle: translatorsText ? `ترجمة: ${translatorsText}` : (metadata.is_translation === true ? 'ترجمة عربية' : 'نص عربي أصلي'),
     author,
     category: safeText(metadata.category_main) || 'other',
     coverImage: '',
@@ -419,8 +426,8 @@ function buildBook(metadata, sourceChapters, manifest) {
       publicDomainRule: rightsKind === 'cc-by-4-translation'
         ? 'translation_covered=true; original_text_status=public-domain; the publisher colophon explicitly licenses the Arabic translation and book design under CC BY 4.0.'
         : 'original_text_status=public-domain; all credited rights-relevant persons have recorded death years no later than 1955 (life+70 public-domain screen as of 2026).',
-      authorDeathYear: credits.filter((credit) => /author|مؤلف|كاتب|شاعر/i.test(credit.role) && credit.deathYear !== null).reduce((latest, credit) => Math.max(latest, credit.deathYear), 0) || null,
-      latestDeathYear: Number(metadata.latest_death_year) || (credits.reduce((latest, credit) => credit.deathYear === null ? latest : Math.max(latest, credit.deathYear), 0) || null),
+      authorDeathYear: credits.filter((credit) => credit.role === 'author' && credit.deathYear !== null).reduce((latest, credit) => Math.max(latest, credit.deathYear), 0) || null,
+      latestDeathYear: credits.filter((credit) => RIGHTS_RELEVANT_ROLES.has(credit.role)).reduce((latest, credit) => credit.deathYear === null ? latest : Math.max(latest, credit.deathYear), 0) || null,
       sourceUrl: safeText(metadata.book_url),
       historyUrl: datasetRevisionUrl,
       sourcePages: [],
