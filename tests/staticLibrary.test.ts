@@ -226,7 +226,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(deploymentGate, /extractedWordCount < wordCount \* 0\.95/);
     assert.match(deploymentGate, /\\p\{M\}/);
     assert.match(syncScript, /sourceChapters\.length !== Number\(metadata\.n_chapters/);
-    assert.match(syncScript, /new Set\(indices\)\.size !== indices\.length/);
+    assert.match(syncScript, /indices\.some\(\(index, position\) => !Number\.isSafeInteger\(index\) \|\| index !== position \+ 1\)/);
+    assert.ok(syncScript.includes(".split(/\\r?\\n/).filter((line) => line.trim().length > 0)"));
     assert.match(syncScript, /isSafeBookId\(row\.book_id\)/);
     assert.match(syncScript, /isExplicitlyOriginal/);
     assert.match(syncScript, /row\.is_translation === false/);
