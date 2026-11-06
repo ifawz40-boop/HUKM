@@ -648,3 +648,28 @@
 - Full text could not be retrieved from the NYU viewer in this review session. Content review of praise for the Khedive, shrines, local practices and historical/political passages remains pending.
 - NYU states that it believes its displayed materials are public domain; this is not a universal legal determination. No PDF/text was copied and redistribution rights remain unverified.
 - Candidate remains hidden and unapproved; no archive/quarantine created.
+
+
+## PR #54 merged — al-Batnuni travel candidate (2026-11-06)
+
+- PR #54 merged at `ef93ba00db72604c4e473209c7d9183209b80c1e`.
+- Exact PR head `662e56089dd8abc3e4ebf7096a2b425778172b4a` passed run #42252218512: test suite, Firestore Emulator security-rules tests, TypeScript and production build.
+- Post-merge main run #42252368802 passed on exact merge SHA `ef93ba00db72604c4e473209c7d9183209b80c1e`.
+- Re-read main: candidate inventory 27; `approvedBookIds` remains empty; the new travel candidate and source report are present.
+- The candidate is metadata-only and hidden. The full text was not retrieved or reviewed, so the book is not approved.
+- Vercel remains `build-rate-limit`; no production deployment is confirmed.
+
+## Current security confirmation
+
+- `api/index.ts` mounts auth, email and health only; library review router remains unmounted.
+- Firestore rules explicitly deny client read/write access to editorial/rights/review event collections and retain default deny.
+- Curation keyboard behavior is verified by code inspection only; manual keyboard, mobile and screen-reader QA remains outstanding.
+
+
+## New philosophy-critique candidate — درء تعارض العقل والنقل (2026-11-06)
+
+- Added `ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql` as hidden candidate 28 in the philosophy-critique category.
+- Bibliographic sources agree on the second edition (1411 AH/1991), editor Muhammad Rashad Salim and publisher Imam Muhammad ibn Saud Islamic University.
+- Volume records conflict: Waqfeya/CiNii list 11 volumes, while other digital catalogues list 10 parts. The inventory deliberately omits a definitive volume count until the physical set is identified.
+- The editor's first-volume introduction describes comparison of 12 manuscripts with two printed copies and another manuscript from Riyadh University; the first volume also introduces the book's argument on alleged conflict between transmitted and rational evidence.
+- Full-text review, quotation/context audit, editorial-layer review and digital rights remain pending. Candidate is hidden and unapproved; no PDF/full text copied.

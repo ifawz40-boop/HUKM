@@ -512,3 +512,130 @@ Open PRs at checkpoint creation: none
 - Current candidate PR must pass exact-head tests, Firestore Emulator, TypeScript and production build before merge.
 - Vercel: `build-rate-limit`, deployment not confirmed.
 - No production deployment or source ingestion performed.
+
+
+---
+
+# CURRENT VERIFIED CHECKPOINT — 2026-11-06 (after PR #54 merge)
+
+Repository: `ifawz40-boop/HUKM`  
+Default / Google AI Studio branch: `main`  
+Main HEAD: `ef93ba00db72604c4e473209c7d9183209b80c1e`  
+Checkpoint branch: `docs/checkpoint-after-pr54`  
+Latest merged PR: #54 at `ef93ba00db72604c4e473209c7d9183209b80c1e`  
+Open PRs at checkpoint creation: none
+
+## Verified CI and deployment state
+
+- PR #51 exact-head and post-merge main CI: PASS.
+- PR #52 exact-head and post-merge main CI: PASS.
+- PR #53 exact-head and post-merge main CI: PASS.
+- PR #54 exact-head run #42252218512: PASS; post-merge main run #42252368802: PASS on exact SHA `ef93ba00db72604c4e473209c7d9183209b80c1e`.
+- All runs passed tests, Firestore Emulator security-rules tests, TypeScript and production build.
+- Vercel status remains `build-rate-limit`; no production deployment is confirmed.
+- `vercel.json` keeps Git deployments disabled for all branches except `main`.
+- Google AI Studio sync and Vercel dashboard settings remain unverified.
+
+## Library inventory
+
+- 27 hidden candidates; 0 approved public IDs (`approvedBookIds: []`).
+- Category counts: religious 15, self-development 6, Islamic-philosophy critique 3, travel 3.
+- Candidate #25 `الشرح الممتع على زاد المستقنع`: complete text, detailed methodology, editorial layers and rights pending.
+- Candidate #26 `شرح عقيدة أهل السنة والجماعة`: complete text, recording comparison, editorial layers and rights pending.
+- Candidate #27 `الرحلة الحجازية`: NYU record for 1329 AH [1911]; other catalogues list different 1909/1910 editions and page counts. Full text was not retrieved; review of Khedive praise, shrines, local religious practices and historical/political content remains pending.
+- No PDF/full text copied. No archive/quarantine created. Confirmed non-compliant books must be deleted from the current tree, not isolated.
+
+## PR #14 historical sync failure
+
+- PR #14 is merged at `175356b3632f1f054c6280e5c986761cf2d07059`; its old source branch remains at historical SHA `5a3e0eb9da0920c54494abbfab2cef61e54bc2ba`.
+- Its historical `sync-library` run failed because the old manifest did not pin `datasetRevision`.
+- Current main is fail-closed: manual-dispatch/non-main workflow guard, `syncEnabled: false`, empty `editoriallyApprovedSourceIds`, and script aborts before external requests when sync is disabled.
+- Do not enable ingestion or add a revision just to turn the old failed check green. Future ingestion requires exact approved source IDs, full editorial review, rights screening, pinned dataset revision and a PR-based flow.
+
+## Security and UI
+
+- `api/index.ts` mounts only auth, email and health; library review router is not mounted.
+- Firestore rules explicitly deny client access to `libraryEditorialStates`, `libraryRightsStates` and `libraryReviewEvents`, plus default deny.
+- Review API/repository remain scaffolding, not a live production feature.
+- Curation panel has code-level focus trap, Escape handling and focus restoration. Manual keyboard/mobile/screen-reader QA remains outstanding.
+
+## Exact next tasks
+
+1. Obtain a complete, precisely identified copy of the 1911 NYU edition or another chosen edition of `الرحلة الحجازية`; review the full text before deciding whether it passes HUKM's standards.
+2. If the travelogue fails the policy, delete its candidate record and report from the current tree; do not archive it.
+3. Resolve the Ibn Jubayr travelogue from its full context and the owner's actual standard for the disputed tabarruk passage; do not label it shirk without evidence.
+4. Complete full-text and editorial review of candidates #25 and #26, including edition consistency and rights.
+5. Continue research in the underrepresented philosophy-critique category only when the author, content and edition can be sourced reliably; avoid adding books merely to increase the count.
+6. Complete manual keyboard, mobile and screen-reader QA of the curation panel.
+7. Keep Firestore review writes disabled and API unmounted until a production Admin adapter and verified-owner middleware are implemented and reviewed.
+8. Verify Vercel dashboard settings and resolve build-rate quota separately; do not manually deploy or alter settings without authorization.
+9. Confirm Google AI Studio remains connected to `main`.
+
+## Files to inspect
+
+- `src/data/library/candidates.json`
+- `src/data/library/curation.json`
+- `docs/library/CANDIDATE_REVIEWS/al-batnuni-al-rihla-al-hijaziyya.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-al-sharh-al-mumti.md`
+- `docs/library/CANDIDATE_REVIEWS/ibn-uthaymeen-sharh-aqeedat-ahl-al-sunnah.md`
+- `api/index.ts`
+- `src/server/libraryReviewApi.ts`
+- `firestore.rules`
+- `scripts/sync-public-library.mjs`
+- `.github/workflows/sync-public-library.yml`
+- `HUKM_DEVELOPMENT_LOG.md`
+- `HUKM_NEXT_TASK.md`
+- `vercel.json`
+
+## Validation truth
+
+- PR #54 exact-head CI: PASS; post-merge main CI: PASS on `ef93ba00db72604c4e473209c7d9183209b80c1e`.
+- Historical PR #14 sync-library: FAIL (missing pinned dataset revision in the old manifest); current ingestion path is disabled and guarded.
+- Vercel: `build-rate-limit`, production deployment not confirmed.
+- No manual deployment, source ingestion, or copyrighted full-text upload performed.
+
+
+---
+
+# CURRENT WORKING CHECKPOINT — 2026-11-06 (PR #55 expanded)
+
+Base main SHA: `ef93ba00db72604c4e473209c7d9183209b80c1e`  
+Working branch: `docs/checkpoint-after-pr54`  
+Open PR: #55 (checkpoint plus candidate 28)  
+Current candidate inventory on branch: 28  
+Approved public IDs: 0
+
+## New candidate 28 — درء تعارض العقل والنقل
+
+- Author: Ibn Taymiyyah; editor: Muhammad Rashad Salim; publisher: Imam Muhammad ibn Saud Islamic University.
+- Second edition 1411 AH/1991.
+- Category: Islamic philosophy critique.
+- Records disagree on 10 parts vs 11 volumes; no definitive volume count is stored until the exact printed set is selected.
+- Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql.md`.
+- The first-volume editor's introduction describes manuscript collation and the book's subject. Full text and context review remain pending.
+- Candidate is hidden, not approved; no PDF/text copied.
+
+## Updated category balance
+
+- Religious: 15
+- Self-development: 6
+- Islamic philosophy critique: 4
+- Travel: 3
+- Total: 28; approved: 0
+
+## PR #55 validation
+
+- PR #55 is being expanded with candidate 28; previous CI head is obsolete after the latest branch commits.
+- Re-run tests, Firestore Emulator rules tests, TypeScript and production build on the final PR head.
+- Do not merge until exact-head CI passes.
+
+## Next actions
+
+1. Review complete text and edition details for candidate 28; do not infer approval from the editor's introduction.
+2. Avoid adding more Ibn Taymiyyah titles until existing works are reviewed and author balance improves.
+3. Continue full-text review of candidates #25–#27, especially the travelogue's political praise and shrine descriptions.
+4. Complete manual keyboard/mobile/screen-reader QA of the curation panel.
+5. Keep review API unmounted and Firestore client writes denied until production Admin adapter and verified-owner middleware are reviewed.
+6. Resolve Vercel `build-rate-limit` and verify dashboard settings without manual deployment.
+7. Confirm Google AI Studio synchronization to main.
