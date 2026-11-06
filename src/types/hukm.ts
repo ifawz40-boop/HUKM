@@ -87,6 +87,7 @@ export interface BookRights {
   sourceHash?: string;
   sourceFile?: string;
   omissions?: { images: number; svgs: number; tables: number };
+  nearDuplicateGroup?: string | null;
   bookId?: string;
   hindawiId?: string;
   bookUrl?: string;
