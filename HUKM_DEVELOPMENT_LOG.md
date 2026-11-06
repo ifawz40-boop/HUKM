@@ -606,3 +606,27 @@
 - Post-merge main workflow run #42250859548 completed successfully on exact merge SHA `fbcdf057c54baaddeb39f0784720e4ef1df1023a`.
 - This confirms tests, Firestore Emulator rules tests, TypeScript and production build passed after merge.
 - Vercel status remains `build-rate-limit`; production deployment is not confirmed.
+
+
+## PR #52 merged and post-merge verification — 2026-11-06
+
+- PR #52 merged by squash at `fa14de236437d59d8b6df52b9de20bfef475d96e`.
+- Exact PR head `63b5a13cdda1644c6e45341e9d23afaeef46c723` passed run #42251096269: tests, Firestore Emulator security-rules tests, TypeScript and production build.
+- Re-read `main` after merge: candidate inventory contains 26 records; `approvedBookIds` remains empty; both new review reports and candidate records exist.
+- Post-merge main run #42251276651 passed on exact merge SHA `fa14de236437d59d8b6df52b9de20bfef475d96e`: tests, Firestore Emulator security-rules tests, TypeScript and production build.
+- No production deployment is confirmed. Vercel status remains `build-rate-limit`; `vercel.json` still restricts Git-triggered deployments to `main`.
+
+## PR #14 historical sync-library failure — root cause established
+
+- PR #14 merged at `175356b3632f1f054c6280e5c986761cf2d07059`; its exact head `5a3e0eb9da0920c54494abbfab2cef61e54bc2ba` passed its test/typecheck/build and Vercel preview checks.
+- The merge commit's separate `sync-library` workflow failed in run #42219582591 because that historical manifest had no `datasetRevision`; the log says: `Dataset HEAD changed: manifest pins undefined, but Hugging Face currently serves 39876c0e7f28c2d16887c7c139800e0df9f87263`.
+- This is a historical failure, not a current automatic ingestion path. The current main workflow adds a job-level guard that only allows manual dispatch on a non-main branch; push events on main do not run the sync job.
+- Current manifest deliberately has `syncEnabled: false` and an empty `editoriallyApprovedSourceIds`; it has no `datasetRevision` because source ingestion is disabled. Current sync script checks `syncEnabled` and aborts before contacting Hugging Face. Do not add a dataset revision or enable sync merely to turn the historical check green.
+- To resume source ingestion in the future, require an explicit reviewed source-ID allowlist, complete editorial approval for each exact ID, rights review, a pinned dataset revision and a PR-based generated-data flow. No automatic source ingestion was enabled in this session.
+
+## Current library count after PR #52
+
+- 26 hidden candidate metadata records.
+- 0 approved public books (`approvedBookIds: []`).
+- No book text/PDFs copied for either new candidate.
+- No archive/quarantine introduced; confirmed non-compliant books are to be deleted from the current project tree, not retained as isolated book files.
