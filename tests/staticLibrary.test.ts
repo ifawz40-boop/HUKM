@@ -182,6 +182,11 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /rawDeathYear === null \|\| rawDeathYear === undefined/);
     assert.match(syncScript, /credit\.deathYear !== null && credit\.deathYear <= 1955/);
     assert.match(syncScript, /getRightsKind/);
+    assert.match(syncScript, /isExplicitlyOriginal/);
+    assert.match(syncScript, /translatorCredits\.length > 0/);
+    assert.match(syncScript, /credits\.every\(\(credit\) => credit\.deathYear !== null && credit\.deathYear <= 1955\)/);
+    assert.equal(syncScript.includes('const latestDeathYear = Number(row.latest_death_year)'), false);
+    assert.match(syncScript, /attemptsMade/);
     assert.match(syncScript, /verifyDatasetRevision\(manifest\.datasetRevision\)/);
     assert.match(syncScript, /metadata\.sha/);
     assert.match(syncScript, /manifest pins/);
