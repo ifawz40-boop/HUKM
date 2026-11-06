@@ -477,3 +477,45 @@ A stronger primary source was found after the first Wikisource sync attempt:
 6. Measure repository size, Vite initial bundle and lazy book chunk sizes after generation. No Firebase book reads/writes or runtime Hugging Face fetches.
 7. Continue the full audit plan: Writer Studio route orphan, remaining legacy Firestore book/category CRUD, bookmark pending-sync recovery, all Firestore rules, auth/admin/email routes, reader annotations/progress/account-switch isolation, responsive accessibility.
 8. Re-fetch latest main before every write, commit each tested batch to main, and update this checkpoint. Never merge the deployment or source-debug branches wholesale.
+
+
+## Continuation checkpoint — 2026-11-06 07:12 UTC — Streaming extraction integration and UI reliability
+
+### Current repository state
+- Repository: `ifawz40-boop/HUKM`; production/source-of-truth branch: `main`.
+- Latest observed main commit: `d120b8d4e8769c59aaa8bc7f0fbc31ed8a11840f`.
+- Google AI Studio is connected to `main`; do not use a preparation branch as the source of truth.
+- `src/data/library/catalog.json` is still `[]`; no generated full-text books have been committed. Do not claim the public library is populated.
+
+### Confirmed failure that motivated this batch
+- Previous static-library sync run `42173326152` failed in the chapter-download step.
+- Its job log shows repeated Dataset Viewer HTTP 500 responses ("Authentication check on the Hugging Face Hub failed or timed out") and request timeouts across selected books.
+- It ended with 0 complete books against a minimum of 15; no generated-data commit was made.
+- Earlier sync runs `42172530466` and `42171611705` were cancelled.
+
+### Changes committed directly to main
+1. `3cbdf2ba50bf83b6ca7593b76677f8a044a2cec2` — the pinned Parquet extractor now stops scanning once every selected book has its exact expected number of sections.
+2. `10a2bcfc1e42554e164eadebd00a715abf32da1b` — the library-sync workflow installs Python 3.12 and pinned `datasets==5.1.0`.
+3. `9073cbad9297b644ef6baf884f30cbf4c6250eda` — `sync-public-library.mjs` now invokes `scripts/extract-library-chapters.py`, reads the selected-book JSONL output, and independently verifies each selected book's exact section count and contiguous chapter indexes. The old per-book Dataset Viewer `/filter` chapter-fetch loop was removed. Metadata pagination and the pinned dataset-revision preflight remain.
+4. `22815bbec330a914ce5bc031e73bb4f51077863d` — regression tests require the pinned streaming extraction path.
+5. `5b833711f74e043f5a8a04943370599dfd57a49b` — book sharing now awaits the Clipboard API and reports success only after the copy succeeds; failure gets an honest fallback message.
+6. `1567fb5a1fe48fdb1455919a7bf268d0d18615b5` — book cards use semantic article markup and a keyboard-accessible title button instead of making a container with nested buttons behave as one clickable button.
+7. `5a6c25b8135f097994e5aa354abd017ff4ce3774` — the library hero now displays the total word count passed by the application.
+8. UI regression assertions were added/fixed in `tests/staticLibrary.test.ts`; latest test-only commit is `d120b8d4e8769c59aaa8bc7f0fbc31ed8a11840f`.
+
+### Independent source review
+- Re-fetched all changed runtime, workflow, extractor, and test files from `main`.
+- Independently checked 18 source-level conditions: streaming invocation, removal of the old chapter endpoint, pinned Python dependency, pinned dataset revision, exact chapter integrity, early stop, honest clipboard handling, semantic book-card root, accessible title action, and hero word-count metric. All 18 source checks passed.
+- This is source-level review only, not a substitute for the full GitHub Actions run.
+- The connected GitHub workflow-run wrapper exposes pull-request-triggered runs only and returned no push run for the latest `main` commit. The combined commit status currently exposes only Vercel's failure status. Therefore the latest Actions test suite, TypeScript check, and production build are **not yet independently verified**.
+- Vercel's bot comment on PR #8 reports the free-plan daily API deployment limit (>100 deployments in 24 hours). This is a deployment quota block, not a code-build diagnosis. No successful Vercel production deployment is confirmed.
+
+### Exact resume marker — do not skip
+1. Inspect the GitHub Actions push run for latest `main` commit `d120b8d4e8769c59aaa8bc7f0fbc31ed8a11840f`; confirm tests, TypeScript, and production build. If any fail, inspect logs, fix, and re-run before marking this batch complete.
+2. Inspect the latest `sync-public-library` run triggered by `9073cbad9297b644ef6baf884f30cbf4c6250eda`. Confirm the workflow installed Python 3.12 and `datasets==5.1.0`, then inspect streaming extraction logs and its generated-data commit. If it fails, fix the exact streaming issue; do not restore the failing per-book Dataset Viewer chapter endpoint and do not weaken rights/completeness checks.
+3. If the sync succeeds, independently inspect the full-text JSON files and catalogue: count, catalog/file parity, title/author/translator, rights tier, source hashes, colophon, attribution, chapter ordering, footnotes, omitted media, word counts, duplicate groups and actual text quality. Run `scripts/assert-library-ready.mjs` against the real generated files. The empty-catalogue gate must remain fail-closed.
+4. Review actual eligible candidate metadata before changing the 24-book target or quotas. The selector still prioritizes longest works within category quotas and does not yet enforce one book per `near_duplicate_group`; replace this with a value-oriented curated selection only after inspecting candidate titles and rights evidence.
+5. Research and implement a premium HUKM library presentation: editorial shelves, responsive cover grid, author/category pages, rich book detail, source/rights panel, and comfortable reader. Keep full text in one lazy-loaded static JSON file per book; never put book content or catalogue data in Firestore. Use Open Library covers only according to its API guidelines and do not bulk crawl it.
+6. Continue the full repository audit in `docs/engineering/FULL_REPOSITORY_AUDIT_PLAN.md`, including remaining routes, Firestore rules, legacy CRUD, reader/account isolation, writer publishing flow, and responsive UI states.
+7. Re-fetch `main` before every write batch. Preserve the user's rule: inspect, implement, test, independently review, commit to `main`, verify the resulting commit, then advance this checkpoint. Never force-push or claim an unverified deployment.
+
