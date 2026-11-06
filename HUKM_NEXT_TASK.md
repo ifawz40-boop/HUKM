@@ -4,9 +4,9 @@ Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
 Current documentation branch: `docs/checkpoint-mukhtasar-minhaj-candidate-merged` (checkpoint PR #31)
-Verified application/data HEAD after PR #30: `${base}`
+Verified application/data HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #30: `${base}`.
+Latest main HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
