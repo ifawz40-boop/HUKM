@@ -145,6 +145,78 @@
       "pages": 1133,
       "status": "metadata-verified-content-review-pending",
       "reason": "رحلة حجازية توثق الحج والمشاعر والمدن والجغرافيا؛ فحص النص الكامل قبل الاعتماد."
+    },
+    {
+      "id": "al-sadi-tafsir",
+      "title": "تيسير الكريم الرحمن في تفسير كلام المنان (تفسير السعدي)",
+      "author": "الشيخ عبد الرحمن بن ناصر السعدي",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/تيسير-الكريم-الرحمن-في-تفسير-كلام-المنان--تفسير-السعدي-ط-دار-السلام/2275f0a671a249c7ac00dfd7c5fc9c05",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق عبد الرحمن بن معلا اللويحق؛ دار السلام",
+      "pages": 1150,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "تفسير كامل للقرآن؛ فهرسة الكتاب وبيانات الناشر والطبعة متاحة."
+    },
+    {
+      "id": "al-sadi-manhaj-al-salikin",
+      "title": "منهج السالكين وتوضيح الفقه في الدين",
+      "author": "الشيخ عبد الرحمن بن ناصر السعدي",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/منهج-السالكين-وتوضيح-الفقه-في-الدين-f861241b217542e18bdc13bf1c41215c",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق محمد بن عبد العزيز الخضيري؛ طبعة 1423هـ/2002م",
+      "pages": 287,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "مختصر فقهي في أبواب العبادات والمعاملات."
+    },
+    {
+      "id": "ibn-uthaymeen-sharh-wasitiyyah",
+      "title": "شرح العقيدة الواسطية لشيخ الإسلام ابن تيمية",
+      "author": "الشيخ محمد بن صالح العثيمين",
+      "category": "religious",
+      "sourceUrl": "https://www.waqfeya.net/books/شرح-العقيدة-الواسطية-لشيخ-الإسلام-ابن-تيمية-3f7e808dce3a4c3fac332b1b4b0864ea",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق سعد بن فواز الصميل؛ دار ابن الجوزي، 1421هـ/2001م",
+      "pages": 894,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "شرح عقدي لمتن الواسطية."
+    },
+    {
+      "id": "muhammad-ibn-abd-al-wahhab-kitab-al-tawhid",
+      "title": "كتاب التوحيد",
+      "author": "الشيخ محمد بن عبد الوهاب",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/كتاب-التوحيد/60ba2e1fc918401eac14641c960868cb",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق أبي مالك الرياشي؛ مكتبة عباد الرحمن ومكتبة العلوم والحكم، 1429هـ/2008م",
+      "pages": 168,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "متن عقدي في توحيد العبادة وأبواب الشرك."
+    },
+    {
+      "id": "ibn-taymiyyah-al-aqeedah-al-wasitiyyah",
+      "title": "العقيدة الواسطية",
+      "author": "شيخ الإسلام ابن تيمية",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/العقيدة-الواسطية-ط-أضواء-السلف/6cf31385cce64800aaf8c44c459e9d4c",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق أشرف بن عبد المقصود أبو محمد؛ أضواء السلف، 1420هـ/1999م",
+      "pages": 160,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "متن في أصول اعتقاد أهل السنة والجماعة."
+    },
+    {
+      "id": "ibn-uthaymeen-al-qawl-al-mufid",
+      "title": "القول المفيد على كتاب التوحيد",
+      "author": "الشيخ محمد بن صالح العثيمين",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/القول-المفيد-على-كتاب-التوحيد-f709394fd872481c9dc8901d2420f4bf",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق سليمان بن عبد الله أبا الخيل وخالد بن علي المشيقح؛ دار العاصمة، 1415هـ",
+      "pages": null,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "شرح عقدي لكتاب التوحيد؛ يلزم التحقق من عدد المجلدات والصفحات وحقوق الطبعة."
     }
   ]
 }
