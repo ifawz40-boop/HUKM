@@ -497,7 +497,7 @@ async function main() {
 
   const totalWords = generated.reduce((sum, book) => sum + book.wordCount, 0);
   const totalChapters = generated.reduce((sum, book) => sum + book.chapterCount, 0);
-  const totalBytes = generated.reduce((sum, book) => sum + Buffer.byteLength(JSON.stringify(book, null, 2) + '\\n', 'utf8'), 0);
+  const totalBytes = generated.reduce((sum, book) => sum + Buffer.byteLength(JSON.stringify(book, null, 2) + '\n', 'utf8'), 0);
   const notice = [
     '# HUKM static Arabic library — source and licensing notice',
     '',
