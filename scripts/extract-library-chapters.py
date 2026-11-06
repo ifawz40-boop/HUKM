@@ -120,6 +120,15 @@ def main() -> None:
             counts = sum(len(rows) for rows in rows_by_book.values())
             print(f"Matched {counts:,} selected sections across {len(rows_by_book)} books.", flush=True)
 
+        # Stop as soon as every selected book has its exact expected section count.
+        # This avoids scanning unrelated rows after the selected payload is complete.
+        if all(
+            len(rows_by_book.get(book_id, [])) == chapter_count
+            for book_id, chapter_count in expected.items()
+        ):
+            print("All selected book sections are complete; stopping the source scan.", flush=True)
+            break
+
     total_rows = 0
     ordered_rows: list[dict[str, Any]] = []
     for book_id in expected:
