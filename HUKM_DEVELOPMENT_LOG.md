@@ -8,7 +8,7 @@
 - PR #30 merge CI run #42238280875 passed on head `be1670acc299470f0cef7222ac2b9f030d4b14db`; post-merge main CI run #42238372655 passed on exact merge commit `1f5c98a918eb491db721270f14a6473dff50c39d` (tests, TypeScript and production build).
 - PR #28's curation-dialog focus restoration and background scroll lock are merged and verified; PR #29's checkpoint is merged and verified.
 - Public catalogue and PDF shelf remain empty; `approvedBookIds` remains empty.
-- 23 bibliographic candidates are recorded; none is approved. 24 legacy books remain preserved in the archive and quarantined.
+- 23 bibliographic candidates are recorded; none is approved. 24 rejected legacy book files have been deleted from the current repository tree; no archive/quarantine catalogue remains.
 - New candidate *مختصر منهاج القاصدين* is metadata-verified/content-review-pending; author identity is explicitly disambiguated from Muwaffaq al-Din Ibn Qudama; full-text review and digital rights remain unresolved.
 - Main-only Vercel Git deployment configuration remains `{"*": false, "main": true}`. Combined Vercel status on the latest main commit still reports `build-rate-limit`; no production deployment is confirmed.
 - Google AI Studio synchronization and effective Vercel project-level deployment settings remain unverified.
@@ -427,7 +427,7 @@
 - Public eligibility requires editorial approval, independent rights clearance, matching current snapshots, and the explicit Git `approvedBookIds` allowlist.
 - The RFC is an architecture proposal, not an owner-approved policy. No Firestore collection, write endpoint, API route, status-changing UI, or client write was enabled by PR #37.
 - PR #36 was closed without merging and superseded by PR #37; PR #37 is the rebased/revised version based on current main.
-- Candidate inventory remains 23, approved IDs remain zero, and 24 legacy books remain quarantined.
+- Candidate inventory remains 23 and approved IDs remain zero; all 24 rejected legacy full-text assets and archive indexes have been deleted from the current repository tree.
 - Main-only Vercel Git deployment policy remains `{"*": false, "main": true}`; Vercel status remains `build-rate-limit`. No production deployment is confirmed.
 - Next implementation stage: build an unmounted/inert server-side review repository/API with dependency injection, verified-owner middleware, transactional state/event writes, optimistic versions, idempotency and failure-injection tests. Do not mount or enable writes until Firestore deny rules and emulator-backed security tests are ready.
 
@@ -447,3 +447,26 @@
 - Manual accessibility checklist still has nine Not-run items. Vercel Git deployment policy remains `{"*": false, "main": true}`; Vercel status still reports `build-rate-limit`, so production deployment is not confirmed.
 - Next: implement RFC Stage 3 explicit deny rules and emulator-backed tests, and type-check the production Firebase Admin adapter without mounting the API.
 
+
+
+## Owner-directed legacy library deletion and sync safety — 2026-11-06
+
+- Work branch: `chore/remove-noncompliant-legacy-library-v5`, based on exact `main` HEAD `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92` (after merged PR #39 and checkpoint PR #41).
+- Reviewed `docs/library/CURRENT_LIBRARY_REVIEW_2026-11-06.md`: all 24 legacy entries had been excluded for failing the four approved sections or the owner's content standards. Two entries marked "temporarily excluded" were also outside the allowed categories and therefore do not qualify under the owner's clarified strict policy.
+- Deleted all 24 full-text JSON book assets, `archive/catalog.json`, `archive/pdfCatalog.json`, and `archive/NOTICE.md` (27 deleted files total). Removed the single archived PDF sample metadata entry as well. The current Git tree contains no `src/data/library/archive/` files or directory.
+- Updated `src/data/library/curation.json`: no approved IDs and no quarantine registry. Updated `src/data/library/NOTICE.md` and the review report to state that rejected content is deleted; the review report retains titles and reasons only as an audit record, not book content.
+- Added a permanent editorial-policy rule: once a book is confirmed non-compliant, remove its full text, scans, metadata record and any alternate/archive entry from the current project tree. An audit log may retain only title and reason.
+- Hardened the old dataset sync pipeline: `manifest.syncEnabled=false` and `editoriallyApprovedSourceIds=[]`; the script now fails closed unless sync is explicitly enabled and exact source IDs are allowlisted. The workflow can be manually dispatched only from a non-main development branch, never from `main`.
+- Added regression coverage requiring no archive path, no quarantine registry, empty public catalogue, disabled source sync and explicit source-ID allowlisting.
+- Candidate list remains 23 bibliographic records, all still pending full editorial review; none is approved or publicly visible. No candidate is declared compliant solely from its title/category.
+- Git history was not rewritten (no force-push); deleted files are absent from the current tree and future main snapshots, while historical commits remain immutable.
+- PR #42 CI run #42242233011 passed on exact final head `f5b64d7eead432d6370238e1f980433a5a66d7fd`: 318 passed, 0 failed, 1 skipped; TypeScript and production build passed. No deployment was requested or performed.
+
+
+## PR #42 final pre-merge review — 2026-11-06
+
+- Exact PR head: `f5b64d7eead432d6370238e1f980433a5a66d7fd`; base: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`; zero commits behind main.
+- CI run #42242233011 succeeded on the exact head: 319 tests total, 318 passed, 0 failed, 1 skipped; TypeScript check passed; production build passed.
+- Reviewed the 38-file diff: 27 deletions (24 full-text JSON files + 3 archive index/notice files), 11 modified files. The tree contains no archive paths and no public book JSON files (only `.gitkeep`); the API core from PR #39 and checkpoint PR #41 remain present.
+- Confirmed `vercel.json` is unchanged and retains `git.deploymentEnabled: {"*": false, "main": true}`; `firestore.rules` is unchanged. No secrets, user records, reading progress or production configuration are part of this PR.
+- PR #40 was closed unmerged as superseded. PR #42 is ready for squash merge after the final exact-head CI check; no deployment is requested.

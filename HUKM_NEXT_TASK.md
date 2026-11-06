@@ -3,10 +3,10 @@
 Last refreshed: 2026-11-06 — PR #39 review repository/API core merged
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-review-api-core-merged` (checkpoint PR pending)
-Verified application/data HEAD after PR #39: `e619ab711ea2682479c1789b4e720aa4512fd044`
+Current development branch: `chore/remove-noncompliant-legacy-library-v5` (PR #42 ready to merge)
+Verified application/data HEAD on main after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #39: `e619ab711ea2682479c1789b4e720aa4512fd044`.
+Latest main HEAD after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -43,13 +43,13 @@ At the start of every continuation, re-fetch the live `main` HEAD; later documen
 
 ## Public library state
 
-- 24 legacy books are preserved in the archive and quarantined from public display.
-- `src/data/library/curation.json` has zero approved IDs and 24 quarantined IDs.
+- All 24 rejected legacy full-text JSON files and archive indexes were deleted from the current repository tree; there is no archive or quarantine catalogue.
+- `src/data/library/curation.json` has zero approved IDs and no quarantine registry.
 - Public text catalogue and public PDF shelf remain empty.
 - `src/data/library/candidates.json` contains 23 bibliographic candidates; none is approved.
 - Allowed categories: `religious`, `self-development`, `travel`, `islamic-philosophy-critique`.
 - Full-text, introduction, footnote, author-methodology, edition and rights review remain mandatory before approval.
-- Legacy Hindawi synchronization remains manual-only.
+- Legacy dataset sync is disabled by default (`syncEnabled: false`); exact source IDs must be editorially approved in a reviewed PR, and manual workflow dispatch is blocked on `main`.
 
 ## Candidate review: فصل في تزكية النفس
 
@@ -121,3 +121,16 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Never weaken the deployment gate to make a build pass.
 - GitHub Actions success and Vercel status are separate; neither alone proves production is live.
 - Re-fetch `main`, branches, PRs and current file SHAs before every new write.
+
+
+## Owner-directed legacy library deletion — current working branch
+
+- Base main SHA: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92` (after PR #39 and PR #41).
+- Branch: `chore/remove-noncompliant-legacy-library-v5`; PR #42.
+- Removed 24 legacy book text JSON files, the archive catalogue, PDF archive catalogue and archive notice (27 deletions). The current branch tree has no `src/data/library/archive/` entries.
+- Cleared all quarantined IDs and removed the quarantine registry. Public catalogue remains empty; approved IDs remain zero.
+- The review report retains only titles/reasons for audit; no book content is retained there.
+- Disabled automatic corpus ingestion by default and added an explicit source-ID editorial allowlist guard. Workflow dispatch cannot run from `main`.
+- Added tests for deletion, no quarantine, and fail-closed sync behavior. Final CI head `320c1c92e9df0d6d9b9c4b30c08cd0450f9dc2b1` passed tests, TypeScript and production build; documentation correction requires a fresh CI run.
+- Git history remains immutable; no history rewrite or force-push was performed.
+- Next: merge only after fresh CI passes on the exact final PR head; then audit the 23 pending candidates against author methodology and complete text before deciding which remain candidates and which are deleted. Keep all unapproved books hidden.
