@@ -386,12 +386,26 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   // Progress state is local-first. Cloud writes are rate-limited to avoid a write on every scroll.
   const scrollDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restoredNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copiedShareTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredChapterRef = useRef<Record<string, boolean>>({});
   const trackedChapterViewsRef = useRef<Record<string, boolean>>({});
   const scrollProgressRef = useRef(0);
   const lastCloudSyncRef = useRef<Record<string, { percent: number; timestamp: number }>>({});
   const cloudSyncInFlightRef = useRef<Set<string>>(new Set());
   const onChapterViewedRef = useRef(onChapterViewed);
+
+  useEffect(() => () => {
+    if (restoredNoticeTimerRef.current) {
+      clearTimeout(restoredNoticeTimerRef.current);
+      restoredNoticeTimerRef.current = null;
+    }
+    if (copiedShareTimerRef.current) {
+      clearTimeout(copiedShareTimerRef.current);
+      copiedShareTimerRef.current = null;
+    }
+  }, []);
+
   useEffect(() => { onChapterViewedRef.current = onChapterViewed; }, [onChapterViewed]);
 
   const persistProgress = useCallback((progressPercent: number, forceCloudSync = false) => {
@@ -489,6 +503,11 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
 
   // Track chapter view and restore its last position without changing completion state.
   useEffect(() => {
+    if (restoredNoticeTimerRef.current) {
+      clearTimeout(restoredNoticeTimerRef.current);
+      restoredNoticeTimerRef.current = null;
+    }
+    setShowRestoredNotice(false);
     if (!currentChapter?.id) return;
 
     const chapterSessionKey = `${book.id}:${currentUser?.id || 'guest'}:${currentChapter.id}`;
@@ -513,7 +532,11 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
             const targetY = (totalScroll * savedPosition) / 100;
             window.scrollTo({ top: targetY, behavior: 'smooth' });
             setShowRestoredNotice(true);
-            setTimeout(() => setShowRestoredNotice(false), 3000);
+            if (restoredNoticeTimerRef.current) clearTimeout(restoredNoticeTimerRef.current);
+            restoredNoticeTimerRef.current = setTimeout(() => {
+              setShowRestoredNotice(false);
+              restoredNoticeTimerRef.current = null;
+            }, 3000);
           }
         });
         return () => { cancelled = true; };
@@ -851,7 +874,11 @@ export const BookReaderView: React.FC<BookReaderViewProps> = ({
       await navigator.clipboard.writeText(window.location.href);
       setCopiedShare(true);
       onShowToast?.('تم نسخ رابط القراءة بنجاح.');
-      setTimeout(() => setCopiedShare(false), 2000);
+      if (copiedShareTimerRef.current) clearTimeout(copiedShareTimerRef.current);
+      copiedShareTimerRef.current = setTimeout(() => {
+        setCopiedShare(false);
+        copiedShareTimerRef.current = null;
+      }, 2000);
     } catch {
       setCopiedShare(false);
       onShowToast?.('تعذر نسخ الرابط تلقائيًا. يمكنك نسخ عنوان الصفحة من شريط المتصفح.');
