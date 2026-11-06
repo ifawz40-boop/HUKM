@@ -24,6 +24,13 @@ function safeEmailUrl(value?: string | null): string {
   }
 }
 
+/** Use the actual host where an administrator creates the message; never assume a custom domain. */
+function getDefaultBaseUrl(): string {
+  return typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : '';
+}
+
 export function getHukmEmailHeader(): string {
   return `
     <!-- HUKM BRAND HEADER -->
@@ -99,8 +106,13 @@ export function getHukmEmailFooter(userEmail?: string): string {
 /**
  * Generate Welcome Email HTML for new signups
  */
-export function generateWelcomeEmailHtml(userName: string, userEmail: string): string {
+export function generateWelcomeEmailHtml(
+  userName: string,
+  userEmail: string,
+  baseUrl: string = getDefaultBaseUrl()
+): string {
   const safeName = escapeHtml(userName || 'قارئنا الكريم');
+  const safeBaseUrl = safeEmailUrl(baseUrl);
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -163,9 +175,7 @@ export function generateWelcomeEmailHtml(userName: string, userEmail: string): s
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
             <tr>
               <td align="center" style="border-radius: 14px; background: linear-gradient(135deg, #d4af37 0%, #c59b27 50%, #997314 100%); box-shadow: 0 8px 24px rgba(197, 155, 39, 0.35);">
-                <a href="https://hukm.media" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">
-                  📖 تصفح مكتبة حُكم الآن
-                </a>
+                ${safeBaseUrl ? `<a href="${safeBaseUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">📖 تصفح مكتبة حُكم الآن</a>` : '<span style="display: inline-block; padding: 14px 34px; font-family: Cairo, sans-serif; font-size: 14px; font-weight: 900; color: #070d1e;">📖 تصفح مكتبة حُكم الآن</span>'}
               </td>
             </tr>
           </table>
@@ -185,11 +195,14 @@ export function generateWelcomeEmailHtml(userName: string, userEmail: string): s
 export function generateNewReleaseEmailHtml(
   book: BookProject,
   chapter?: BookChapter,
-  subscriberName?: string
+  subscriberName?: string,
+  baseUrl: string = getDefaultBaseUrl()
 ): string {
   const safeName = escapeHtml(subscriberName || 'عزيزنا القارئ');
   const safeBookTitle = escapeHtml(book.title);
   const safeBookId = encodeURIComponent(book.id);
+  const safeSiteUrl = safeEmailUrl(baseUrl);
+  const safeBookUrl = safeSiteUrl ? `${safeSiteUrl}?book=${safeBookId}` : '';
   const safeCoverImage = safeEmailUrl(book.coverImage);
   const safeBookSubtitle = escapeHtml(book.subtitle || '');
   const safeBookSummary = escapeHtml(book.summary || '');
@@ -285,9 +298,7 @@ export function generateNewReleaseEmailHtml(
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 10px auto 10px auto;">
             <tr>
               <td align="center" style="border-radius: 14px; background: linear-gradient(135deg, #d4af37 0%, #c59b27 50%, #997314 100%); box-shadow: 0 8px 24px rgba(197, 155, 39, 0.35);">
-                <a href="https://hukm.media?book=${safeBookId}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">
-                  📖 بدء قراءة الإصدار الآن
-                </a>
+                ${safeBookUrl ? `<a href="${safeBookUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">📖 بدء قراءة الإصدار الآن</a>` : '<span style="display: inline-block; padding: 14px 34px; font-family: Cairo, sans-serif; font-size: 14px; font-weight: 900; color: #070d1e;">📖 بدء قراءة الإصدار الآن</span>'}
               </td>
             </tr>
           </table>
@@ -307,12 +318,13 @@ export function generateNewReleaseEmailHtml(
 export function generateCustomBroadcastEmailHtml(
   subject: string,
   bodyContent: string,
-  actionUrl: string = 'https://hukm.media',
-  actionLabel: string = 'زيارة منصة حُكم'
+  actionUrl: string = getDefaultBaseUrl(),
+  actionLabel: string = 'زيارة منصة حُكم',
+  baseUrl: string = getDefaultBaseUrl()
 ): string {
   const safeSubject = escapeHtml(subject);
   const safeBodyContent = escapeHtml(bodyContent);
-  const safeActionUrl = safeEmailUrl(actionUrl) || 'https://hukm.media';
+  const safeActionUrl = safeEmailUrl(actionUrl) || safeEmailUrl(baseUrl);
   const safeActionLabel = escapeHtml(actionLabel);
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -347,9 +359,7 @@ export function generateCustomBroadcastEmailHtml(
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 10px auto;">
             <tr>
               <td align="center" style="border-radius: 14px; background: linear-gradient(135deg, #d4af37 0%, #c59b27 50%, #997314 100%); box-shadow: 0 8px 24px rgba(197, 155, 39, 0.35);">
-                <a href="${safeActionUrl}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">
-                  ${safeActionLabel}
-                </a>
+                ${safeActionUrl ? `<a href="${safeActionUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 34px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900; color: #070d1e; text-decoration: none; border-radius: 14px;">${safeActionLabel}</a>` : `<span style="display: inline-block; padding: 14px 34px; font-family: Cairo, sans-serif; font-size: 14px; font-weight: 900; color: #070d1e;">${safeActionLabel}</span>`}
               </td>
             </tr>
           </table>
