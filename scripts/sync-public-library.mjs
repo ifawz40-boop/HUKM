@@ -1,9 +1,13 @@
 #!/usr/bin/env node
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const execFileAsync = promisify(execFile);
 const MANIFEST_PATH = path.join(ROOT, 'src/data/library/manifest.json');
 const OUTPUT_DIR = path.join(ROOT, 'src/data/library/books');
 const CATALOG_PATH = path.join(ROOT, 'src/data/library/catalog.json');
@@ -14,7 +18,6 @@ const USER_AGENT = 'HUKM-MEDIA-Static-Library/2.1 (rights-screened Arabic books;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const countWords = (value) => (value.match(/[\p{L}\p{N}][\p{L}\p{M}\p{N}]*/gu) || []).length;
 const safeText = (value) => typeof value === 'string' ? value.trim() : '';
-const sqlString = (value) => "'" + value.replace(/'/g, "''") + "'";
 const revisionUrl = (revision) => `https://huggingface.co/datasets/${DATASET}/tree/${revision}`;
 const licenseUrl = 'https://creativecommons.org/licenses/by/4.0/';
 const MAX_ATTEMPTS = 5;
@@ -120,32 +123,71 @@ async function fetchAllMetadata() {
   return all;
 }
 
-async function fetchChapters(bookId) {
-  const all = [];
-  let total = null;
-  for (let offset = 0; total === null || offset < total; offset += 100) {
-    if (offset > 0) await sleep(1100);
-    const payload = await requestJson('filter', {
-      dataset: DATASET,
-      config: 'chapters',
-      split: 'train',
-      where: '"book_id"=' + sqlString(bookId),
-      offset: String(offset),
-      length: '100',
-    }, `chapters for ${bookId} at ${offset}`);
-    const pageTotal = Number(payload.num_rows_total || 0);
-    if (total === null) total = pageTotal;
-    else if (pageTotal !== total) throw new Error(`Chapter row count changed during pagination for ${bookId}.`);
-    all.push(...(payload.rows || []).map((item) => item.row).filter(Boolean));
+async function extractSelectedChapters(selected, manifest) {
+  const tempDirectory = await mkdtemp(path.join(tmpdir(), 'hukm-library-extract-'));
+  const selectedPath = path.join(tempDirectory, 'selected-books.json');
+  const outputPath = path.join(tempDirectory, 'selected-chapters.jsonl');
+
+  try {
+    const expected = new Map(selected.map((metadata) => [
+      metadata.book_id,
+      Number(metadata.n_chapters || 0),
+    ]));
+    if (expected.size !== selected.length || [...expected.values()].some((count) => !Number.isSafeInteger(count) || count < 1)) {
+      throw new Error('Selected book metadata contains duplicate IDs or invalid chapter counts.');
+    }
+
+    const selection = {
+      datasetRevision: manifest.datasetRevision,
+      selected: selected.map((metadata) => ({
+        book_id: metadata.book_id,
+        n_chapters: Number(metadata.n_chapters),
+        attribution: safeText(metadata.attribution),
+        license_quote: safeText(metadata.license_quote),
+      })),
+    };
+    await writeFile(selectedPath, JSON.stringify(selection), 'utf8');
+
+    const pythonExecutable = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+    const extractorPath = path.join(ROOT, 'scripts/extract-library-chapters.py');
+    console.log(`Extracting ${selected.length} selected books from the pinned Parquet stream; no per-book Dataset Viewer requests.`);
+    const { stdout, stderr } = await execFileAsync(
+      pythonExecutable,
+      [extractorPath, selectedPath, outputPath],
+      { cwd: ROOT, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
+    );
+    if (stdout) process.stdout.write(stdout);
+    if (stderr) process.stderr.write(stderr);
+
+    const lines = (await readFile(outputPath, 'utf8')).split(/\\r?\\n/).filter(Boolean);
+    if (lines.length === 0) throw new Error('The pinned streaming extractor returned no chapter rows.');
+
+    const rowsByBook = new Map();
+    for (const line of lines) {
+      const row = JSON.parse(line);
+      const bookId = safeText(row.book_id);
+      if (!expected.has(bookId)) throw new Error(`The streaming extractor returned an unselected book: ${bookId || '(empty ID)'}.`);
+      if (!rowsByBook.has(bookId)) rowsByBook.set(bookId, []);
+      rowsByBook.get(bookId).push(row);
+    }
+
+    for (const [bookId, expectedCount] of expected) {
+      const rows = rowsByBook.get(bookId) || [];
+      if (rows.length !== expectedCount) {
+        throw new Error(`${bookId}: expected ${expectedCount} complete source sections, received ${rows.length}.`);
+      }
+      rows.sort((a, b) => Number(a.chapter_index) - Number(b.chapter_index));
+      const indices = rows.map((row) => Number(row.chapter_index));
+      if (indices.some((index, position) => !Number.isSafeInteger(index) || index !== position + 1)) {
+        throw new Error(`${bookId}: chapter indexes are not unique and contiguous from 1 through ${expectedCount}.`);
+      }
+      rowsByBook.set(bookId, rows);
+    }
+
+    return rowsByBook;
+  } finally {
+    await rm(tempDirectory, { recursive: true, force: true });
   }
-  if (total === null || all.length !== total) {
-    throw new Error(`Chapter row count mismatch for ${bookId}: expected ${total}, received ${all.length}.`);
-  }
-  const indices = all.map((row) => Number(row.chapter_index));
-  if (indices.some((index) => !Number.isSafeInteger(index)) || new Set(indices).size !== indices.length) {
-    throw new Error(`Chapter indices are missing or duplicated for ${bookId}.`);
-  }
-  return all.sort((a, b) => Number(a.chapter_index) - Number(b.chapter_index));
 }
 
 function isTranslationExplicitlyLicensed(row) {
@@ -473,14 +515,14 @@ async function main() {
   console.log(`Loading ${DATASET} metadata; rights paths: explicit CC BY 4.0 Arabic translation + public-domain original, or conservative life+70 screen for public-domain original.`);
   const metadataRows = await fetchAllMetadata();
   const selected = selectBooks(metadataRows, manifest);
-  console.log(`Selected ${selected.length} books / target ${manifest.targetBooks}; fetching complete chapters with bounded retries.`);
+  console.log(`Selected ${selected.length} books / target ${manifest.targetBooks}; extracting complete chapters through the pinned Parquet stream.`);
+  const chaptersByBook = await extractSelectedChapters(selected, manifest);
 
   const generated = [];
   const rejected = [];
   for (const metadata of selected) {
-    await sleep(1100);
     try {
-      const sourceChapters = await fetchChapters(metadata.book_id);
+      const sourceChapters = chaptersByBook.get(metadata.book_id) || [];
       if (sourceChapters.length !== Number(metadata.n_chapters || 0)) {
         throw new Error(`expected exactly ${metadata.n_chapters} source sections, received ${sourceChapters.length}`);
       }
