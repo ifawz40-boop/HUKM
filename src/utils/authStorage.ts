@@ -1,6 +1,7 @@
 import { UserProfile, AppNotification, HukmSubscriber, HukmEmailLog } from '../types/auth';
 
-const STORAGE_KEY_NOTIFICATIONS = 'hukm_notifications_v1';
+const STORAGE_KEY_NOTIFICATIONS = 'hukm_notifications_v2';
+const LEGACY_STORAGE_KEY_NOTIFICATIONS = 'hukm_notifications_v1';
 const STORAGE_KEY_SUBSCRIBERS = 'hukm_subscribers_v1';
 const STORAGE_KEY_EMAIL_LOGS = 'hukm_email_logs_v1';
 export const LEGACY_STORAGE_KEY_BOOKMARKS = 'hukm_bookmarks_v1';
@@ -135,33 +136,33 @@ export function toggleGuestBookmark(bookId: string): string[] {
 }
 
 /**
- * In-app dynamic notifications
+ * Notification read-state is device-local and partitioned by account.
+ * The public announcement content itself is fetched from Firestore.
  */
-export function getStoredNotifications(): AppNotification[] {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS);
-      if (raw) return JSON.parse(raw);
-    }
-  } catch {}
-  return [
-    {
-      id: 'notif-welcome',
-      title: 'أهلاً بك في منصة حُكم المعرفية 🏛️',
-      message: 'نبحث، نفكك، ونفهم. تابع أحدث التحقيقات الموثقة وشارك في نشر الوعي.',
-      type: 'announcement',
-      timestamp: 'الآن',
-      read: false,
-      targetRole: 'all',
-    },
-  ];
+export function getNotificationStorageKey(userId?: string): string {
+  const partition = userId ? encodeURIComponent(userId) : 'guest';
+  return `${STORAGE_KEY_NOTIFICATIONS}:${partition}`;
 }
 
-export function saveStoredNotifications(notifications: AppNotification[]): void {
+export function getStoredNotifications(userId?: string): AppNotification[] {
   try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_NOTIFICATIONS, JSON.stringify(notifications));
-    }
+    if (typeof localStorage === 'undefined') return [];
+    // The old key contained browser-only pseudo-broadcasts; it was never a shared source.
+    // Remove it instead of leaking one account's read state into another.
+    localStorage.removeItem(LEGACY_STORAGE_KEY_NOTIFICATIONS);
+    const raw = localStorage.getItem(getNotificationStorageKey(userId));
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed as AppNotification[] : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveStoredNotifications(notifications: AppNotification[], userId?: string): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(getNotificationStorageKey(userId), JSON.stringify(notifications));
   } catch {}
 }
 
