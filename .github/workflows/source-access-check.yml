@@ -63,3 +63,57 @@ jobs:
           echo "SHA256=$actual"
           test "$actual" = "$expected"
           stat -c 'FILE_BYTES=%s' /tmp/hukm-arrow-00000.arrow
+
+      - name: Inspect the pinned Arrow corpus schema and candidate book metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://huggingface.co/datasets/mohres/The_Arabic_E-Book_Corpus/resolve/2d5c131050b7572a345ebf740caee24739f7a09e/data-00001-of-00002.arrow'
+          curl --fail --location --show-error --silent \
+            --retry 3 --retry-all-errors --connect-timeout 30 --max-time 900 \
+            --output /tmp/hukm-arrow-00001.arrow \
+            --write-out 'HTTP=%{http_code}\nBYTES=%{size_download}\n' \
+            "$url"
+          actual="$(sha256sum /tmp/hukm-arrow-00001.arrow | awk '{print $1}')"
+          expected='48643253c0cffe6d2a2815922eeac7f63677100efccb074ab52ad5c06055727f'
+          echo "SHA256=$actual"
+          test "$actual" = "$expected"
+          python -m pip install --quiet pyarrow
+          python - <<'PY'
+          import pyarrow.ipc as ipc
+          from collections import Counter
+          import os
+
+          rows = []
+          for name in ('/tmp/hukm-arrow-00000.arrow', '/tmp/hukm-arrow-00001.arrow'):
+              reader = ipc.open_file(name)
+              print('SCHEMA', name, reader.schema)
+              table = reader.read_all()
+              print('ROWS', name, table.num_rows)
+              rows.extend(table.select([
+                  'booknr', 'category', 'title', 'author', 'wc',
+                  'origpubdate', 'translation', 'category.main', 'text'
+              ]).to_pylist())
+
+          print('TOTAL_ROWS', len(rows))
+          print('CATEGORY_COUNTS', Counter(
+              category.strip()
+              for row in rows
+              for category in str(row.get('category') or '').split(',')
+              if category.strip()
+          ).most_common(25))
+          print('SAMPLE', [
+              {
+                  'booknr': row.get('booknr'),
+                  'title': row.get('title'),
+                  'author': row.get('author'),
+                  'category': row.get('category'),
+                  'wc': row.get('wc'),
+                  'translation': row.get('translation'),
+                  'text_chars': len(row.get('text') or ''),
+              }
+              for row in rows[:3]
+          ])
+          assert len(rows) == 1745, f'Expected 1745 source books, got {len(rows)}'
+          assert all(row.get('text') for row in rows), 'At least one source book has no full text'
+          PY
