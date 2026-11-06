@@ -3,7 +3,7 @@
 Last refreshed: 2026-11-06 — PR #39 review repository/API core merged
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current development branch: `chore/remove-noncompliant-legacy-library-v5` (PR #42 pending)
+Current development branch: `chore/remove-noncompliant-legacy-library-v5` (PR #42 ready to merge)
 Verified application/data HEAD on main after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
 Latest main HEAD after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`.
