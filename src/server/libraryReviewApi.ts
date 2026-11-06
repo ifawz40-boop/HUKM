@@ -203,7 +203,7 @@ export function createLibraryReviewRouter(dependencies: LibraryReviewRouterDepen
   router.get('/:candidateId', async (req, res, next) => {
     try {
       const candidate = dependencies.resolveCandidate(req.params.candidateId);
-      if (!candidate) {
+      if (!candidate || candidate.id !== req.params.candidateId) {
         return res.status(404).json({ success: false, code: 'CANDIDATE_NOT_FOUND', message: 'الكتاب المرشح غير موجود في قائمة المراجعة الحالية.' });
       }
       const history = await dependencies.repository.getCandidateHistory(candidate.id);
