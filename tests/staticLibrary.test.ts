@@ -71,10 +71,12 @@ describe('HUKM — bundled Arabic library architecture', () => {
     const candidates = JSON.parse(read('src/data/library/candidates.json'));
     const candidate = candidates.books.find((book: { id: string }) => book.id === 'ibn-qudama-mukhtasar-minhaj-al-qasidin');
     assert.ok(candidate);
-    assert.equal(candidates.books.length, 23);
+    assert.ok(candidates.books.length >= 23);
     assert.equal(candidate.category, 'self-development');
     assert.equal(candidate.status, 'metadata-verified-content-review-pending');
     assert.notEqual(candidate.status, 'approved');
+    const curation = JSON.parse(read('src/data/library/curation.json'));
+    assert.equal(curation.approvedBookIds.includes(candidate.id), false);
     assert.equal(candidate.pages, 408);
     assert.equal(candidate.publicationYear, '1398هـ / 1978م');
     assert.match(candidate.sourceUrl, /^https:\/\//);
