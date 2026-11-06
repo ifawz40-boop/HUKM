@@ -1,0 +1,38 @@
+{
+  "policyVersion": "1.0.0",
+  "lastReviewed": "2026-11-06",
+  "approvedBookIds": [],
+  "quarantinedBookIds": [
+    "hindawi-49195362",
+    "hindawi-35759391",
+    "hindawi-31717369",
+    "hindawi-59250728",
+    "hindawi-26183813",
+    "hindawi-86864915",
+    "hindawi-72597415",
+    "hindawi-58627085",
+    "hindawi-15197275",
+    "hindawi-93029537",
+    "hindawi-48270516",
+    "hindawi-93717253",
+    "hindawi-16093946",
+    "hindawi-31609295",
+    "hindawi-36319075",
+    "hindawi-35083053",
+    "hindawi-30272530",
+    "hindawi-57316482",
+    "hindawi-26848631",
+    "hindawi-42409306",
+    "hindawi-80383953",
+    "hindawi-95280646",
+    "hindawi-52646842",
+    "hindawi-28471509"
+  ],
+  "allowedCategories": [
+    "religious",
+    "self-development",
+    "travel",
+    "islamic-philosophy-critique"
+  ],
+  "note": "No book is public until its author, method, full text and category pass editorial review. Legacy books are retained under archive/."
+}

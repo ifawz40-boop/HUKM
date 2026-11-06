@@ -53,6 +53,7 @@ try {
     stop(`Catalogue/file count mismatch: ${catalog.length} catalogue entries and ${files.length} full-text files.`);
   }
 
+  const allowedCategories = new Set(manifest.allowedCategories || []);
   const fileSet = new Set(files);
   const ids = new Set();
   let totalWords = 0;
@@ -69,6 +70,9 @@ try {
     const book = JSON.parse(fs.readFileSync(path.join(booksDir, filename), 'utf8'));
     if (book.id !== entry.id || !book.title || !book.author || book.status !== 'completed') {
       stop(`Book ${entry.id} has incomplete or mismatched identity metadata.`);
+    }
+    if (!allowedCategories.has(book.category)) {
+      stop('Book ' + entry.id + ' uses category "' + book.category + '" outside HUKM approved editorial policy.');
     }
     if (
       entry.title !== book.title ||

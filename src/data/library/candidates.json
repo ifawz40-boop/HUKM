@@ -1,0 +1,150 @@
+{
+  "updatedAt": "2026-11-06",
+  "policyVersion": "1.0.0",
+  "sourceRepository": "https://www.waqfeya.net",
+  "books": [
+    {
+      "id": "ibn-taymiyyah-tazkiyat-al-nafs",
+      "title": "فصل في تزكية النفس",
+      "author": "شيخ الإسلام ابن تيمية",
+      "category": "self-development",
+      "sourceUrl": "https://waqfeya.net/books/فصل-في-تزكية-النفس-9dcd94a01753468f91df41e6cdfe242f",
+      "edition": "تحقيق فواز محمد العوضي",
+      "pages": 68,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "رسالة في تزكية النفس وترك المحرمات وفعل المأمورات."
+    },
+    {
+      "id": "ibn-al-qayyim-al-da-wal-dawa",
+      "title": "الداء والدواء (الجواب الكافي)",
+      "author": "الإمام ابن قيم الجوزية",
+      "category": "self-development",
+      "sourceUrl": "https://waqfeya.net/books/الداء-والدواء-الجواب-الكافي-لمن-سأل-عن-الدواء-الشافي-ط-مجمع-الفقه-2a455b1814cf4637b278817367706d7d",
+      "edition": "تحقيق محمد أجمل الإصلاحي؛ تخريج زائد بن أحمد النشيري",
+      "pages": 752,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "يتناول أمراض القلب والدعاء والتوبة وأسباب المعصية."
+    },
+    {
+      "id": "ibn-al-qayyim-al-wabil-al-sayyib",
+      "title": "الوابل الصيب ورافع الكلم الطيب",
+      "author": "الإمام ابن قيم الجوزية",
+      "category": "religious",
+      "sourceUrl": "https://www.waqfeya.net/books/الوابل-الصيب-ورافع-الكلم-الطيب-ط-مجمع-الفقه-e13cba5e53ee489990eb5dfd3199e75e",
+      "edition": "تحقيق عبد الرحمن بن حسن بن قائد",
+      "pages": 603,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "كتاب في الذكر وآثاره وأحوال القلب."
+    },
+    {
+      "id": "ibn-al-qayyim-iddat-al-sabirin",
+      "title": "عدة الصابرين وذخيرة الشاكرين",
+      "author": "الإمام ابن قيم الجوزية",
+      "category": "self-development",
+      "sourceUrl": "https://waqfeya.net/books/عدة-الصابرين-وذخيرة-الشاكرين-ط-مجمع-الفقه/f4a08b69b38b422d8796b8b19de1a5fc",
+      "edition": "تحقيق إسماعيل بن غازي مرحبا",
+      "pages": 748,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "موضوعه الصبر والشكر ومجاهدة الهوى وأسباب الثبات."
+    },
+    {
+      "id": "ibn-al-qayyim-ighathat-al-lahfan",
+      "title": "إغاثة اللهفان في مصايد الشيطان",
+      "author": "الإمام ابن قيم الجوزية",
+      "category": "self-development",
+      "sourceUrl": "https://www.waqfeya.net/books/إغاثة-اللهفان-في-مصايد-الشيطان-ط-مجمع-الفقه-8901d21154144c90a499a8ddc73e0a7b",
+      "edition": "تحقيق محمد عزير شمس ومصطفى بن سعيد إيتيم",
+      "pages": 1461,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "يعالج أمراض القلوب ومداخل الشيطان والشهوات."
+    },
+    {
+      "id": "ibn-rajab-jami-al-ulum-wal-hikam",
+      "title": "جامع العلوم والحكم",
+      "author": "الحافظ ابن رجب الحنبلي",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/جامع-العلوم-والحكم-في-شرح-خمسين-حديثا-من-جوامع-الكلم-ت-الأرناؤوط-f654f5b1738841d6bf395900e0af5319",
+      "edition": "تحقيق شعيب الأرناؤوط وإبراهيم باجس",
+      "pages": 572,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "شرح حديثي تربوي لأحاديث جامعة."
+    },
+    {
+      "id": "bakr-abu-zayd-hilyat-talib-al-ilm",
+      "title": "حلية طالب العلم",
+      "author": "الشيخ بكر بن عبد الله أبو زيد",
+      "category": "self-development",
+      "sourceUrl": "https://waqfeya.net/books/حلية-طالب-العلم-ط-الرسالة-b666578871814eac8ac63d34c276ce8d",
+      "edition": "مؤسسة الرسالة",
+      "pages": 94,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "آداب طالب العلم وطلبه وتلقيه وعلاقته بشيخه وزملائه."
+    },
+    {
+      "id": "ibn-al-qayyim-zad-al-maad",
+      "title": "زاد المعاد في هدي خير العباد",
+      "author": "الإمام ابن قيم الجوزية",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/زاد-المعاد-في-هدي-خير-العباد-ت-الأرناؤوط-885c3fa87cf84901a92a4fecf9b45764",
+      "edition": "تحقيق شعيب الأرناؤوط وعبد القادر الأرناؤوط",
+      "pages": 1120,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "السيرة النبوية والهدي والفقه والعبادات."
+    },
+    {
+      "id": "ibn-taymiyyah-al-radd-ala-al-mantiqiyyin",
+      "title": "الرد على المنطقيين",
+      "author": "شيخ الإسلام ابن تيمية",
+      "category": "islamic-philosophy-critique",
+      "sourceUrl": "https://waqfeya.net/books/الرد-على-المنطقيين-نصيحة-أهل-الإيمان-في-الرد-على-منطق-اليونان-ط-الريان-bebe4340297e481faa44c3d6fded1c60",
+      "edition": "تحقيق عبد الصمد شرف الدين الكتبي",
+      "pages": 588,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "نقد مباشر للمنطق اليوناني من منظور ابن تيمية."
+    },
+    {
+      "id": "ibn-taymiyyah-al-intisar-li-ahl-al-athar",
+      "title": "الانتصار لأهل الأثر المطبوع باسم نقض المنطق",
+      "author": "شيخ الإسلام ابن تيمية",
+      "category": "islamic-philosophy-critique",
+      "sourceUrl": "https://www.waqfeya.net/books/الانتصار-لأهل-الأثر-المطبوع-باسم-نقض-المنطق-ط-مجمع-الفقه-e09149409de448cc8324ee5c59a89fe2",
+      "edition": "تحقيق عبد الرحمن بن حسان قائد",
+      "pages": 463,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "يتناول موقف أهل الأثر من المنطق وعلوم الكلام."
+    },
+    {
+      "id": "ibn-taymiyyah-bughiyat-al-murtad",
+      "title": "بغية المرتاد في الرد على المتفلسفة والقرامطة والباطنية",
+      "author": "شيخ الإسلام ابن تيمية",
+      "category": "islamic-philosophy-critique",
+      "sourceUrl": "https://waqfeya.net/books/بغية-المرتاد-في-الرد-على-المتفلسفة-والقرامطة-والباطنية-أهل-الإلحاد-من-القائلين-بالحلول-والاتحاد-السبعينية/d71f0155fa1d450d9517fd7f18a913f8",
+      "edition": "تحقيق موسى بن سليمان الدويش",
+      "pages": 615,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "رد عقدي وفلسفي على المتفلسفة والباطنية."
+    },
+    {
+      "id": "ibn-jubayr-rihla",
+      "title": "رحلة ابن جبير",
+      "author": "أبو الحسين ابن جبير الأندلسي",
+      "category": "travel",
+      "sourceUrl": "https://waqfeya.net/books/رحلة-ابن-جبير-4ab4740e475f4c4fa02b80c71d15da02",
+      "edition": "تحقيق حسين نصار",
+      "pages": 378,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "رحلة عالم أندلسي تصف البلدان والطرق والمجتمعات؛ مراجعة الممارسات الدينية قبل الاعتماد."
+    },
+    {
+      "id": "ibrahim-rifaat-mirat-al-haramayn",
+      "title": "مرآة الحرمين أو الرحلات الحجازية والحج ومشاعره الدينية",
+      "author": "إبراهيم رفعت",
+      "category": "travel",
+      "sourceUrl": "https://waqfeya.net/books/مرآة-الحرمين-أو-الرحلات-الحجازية-والحج-ومشاعره-الدينية-617e857dbf4a452c8742d83c8982e4e2",
+      "edition": "دار الكتب المصرية، 1344هـ/1925م",
+      "pages": 1133,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "رحلة حجازية توثق الحج والمشاعر والمدن والجغرافيا؛ فحص النص الكامل قبل الاعتماد."
+    }
+  ]
+}

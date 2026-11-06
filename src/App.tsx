@@ -703,14 +703,14 @@ export default function App() {
                 <div className="text-right">
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl sm:text-2xl font-black text-white font-cairo">
-                      مكتبة حُكم للتراث العربي
+                      مكتبة حُكم المنتقاة
                     </h2>
                     <span className="rounded-md bg-[#c59b27]/20 px-2 py-0.5 text-xs font-bold text-[#f0cb69] border border-[#c59b27]/30">
                       {displayedBooks.length} مؤلفات
                     </span>
                   </div>
                   <p className="text-xs text-[#94a3b8] mt-0.5">
-                    نصوص عربية تراثية كاملة مضمّنة في ملفات الموقع، مع بيانات المصدر والترخيص لكل كتاب
+                    كتب منتقاة ضمن أربعة مسارات: العلم الشرعي، تزكية النفس، الرحلات، ونقد الفلسفة إسلاميًا
                   </p>
                 </div>
 
@@ -780,13 +780,10 @@ export default function App() {
               {displayedBooks.length === 0 ? (
                 <div className="rounded-3xl border border-[#c59b27]/30 bg-gradient-to-b from-[#0a142c] to-[#050a16] p-8 sm:p-12 text-center space-y-4 shadow-2xl" dir="rtl">
                   <BookOpen className="mx-auto h-12 w-12 text-[#d4af37]" />
-                  <h3 className="text-xl font-black text-white">لم تُحمّل ملفات الكتب بعد</h3>
+                  <h3 className="text-xl font-black text-white">المكتبة قيد إعادة الانتقاء</h3>
                   <p className="mx-auto max-w-xl text-sm leading-7 text-[#94a3b8]">
-                    المكتبة تعتمد على ملفات نصية ثابتة داخل المشروع. عند اكتمال مزامنة النصوص الموثقة ستظهر الكتب هنا، دون قراءة محتوى الكتب من Firebase.
+                    أُخرجت المجموعة القديمة من العرض العام، وتُراجع الآن الكتب واحدًا واحدًا وفق سياسة حُكم الجديدة. لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا.
                   </p>
-                  <a href="https://huggingface.co/datasets/Bayanat-Labs/arabic-wikisource-pd" target="_blank" rel="noreferrer" className="text-xs font-bold text-[#f0cb69] underline underline-offset-4">
-                    مصدر مجموعة النصوص وتفاصيل الترخيص
-                  </a>
                 </div>
               ) : libraryDisplayMode === 'shelf' ? (
                 <BookSpineShelf
@@ -812,7 +809,7 @@ export default function App() {
                 </div>
               )}
 
-              <section className="space-y-4 border-t border-white/5 pt-6" aria-labelledby="pdf-library-heading" dir="rtl">
+              {PDF_LIBRARY_ITEMS.length > 0 && <section className="space-y-4 border-t border-white/5 pt-6" aria-labelledby="pdf-library-heading" dir="rtl">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-[10px] font-bold tracking-widest text-[#d4af37]">قارئ الملفات المصورة</p>
@@ -842,7 +839,7 @@ export default function App() {
                     </article>
                   ))}
                 </div>
-              </section>
+              </section>}
             </div>
 
           </main>

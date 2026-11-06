@@ -1,11 +1,7 @@
 {
-  "dataset": "Bayanat-Labs/open-arabic-books",
-  "metadataConfig": "metadata",
-  "chaptersConfig": "chapters",
-  "split": "train",
-  "version": "0.1.0",
-  "datasetRevision": "39876c0e7f28c2d16887c7c139800e0df9f87263",
-  "snapshotDate": "2026-11-04",
+  "dataset": "HUKM-curated-library",
+  "version": "1.0.0",
+  "snapshotDate": "2026-11-06",
   "targetBooks": 24,
   "minimumBooks": 15,
   "minimumWords": 8000,
@@ -14,63 +10,30 @@
   "maximumTotalWords": 1500000,
   "categories": [
     {
-      "id": "history",
-      "quota": 3
+      "id": "religious",
+      "quota": 10
     },
     {
-      "id": "literature",
-      "quota": 3
+      "id": "self-development",
+      "quota": 6
     },
     {
-      "id": "novels",
-      "quota": 3
+      "id": "travel",
+      "quota": 4
     },
     {
-      "id": "detective.fiction",
-      "quota": 2
-    },
-    {
-      "id": "biographies",
-      "quota": 2
-    },
-    {
-      "id": "children.stories",
-      "quota": 2
-    },
-    {
-      "id": "science",
-      "quota": 2
-    },
-    {
-      "id": "philosophy",
-      "quota": 2
-    },
-    {
-      "id": "religions",
-      "quota": 3
-    },
-    {
-      "id": "social.sciences",
-      "quota": 2
+      "id": "islamic-philosophy-critique",
+      "quota": 4
     }
   ],
-  "fallbackCategories": [
-    "travel.literature",
-    "science.fiction",
-    "politics",
-    "psychology",
-    "economics",
-    "linguistics",
-    "technology",
-    "arts",
-    "poetry",
-    "plays",
-    "geography",
-    "environmental.sciences",
-    "health",
-    "business",
-    "literary.criticism",
-    "other"
+  "allowedCategories": [
+    "religious",
+    "self-development",
+    "travel",
+    "islamic-philosophy-critique"
   ],
-  "targetWordsPerBook": 50000
+  "fallbackCategories": [],
+  "targetWordsPerBook": 50000,
+  "editorialPolicy": "docs/library/EDITORIAL_POLICY.md",
+  "curationFile": "src/data/library/curation.json"
 }
