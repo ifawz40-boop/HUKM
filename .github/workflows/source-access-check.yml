@@ -136,7 +136,7 @@ jobs:
           targets = [
               'history', 'literature', 'novels', 'detective.fiction',
               'biographies', 'philosophy', 'science', 'poetry',
-              'children.stories', 'politics', 'plays', 'travel.literature',
+              'children.stories', 'politics', 'plays', 'travel.literature', 'science.fiction',
               'psychology', 'social.sciences', 'arts', 'linguistics'
           ]
           for category in targets:
