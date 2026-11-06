@@ -1,24 +1,18 @@
 # HUKM MEDIA — Development Log
 
-## Current verified checkpoint — supersedes all earlier library counts below
+## Current verified checkpoint — 2026-11-06
 
-- Date: 2026-11-06
-- Repository: ifawz40-boop/HUKM
-- Latest feature merge: PR #14 — Islamic editorial curation, merge commit 175356b3632f1f054c6280e5c986761cf2d07059.
-- Latest library code/data checkpoint (candidate metadata): 4ae7b4ad6aba58a658f82c2cdcb7c576377bbd36. Subsequent main commits are documentation-only checkpoints.
-- Main CI run #42219582761 passed 286 tests (1 skipped), TypeScript and production build on the PR #14 merge commit.
-- Main CI run #42219696273 passed 286 tests (1 skipped), TypeScript and production build on the workflow-guard HEAD.
-- Legacy automatic Hindawi sync run #42219582591 failed safely at dataset revision preflight (manifest.datasetRevision is intentionally absent); it did not reach the commit step and did not repopulate the catalogue.
-- Sync workflow is now manual-only; push events skip the legacy sync job.
-- Vercel check on the latest main HEAD reports FAILURE: build-rate-limit (free-plan deployment quota). No new production deployment is confirmed. Google AI Studio sync remains unverified.
-- 24 legacy text books moved intact to src/data/library/archive/books/; their old catalogue and notice are preserved under archive/.
-- Public text catalogue is intentionally empty. curation.json has 0 approved IDs and 24 quarantined IDs.
-- Public PDF shelf is empty; the old linguistic scan fixture metadata is preserved in archive/pdfCatalog.json.
-- Four public categories are enforced: religious, self-development, travel, islamic-philosophy-critique.
-- Deployment gate permits only an explicitly empty curation state or a complete 15+ book collection passing editorial, integrity and rights checks.
-- 22 sourced Waqfeya candidates are recorded in src/data/library/candidates.json. All remain metadata-verified/content-review-pending; none is approved.
-- PR #14 CI run #42219445177 passed 286 tests (1 skipped), TypeScript and production build before merge.
-- Latest docs/candidate metadata CI run #42220339226 was pending at the time of this checkpoint; the last code-changing main run #42219696273 passed. No code changed in the later candidate and documentation commits.
+- Repository: `ifawz40-boop/HUKM`; default and Google AI Studio-linked branch: `main`.
+- Verified live `main` HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`.
+- PR #30 added the 23rd bibliographic candidate, *مختصر منهاج القاصدين*, with a source-review report and a regression test ensuring it remains outside the public allowlist.
+- PR #30 merge CI run #42238280875 passed on head `be1670acc299470f0cef7222ac2b9f030d4b14db`; post-merge main CI run #42238372655 passed on exact merge commit `1f5c98a918eb491db721270f14a6473dff50c39d` (tests, TypeScript and production build).
+- PR #28's curation-dialog focus restoration and background scroll lock are merged and verified; PR #29's checkpoint is merged and verified.
+- Public catalogue and PDF shelf remain empty; `approvedBookIds` remains empty.
+- 23 bibliographic candidates are recorded; none is approved. 24 legacy books remain preserved in the archive and quarantined.
+- New candidate *مختصر منهاج القاصدين* is metadata-verified/content-review-pending; author identity is explicitly disambiguated from Muwaffaq al-Din Ibn Qudama; full-text review and digital rights remain unresolved.
+- Main-only Vercel Git deployment configuration remains `{"*": false, "main": true}`. Combined Vercel status on the latest main commit still reports `build-rate-limit`; no production deployment is confirmed.
+- Google AI Studio synchronization and effective Vercel project-level deployment settings remain unverified.
+- Next: continue source research and authorized full-text review; perform manual browser/mobile/screen-reader accessibility audit; verify Vercel project settings without changing deployment settings or manually deploying.
 
 ## Current curation policy and candidate set
 - Policy: docs/library/EDITORIAL_POLICY.md.
@@ -385,3 +379,17 @@
 - Main-only Git deployment policy remains `{"*": false, "main": true}`; the existing Vite build command, API function duration and API/SPA rewrites remain intact.
 - Combined Vercel status on the merge commit still reports `build-rate-limit`; no production deployment is confirmed. Google AI Studio synchronization remains unverified.
 - Next: manual browser/mobile/screen-reader accessibility audit; verify effective Vercel Project Settings; obtain an authorized complete edition before full-text review of *Fasl fi Tazkiyat al-Nafs*. Do not mark any of these complete without evidence.
+
+
+## Mukhtasar Minhaj al-Qasidin candidate — merged and verified (2026-11-06)
+
+- PR #30 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/30
+- Merge commit / verified live `main` HEAD: `1f5c98a918eb491db721270f14a6473dff50c39d`.
+- PR head `be1670acc299470f0cef7222ac2b9f030d4b14db` passed CI run #42238280875; post-merge main CI run #42238372655 passed on the exact merge commit: tests, TypeScript and production build.
+- Added candidate ID `ibn-qudama-mukhtasar-minhaj-al-qasidin` to `src/data/library/candidates.json`; candidate count is now 23.
+- Added `docs/library/CANDIDATE_REVIEWS/mukhtasar-minhaj-al-qasidin.md` with bibliographic sources, author-name disambiguation, abridgement-chain review, content risks, hadith/footnote work, and digital-rights caveats.
+- Correctly distinguishes Najm al-Din Abu al-Abbas Ahmad ibn Abd al-Rahman ibn Qudama (d. 689 AH), author of this work, from Muwaffaq al-Din Abdullah ibn Ahmad ibn Qudama (d. 620 AH), author of `al-Mughni`.
+- Status remains `metadata-verified-content-review-pending`; the book is not in `approvedBookIds`, not in the public catalogue, and no full text or scan was copied into the repository.
+- Waqfeya's category tag is recorded as catalogue metadata only, not as a doctrinal conclusion. The work's transmission through Ibn al-Jawzi's abridgement of *Ihya Ulum al-Din* makes complete review of narratives, hadith, marginalia and doctrinal passages necessary.
+- Rights for the Waqfeya digital copy and the modern editorial apparatus remain unresolved. The permission statement on IslamHouse is not assumed to authorize redistribution of the Waqfeya file.
+- No public-library allowlist, publication, Firestore/API, authentication, or Vercel behavior changed.

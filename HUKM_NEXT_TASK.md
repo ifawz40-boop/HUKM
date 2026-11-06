@@ -3,10 +3,10 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-curation-focus-restoration-merged` (checkpoint PR #29)
-Verified application-code HEAD after PR #28: `320b73c099932cecbea818db6c8002f5d449d8ad`
+Current documentation branch: `docs/checkpoint-mukhtasar-minhaj-candidate-merged` (checkpoint PR #31)
+Verified application/data HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #28: `320b73c099932cecbea818db6c8002f5d449d8ad`.
+Latest main HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -37,7 +37,7 @@ At the start of every continuation, re-fetch the live `main` HEAD; later documen
 - 24 legacy books are preserved in the archive and quarantined from public display.
 - `src/data/library/curation.json` has zero approved IDs and 24 quarantined IDs.
 - Public text catalogue and public PDF shelf remain empty.
-- `src/data/library/candidates.json` contains 22 bibliographic candidates; none is approved.
+- `src/data/library/candidates.json` contains 23 bibliographic candidates; none is approved.
 - Allowed categories: `religious`, `self-development`, `travel`, `islamic-philosophy-critique`.
 - Full-text, introduction, footnote, author-methodology, edition and rights review remain mandatory before approval.
 - Legacy Hindawi synchronization remains manual-only.
@@ -83,14 +83,26 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Regression assertions cover focus restoration, keyboard listener cleanup, Escape and body overflow restoration.
 - No editorial approval, database, API, authentication or deployment behavior changed.
 
+## Latest merged library research — PR #30
+
+- PR #30 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/30
+- Merge commit / verified main HEAD: `1f5c98a918eb491db721270f14a6473dff50c39d`.
+- PR CI #42238280875 and post-merge main CI #42238372655 passed (tests, TypeScript and production build).
+- Added *مختصر منهاج القاصدين* as candidate `ibn-qudama-mukhtasar-minhaj-al-qasidin`; 23 candidates total, zero approved.
+- Author is Najm al-Din Abu al-Abbas Ahmad ibn Abd al-Rahman ibn Qudama al-Maqdisi (d. 689 AH), not Muwaffaq al-Din Abdullah ibn Ahmad ibn Qudama (d. 620 AH), author of *al-Mughni*.
+- The candidate remains `metadata-verified-content-review-pending`; full text, hadith/athar, marginalia, methodology and rights remain unreviewed/unresolved.
+- Report: `docs/library/CANDIDATE_REVIEWS/mukhtasar-minhaj-al-qasidin.md`.
+- No full text or scan was copied, and the candidate is not in the public allowlist.
+
 ## Immediate next actions
 
 1. Obtain a complete, authorized copy of the 2018 edition (or written permission for private review) before attempting a page-by-page content and collation review. Do not place the full text or scan in the public repository.
 2. Review all 63 printed pages and the 68-page scan, distinguish the editor's introduction from the author's text, collate every marked omission/addition, and verify hadith/athar references and footnotes. Keep the candidate pending until this is complete.
-3. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, focus restoration, screen-reader labels, 320px layout, long Arabic titles and touch scrolling. The code-level focus restoration and background scroll lock are implemented in pending PR #28; do not mark the manual audit complete.
-4. Verify Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled; do not manually deploy or change settings without required access/approval.
-5. Continue with the next candidate only after the first review workflow is documented and repeatable.
-6. Design durable reviewer records and separate audited editorial approval and rights-clearance transitions before adding any status-changing controls.
+3. Obtain an authorized complete copy of the 1978 edition of *Mukhtasar Minhaj al-Qasidin* or written permission for private review. Review all 408 pages, distinguish the author's text from the editorial preface and notes, trace the abridgement chain, and verify hadith/athar and transmitted narratives. Keep it pending until complete.
+4. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, focus restoration, screen-reader labels, 320px layout, long Arabic titles and touch scrolling. The code-level focus restoration and background scroll lock are implemented in merged PR #28; do not mark the manual audit complete.
+5. Verify Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled; do not manually deploy or change settings without required access/approval.
+6. Continue with the next candidate only after the first review workflow is documented and repeatable.
+7. Design durable reviewer records and separate audited editorial approval and rights-clearance transitions before adding any status-changing controls.
 
 ## Safety and continuation rules
 
