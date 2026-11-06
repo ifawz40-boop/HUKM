@@ -111,4 +111,5 @@ test('reviewer notes are bounded and reject invalid values', () => {
   assert.equal(validateReviewerNote('  evidence reviewed  '), 'evidence reviewed');
   assert.throws(() => validateReviewerNote('x'.repeat(3001)), /INVALID_REVIEW_NOTE/);
   assert.throws(() => validateReviewerNote(null), /INVALID_REVIEW_NOTE/);
+  assert.throws(() => validateReviewerNote('invalid\\0note'), /INVALID_REVIEW_NOTE/);
 });
