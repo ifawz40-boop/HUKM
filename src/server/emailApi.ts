@@ -143,6 +143,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
     // subscribers never receive one another's email addresses.
     // Once a batch is accepted, never report a later provider/network failure as if nothing was sent.
     const fromAddress = providerConfig.from;
+    const senderMailbox = fromAddress.match(/<([^>]+)>/)?.[1] || fromAddress;
     const BATCH_SIZE = 50;
     if (providerConfig.kind === 'gmail') {
       gmailTransporter = createGmailTransporter(providerConfig);
@@ -194,7 +195,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
           },
           body: JSON.stringify({
             from: fromAddress,
-            to: recipientTarget.kind === 'individual' ? batch : [fromAddress],
+            to: recipientTarget.kind === 'individual' ? batch : [senderMailbox],
             bcc: recipientTarget.kind === 'individual' ? undefined : batch,
             subject: subject.trim(),
             html: htmlContent,
