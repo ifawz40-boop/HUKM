@@ -4,7 +4,7 @@
 **Last verified code merge:** `92b1251dd3dece8323cb32f9997e7817c5bc826d` (docs have advanced since; always re-fetch `main` before writing)  
 **Last stable code merge:** `92b1251dd3dece8323cb32f9997e7817c5bc826d`  
 **Latest CI on code merge:** run #42188045609 — SUCCESS  
-**Latest pinned candidate audit:** run #42188045492 — SUCCESS  
+**Latest pinned + live page-category audit:** run #42189138412 — SUCCESS  
 **Google AI Studio sync:** not independently verified.
 
 ## Phase A — verify latest docs checkpoint
@@ -19,6 +19,9 @@ Verified facts:
 - 38 candidates from 40,782 rows; 11 filter tests passed.
 - All 38 are marked original works; 40 author credit records have Wikidata IDs and death-year evidence.
 - All source pages in the report have URLs, revision IDs and timestamps.
+- Live page-category audit run #42189138412 checked 2,253/2,253 source pages plus author pages: zero missing pages, zero failed API batches, zero revision drift; all 38 book reports were complete.
+- The live audit found 1,380 pages across 28 books tagged `نصوص مجهولة المصدر`, plus one page (`معجم البلدان/الجزء الثالث`) tagged `أعمال غير مكتملة`.
+- Full report artifact: https://github.com/ifawz40-boop/HUKM/actions/runs/42189138412/artifacts/13489445638 (expires 2026-11-20).
 - 18 candidates carry the category `نصوص مجهولة المصدر`; 2 carry `صفحات بوصلة غير موجودة`.
 - 16 candidates exceed the current `maximumWordsPerBook=120000`.
 - Only one candidate has scan proofreading signals: `لسان غصن لبنان في انتقاد العربية العصرية` (80 scan pages: 72 level 3 and 8 level 4).
@@ -26,15 +29,20 @@ Verified facts:
 - The source schema has no explicit `is_incomplete` field. A missing field is not proof of completeness.
 - All records list author credits only; unnamed contributors/editors may be absent.
 
-### Provisional shortlist for manual source-text review (not an import allowlist)
-1. `لسان غصن لبنان في انتقاد العربية العصرية` — 17,568 words, 11 sections; strongest first candidate because the Wikisource work page shows 1891, marks the text corrected, the author page gives 1850–1896, and the dataset reports 80 scan pages (72 level 3, 8 level 4).
-2. `عيون الأنباء في طبقات الأطباء` — 56,551 words, 45 sections; author page gives 1194–1270, consistent with the dataset, and the preface lists 15 main chapters. Edition provenance still needs verification.
-3. `كتاب الاعتبار` — 41,071 words, 14 sections.
-4. `رقائق الحقائق في حساب الدرج والدقائق` — 17,324 words, 13 sections.
+### Revised shortlist after all-page category audit (not an import allowlist)
+1. `لسان غصن لبنان في انتقاد العربية العصرية` — 17,568 words, 11 sections; no flagged categories across 91 source pages; strongest candidate because its Wikisource work page shows 1891, marks the text corrected, the author page gives 1850–1896, and the dataset reports 80 scan pages (72 level 3, 8 level 4).
+2. `مقدمة ابن خلدون` — 73,202 words, 40 source pages; no flagged categories across its 40 pages and within the word cap. The Wikisource author page displays 732–808 AH but incorrectly converts these to 973–1057 CE; independent sources confirm 1332–1406 CE. Correct/annotate this discrepancy and review all six volumes before import.
+3. `سنن النسائي` — 40,784 words, 11 sections; no flagged categories across 15 source pages and within the word cap. However, it has no scan-proofreading signal and a very low diacritization ratio (0.000013); requires specialist hadith/text review before any import.
 
-### Explicit holds discovered by live page review
-- `فقه اللغة وسر العربية`: its book landing page lacks the unknown-source category, but its `/مقدمة` page is explicitly categorized `نصوص مجهولة المصدر`. Defer it until the edition/source is verified. This proves book-level categories are insufficient.
-- `مقدمة ابن خلدون`: the Wikisource author page displays 732–808 AH but incorrectly converts those dates to 973–1057 CE. Independent sources confirm 1332–1406 CE; the candidate record uses the correct author QID/death year. Document the discrepancy and do not rely on the faulty Gregorian conversion. Review all six volume pages and chapter pages before import.
+### Explicit holds from page-level category evidence
+- `فقه اللغة وسر العربية`: 31/32 source pages carry `نصوص مجهولة المصدر`; defer.
+- `عيون الأنباء في طبقات الأطباء`: 8/54 pages carry `نصوص مجهولة المصدر`; despite consistent author dates, defer until source edition and page provenance are resolved.
+- `كتاب الاعتبار`: 14/15 pages carry `نصوص مجهولة المصدر`; defer.
+- `رقائق الحقائق في حساب الدرج والدقائق`: 12/13 pages carry `نصوص مجهولة المصدر`; defer.
+- `تفسير القرآن الحكيم`: 14/15 pages carry `نصوص مجهولة المصدر`; defer.
+- `إحياء علوم الدين`: all 105 pages carry `نصوص مجهولة المصدر`; defer.
+- `كتاب الأحكام الشرعية الكبرى`: 844/847 pages carry `نصوص مجهولة المصدر`; defer.
+- `معجم البلدان/الجزء الثالث` is tagged `أعمال غير مكتملة` and `نصوص مجهولة المصدر`; reject from the current batch unless a complete, separately sourced edition is found.
 
 For every shortlisted or held candidate, verify the exact Wikisource edition, page/revision history, page-level categories for every source page, completeness, unclosed markup, text against scans/source pages, attribution, author/contributor roles, death-year evidence, and whether modern editorial material is included. The dataset's rights screen is not a legal guarantee. Do not rely only on the original author's death date.
 
@@ -94,13 +102,13 @@ After the library rights/provenance work:
 - Never import protected books or weaken the rights gate to make deployment pass.
 
 ## HUKM_CHECKPOINT
-- LAST_COMPLETED_MILESTONE: Repository intelligence + Wikisource candidate discovery + full provenance report pipeline + first live page-level spot checks
+- LAST_COMPLETED_MILESTONE: Repository intelligence + pinned candidate discovery + full provenance report + all-page live category audit
 - LAST_COMPLETED_TASK: Merge PR #9; verify full CI and pinned candidate audit on main; publish full provenance artifact; spot-check Wikisource work, chapter and author pages; identify page-level category gap and Ibn Khaldun author-page date error
 - CURRENT_BRANCH: main
-- LAST_STABLE_COMMIT: 92b1251dd3dece8323cb32f9997e7817c5bc826d (CI + candidate audit passed)
+- LAST_STABLE_COMMIT: a6280120dc152c3c42fc04e018e66c21754581e0 (PR #10 merge; PR CI and full live page-category audit passed)
 - CURRENT_MAIN_HEAD: 1951fcbf5f7726e5282fd4b29dc3f666951d2bfa (documentation checkpoint; CI pending)
-- TEST_STATUS: Full tests, TypeScript and build passed on merge commit; latest docs-head CI pending
+- TEST_STATUS: Full tests, TypeScript and build passed on PR #10 head; both Wikisource audit test suites and 2,253-page live category audit passed; post-merge CI still needs verification
 - MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
-- PENDING_TASKS: Verify docs-head CI; human-review shortlist; implement CC BY-SA rights tier after allowlist; fix generic source attribution UI; continue full repository audit
-- NEXT_ACTION: Verify CI for current main HEAD, then implement a separate page-level Wikisource category audit for source_pages and review all pages of the strongest shortlist; no ingestion yet
+- PENDING_TASKS: Human-review three-book shortlist; implement CC BY-SA rights tier after allowlist; fix generic source attribution UI; continue full repository audit
+- NEXT_ACTION: Verify post-merge CI/audit and latest docs-head CI; then manually review the three remaining candidates against exact source text/edition and contributor records; no ingestion yet
 - KNOWN_ISSUES: Vercel daily deployment quota; branch divergence; no verified live deployment or AI Studio sync; candidate content still needs human review.
