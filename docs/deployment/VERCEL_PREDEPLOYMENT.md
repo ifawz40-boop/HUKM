@@ -11,12 +11,12 @@ The production branch remains `main`. The preparation work is performed on `depl
 - Root directory: repository root
 - Framework preset: Vite
 - Install command: `bun install --frozen-lockfile` (or Vercel's Bun auto-detected install command)
-- Build command: `bun run build`
+- Build command: `node scripts/assert-library-ready.mjs && bun run build` (the prebuild gate verifies the minimum complete book count, full-text files, chapter readiness, per-book rights evidence, attribution and source hashes before Vercel can publish)
 - Output directory: `dist`
 - Node.js runtime: use the current Vercel default supported Node.js runtime for the API function
 - API function max duration: 60 seconds (already pinned in `vercel.json`) to allow the awaited SMTP send path to finish
 
-The existing `vercel.json` routes `/api/*` to `api/index.ts` and sends the remaining application routes to `index.html`. Keep API routing ahead of the SPA fallback.
+The existing `vercel.json` routes `/api/*` to `api/index.ts` and sends the remaining application routes to `index.html`. Keep API routing ahead of the SPA fallback. GitHub CI still runs the normal Vite build for code validation; the additional Vercel-only gate deliberately fails closed while the static catalogue is empty or incomplete.
 
 ## Environment variables
 
