@@ -194,6 +194,13 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /new Set\(indices\)\.size !== indices\.length/);
     assert.match(syncScript, /isSafeBookId\(row\.book_id\)/);
     assert.match(syncScript, /isExplicitlyOriginal/);
+    assert.match(syncScript, /row\.is_translation === false/);
+    assert.match(syncScript, /row\.is_translation === true/);
+    assert.equal(syncScript.includes('row.translation === false'), false);
+    assert.match(syncScript, /credit\.role \|\| credit\.role_ar/);
+    assert.match(syncScript, /RIGHTS_RELEVANT_ROLES = new Set\(\['author', 'translator', 'editor', 'compiler', 'foreword'\]\)/);
+    assert.match(syncScript, /credit\.role !== 'reviser'/);
+    assert.match(syncScript, /row\.is_translation === true && translationCovered/);
     assert.match(syncScript, /translatorCredits\.length > 0/);
     assert.match(syncScript, /credits\.every\(\(credit\) => credit\.deathYear !== null && credit\.deathYear <= 1955\)/);
     assert.equal(syncScript.includes('const latestDeathYear = Number(row.latest_death_year)'), false);
