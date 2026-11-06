@@ -403,3 +403,15 @@
 - Current main HEAD at branch creation: `24ceb26f9a2869f01c1a1c1bd2e85a2c334f2218`; PR #31 (checkpoint after PR #30) is merged and its main CI run #42238618839 passed.
 - A superseded duplicate checkpoint PR #32 was closed without merging after PR #31 advanced main during the previous checkpoint attempt; no main changes resulted from PR #32.
 - Exact current main CI run #42238618839 passed on `24ceb26f9a2869f01c1a1c1bd2e85a2c334f2218`; Vercel status on that SHA is `build-rate-limit`. No production deployment is confirmed.
+
+
+## PR #33 and PR #34 — manual accessibility QA plan and semantic regression assertions (2026-11-06)
+
+- PR #33 merged at `f0f60f409512ec5194b654e7e50f00b1c52f9e30`. PR CI run #42238893107 and post-merge main CI run #42238983555 both passed on their exact respective heads.
+- Added `docs/qa/curation-dialog-manual-accessibility.md`; all nine manual test areas remain **Not run**. The file is an execution checklist, not evidence that browser/device or screen-reader testing has occurred.
+- PR #34 merged at `d2596bfbeb4ceff76f4b6459ebf0e446b7e978f3`. PR CI and post-merge main CI run #42239193028 passed on the exact test/merge head.
+- Extended `tests/staticLibrary.test.ts` to assert the curation dialog has `role="dialog"`, `aria-modal="true"`, correctly referenced heading/description IDs, and the Arabic close-button accessible label.
+- Current main deployment policy in `vercel.json` remains `{"*": false, "main": true}`; current Vercel commit status remains `build-rate-limit`. No production deployment or effective dashboard setting is confirmed.
+- No application runtime behavior, book approvals, candidate metadata, Firestore/API or deployment configuration changed in PR #33/#34.
+- Application/data HEAD remains PR #30's `1f5c98a918eb491db721270f14a6473dff50c39d`; latest main includes documentation and test-only commits through PR #34.
+
