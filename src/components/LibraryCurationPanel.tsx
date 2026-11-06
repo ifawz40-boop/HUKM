@@ -41,9 +41,19 @@ const candidateModules = import.meta.glob('../data/library/candidates.json', {
 }) as Record<string, CandidateDataset>;
 
 const candidateDataset = candidateModules['../data/library/candidates.json'];
+
+const isSafeExternalUrl = (value: string | undefined): value is string => {
+  if (!value) return false;
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 const candidates = Array.isArray(candidateDataset?.books)
   ? candidateDataset.books.filter((book) =>
-      Boolean(book && book.id && book.title && book.author && book.category && book.sourceUrl && book.status)
+      Boolean(book && book.id && book.title && book.author && book.category && book.status && isSafeExternalUrl(book.sourceUrl))
     )
   : [];
 
@@ -143,7 +153,7 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
             </div>
           </div>
 
-          <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
             <div className="rounded-xl border border-white/10 bg-[#0a1329] p-3">
               <p className="text-[10px] text-slate-400">إجمالي المرشحين</p>
               <p className="mt-1 text-2xl font-black text-white tabular-nums">{candidates.length}</p>
@@ -235,7 +245,7 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
                     <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-[#f0cb69] underline underline-offset-4 hover:text-white">
                       <ExternalLink className="h-3 w-3" /> الوقفية / المصدر
                     </a>
-                    {book.shamelaUrl && (
+                    {isSafeExternalUrl(book.shamelaUrl) && (
                       <a href={book.shamelaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300 underline underline-offset-4 hover:text-white">
                         <ExternalLink className="h-3 w-3" /> المكتبة الشاملة
                       </a>
