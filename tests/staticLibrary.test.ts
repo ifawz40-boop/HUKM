@@ -14,6 +14,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const syncScript = read('scripts/sync-public-library.mjs');
   const syncWorkflow = read('.github/workflows/sync-public-library.yml');
   const chapterExtractor = read('scripts/extract-library-chapters.py');
+  const bookOverview = read('src/components/BookOverviewView.tsx');
   const serverApi = read('src/server/authClaimsApi.ts');
   const firebaseConfig = JSON.parse(read('firebase.json'));
   const bootstrapScript = read('scripts/bootstrap-owner.ts');
@@ -272,6 +273,12 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(chapterExtractor, /streaming=True/);
     assert.match(chapterExtractor, /chapter indexes are not contiguous/);
     assert.match(chapterExtractor, /All selected book sections are complete/);
+  });
+
+  it('must not claim a book link was copied until the browser clipboard confirms it', () => {
+    assert.match(bookOverview, /const handleShare = async \(\) => \{/);
+    assert.match(bookOverview, /await navigator\.clipboard\?\.writeText|await navigator\.clipboard\.writeText/);
+    assert.match(bookOverview, /catch \{[\s\S]*تعذر نسخ الرابط تلقائيًا/);
   });
 
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
