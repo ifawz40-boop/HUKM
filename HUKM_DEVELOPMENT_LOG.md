@@ -352,3 +352,20 @@
 - Clarified that `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709` is the verified application-code HEAD before the documentation-only PR #26 checkpoint.
 - PR #26's documentation-only merge commit is `e1226e146401ad371d0f6280d0e095d1bd8bacfd`.
 - The checkpoint now explicitly instructs the next session to re-fetch the live `main` HEAD rather than treating the recorded code HEAD as the current repository tip.
+
+
+## Curation dialog focus restoration and background scroll lock — PR #28 (2026-11-06)
+
+- PR #28: https://github.com/ifawz40-boop/HUKM/pull/28
+- Development branch: `fix/curation-dialog-focus-restoration`.
+- Code/test commit: `37d1effbf9db79238e45c16f79060b75f8b0eb81`.
+- CI run #42237351405 completed successfully on that exact code/test commit: full test suite, TypeScript check and production build all passed.
+- Added a document-level keyboard listener while the owner-only curation dialog is open; Escape closes the dialog and Tab/Shift+Tab remain contained even if focus is moved outside the dialog.
+- Focus moves to the close control on open and returns to the invoking element on close when it is still connected to the document.
+- Background body scrolling is locked while the dialog is open and the previous inline overflow value is restored during cleanup.
+- Preserved the existing `overscroll-contain`, candidate publisher/edition/scan-page metadata and candidate-specific review-report links. The older unmerged accessibility branch was not merged because it removed some of those current-main details.
+- Added static regression assertions for listener registration/removal, focus restoration, Escape handling, body scroll locking and retained scroll containment.
+- Scope is limited to `src/components/LibraryCurationPanel.tsx` and `tests/staticLibrary.test.ts`; no curation status, allowlist, Firestore/API, publication or deployment behavior changed.
+- PR #28 remains open pending validation of its final documentation-inclusive head and independent merge review. Do not claim this change is merged.
+- Current live `main` HEAD at PR creation: `39f1ec926b15c228936575ace7c73c464e72bfbe`.
+- Vercel still reports `build-rate-limit`; no production deployment is confirmed.

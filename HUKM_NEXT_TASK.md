@@ -3,9 +3,10 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/clarify-code-head-checkpoint`
+Current continuation branch: `fix/curation-dialog-focus-restoration` (PR #28)
 Verified application-code HEAD before the documentation-only checkpoint: `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
+Latest documentation-only main HEAD after PR #27: `39f1ec926b15c228936575ace7c73c464e72bfbe`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -72,11 +73,21 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Arabic PDF text search is enabled only for extractable text PDFs. The scanned fixture has no OCR and `searchAvailable: false`.
 - EPUB is not implemented. Continue only with a bounded Readium preprocessing prototype after the curated library workflow stabilizes.
 
+## Pending PR #28 — curation dialog focus restoration
+
+- PR: https://github.com/ifawz40-boop/HUKM/pull/28
+- Branch: `fix/curation-dialog-focus-restoration`.
+- Code/test commit `37d1effbf9db79238e45c16f79060b75f8b0eb81` passed CI run #42237351405 (tests, TypeScript and production build).
+- The dialog now restores focus to its opener, locks background scrolling, and uses a document-level Tab/Escape handler; existing candidate metadata and scroll containment are preserved.
+- The final documentation-inclusive PR head must also pass CI. PR is not merged.
+- Changed files: `src/components/LibraryCurationPanel.tsx`, `tests/staticLibrary.test.ts`, plus this checkpoint's two documentation files.
+- No publication, allowlist, database, authentication, API or Vercel behavior changed.
+
 ## Immediate next actions
 
 1. Obtain a complete, authorized copy of the 2018 edition (or written permission for private review) before attempting a page-by-page content and collation review. Do not place the full text or scan in the public repository.
 2. Review all 63 printed pages and the 68-page scan, distinguish the editor's introduction from the author's text, collate every marked omission/addition, and verify hadith/athar references and footnotes. Keep the candidate pending until this is complete.
-3. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, screen-reader labels, 320px layout, long Arabic titles and touch scrolling.
+3. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, focus restoration, screen-reader labels, 320px layout, long Arabic titles and touch scrolling. The code-level focus restoration and background scroll lock are implemented in pending PR #28; do not mark the manual audit complete.
 4. Verify Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled; do not manually deploy or change settings without required access/approval.
 5. Continue with the next candidate only after the first review workflow is documented and repeatable.
 6. Design durable reviewer records and separate audited editorial approval and rights-clearance transitions before adding any status-changing controls.
