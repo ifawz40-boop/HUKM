@@ -155,6 +155,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
       if (providerConfig.kind === 'gmail') {
         if (!gmailTransporter) throw new Error('Gmail SMTP transporter was not initialized.');
         let acceptedCount = 0;
+        let rejectedCount = 0;
         let messageId = '';
         try {
           const info = await gmailTransporter.sendMail({
@@ -174,6 +175,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
               })
             : batch;
           acceptedCount = Math.min(batch.length, acceptedRecipients.length);
+          rejectedCount = Array.isArray(info.rejected) ? info.rejected.length : 0;
           messageId = info.messageId || '';
         } catch (providerError) {
           console.error(`Gmail SMTP failure at batch index ${i}.`, providerError);
@@ -184,7 +186,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
 
         actualDispatchedCount += acceptedCount;
         if (messageId) providerIds.push(messageId);
-        if (acceptedCount !== batch.length || (Array.isArray(info.rejected) && info.rejected.length > 0)) {
+        if (acceptedCount !== batch.length || rejectedCount > 0) {
           partialDispatch = true;
           break;
         }
