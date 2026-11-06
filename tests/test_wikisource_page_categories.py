@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "audit-wikisource-page-categories.py"
 SPEC = importlib.util.spec_from_file_location("wikisource_page_categories", SCRIPT)
@@ -21,6 +22,33 @@ class PageCategoryAuditTests(unittest.TestCase):
         self.assertIn("تصنيف:نصوص مجهولة المصدر", flags)
         self.assertIn("تصنيف:أعمال غير مكتملة", flags)
         self.assertEqual(len(flags), 2)
+
+    def test_fetch_json_uses_post_for_long_title_payloads(self):
+        captured = []
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return b'{"query":{"pages":[]}}'
+
+        def fake_urlopen(request, timeout):
+            captured.append((request, timeout))
+            return FakeResponse()
+
+        with patch.object(AUDIT, "urlopen", side_effect=fake_urlopen):
+            result = AUDIT.fetch_json({"titles": "عنوان عربي طويل" * 30})
+
+        request, timeout = captured[0]
+        self.assertEqual(result, {"query": {"pages": []}})
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.full_url, AUDIT.API_URL)
+        self.assertIn("titles=", request.data.decode("utf-8"))
+        self.assertEqual(timeout, 8)
 
     def test_fetch_batch_handles_category_continuation(self):
         calls = []
