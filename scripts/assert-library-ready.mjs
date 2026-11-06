@@ -91,12 +91,21 @@ try {
     }
 
     const wordCount = Number(book.wordCount || 0);
-    const extractedWordCount = book.chapters.reduce((sum, chapter) =>
-      sum + countWords((chapter.content || []).join(' ')), 0);
+    const declaredChapterWords = book.chapters.reduce((sum, chapter) => sum + Number(chapter.wordCount || 0), 0);
+    const extractedChapterWords = book.chapters.map((chapter) =>
+      countWords((chapter.content || []).join(' '))
+    );
+    const extractedWordCount = extractedChapterWords.reduce((sum, value) => sum + value, 0);
+    const chapterCountsValid = book.chapters.every((chapter, index) => {
+      const declared = Number(chapter.wordCount || 0);
+      const extracted = extractedChapterWords[index];
+      return Number.isSafeInteger(declared) && declared > 0 &&
+        extracted >= declared * 0.95 && extracted <= declared * 1.10;
+    });
     if (!Number.isSafeInteger(wordCount) || wordCount < manifest.minimumWords || wordCount > manifest.maximumWordsPerBook ||
-        extractedWordCount !== wordCount ||
-        book.chapters.some((chapter) => !Number.isSafeInteger(Number(chapter.wordCount)) || Number(chapter.wordCount) < 1)) {
-      stop(`Book ${entry.id} has an invalid or inconsistent word count.`);
+        declaredChapterWords !== wordCount || !chapterCountsValid ||
+        extractedWordCount < wordCount * 0.95 || extractedWordCount > wordCount * 1.10) {
+      stop(`Book ${entry.id} has an invalid or inconsistent declared/extracted word count.`);
     }
     totalWords += wordCount;
 
