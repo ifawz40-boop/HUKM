@@ -188,7 +188,7 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
         response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${apiKey.trim()}`,
+            Authorization: `Bearer ${providerConfig.kind === 'resend' ? providerConfig.apiKey : ''}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
