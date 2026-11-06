@@ -8,7 +8,7 @@
 - Verification method: PR #11 CI run `42190539425` passed tests, TypeScript and build; `compare_commits(205211a... , main)` returned `identical` immediately after merge. Documentation checkpoint commits were separately verified.
 - Repository permissions on connected account: Admin / Push.
 - Default branch: `main`.
-- Latest known PR: #8, merged. PRs #1–#8 are closed and merged.
+- Latest verified PR: #11, merged. PRs #1–#11 are merged/closed as of this checkpoint.
 - Repository branch inventory returned 14 branches across two pages. Relevant branches include `main`, `deploy/vercel-preparation`, `backup/main-after-deployment-gate-2026-11-06`, `fix/pinned-library-source-main`, and historical fix/test/docs branches.
 
 ## Architecture facts confirmed

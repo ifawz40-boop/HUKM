@@ -7,12 +7,24 @@
 **Latest pinned + live page-category audit:** run #42189138412 — SUCCESS  
 **Google AI Studio sync:** not independently verified.
 
-## Phase A — completed on 2026-11-06\n- PR #11 merged as `205211ab6238fdbf6835884bb5f3936d488e8a0b`; `main` confirmed identical.\n- PR CI run #42190539425 passed full tests, TypeScript and production build.\n- Multi-source attribution helpers and regression tests are in `src/utils/bookProvenance.ts` and `src/utils/bookProvenance.test.ts`.\n- Reader source footer is dynamic; overview labels source links correctly and discloses the 12-page preview.\n\n## Phase A — verify latest docs checkpoint
-1. Re-fetch `main` and confirm the current HEAD.
-2. Verify CI for the documentation-only HEAD `1951fcb...`; do not treat a prior successful code commit as proof for a later commit.
-3. Confirm the current candidate report is present and links to the latest successful audit run.
+## Phase A — completed on 2026-11-06
+- PR #11 merged as `205211ab6238fdbf6835884bb5f3936d488e8a0b`; `main` confirmed identical.
+- PR CI run #42190539425 passed full tests, TypeScript and production build.
+- Multi-source attribution helpers and regression tests are in `src/utils/bookProvenance.ts` and `src/utils/bookProvenance.test.ts`.
+- Reader source footer is dynamic; overview labels source links correctly and discloses the 12-page preview.
+- Current documentation checkpoint HEAD before this correction: `083a48d3c546784adcab7d3465505ad158f26e8f`; exact-head CI has not yet been observed.
 
-## Phase B — manual review status\n- First candidate scan reviewed: Commons identifies 1891 edition, author 1850–1896, 79-page/2.35 MB scan, and marks the mechanical scan public domain.\n- Wikisource index says all pages corrected but some not proofread; full transclusion. The text includes editorial/paratext notes and historical copyright wording.\n- Commons scan rights and Wikisource transcription CC BY-SA 4.0 are separate. Scan is reader fixture only; no transcription import is approved.\n\n## Phase B — complete manual review of the 38 Arabic Wikisource candidates
+## Phase A — verify current documentation checkpoint
+1. Re-fetch `main` and confirm its exact HEAD.
+2. Verify push-triggered CI for the current docs-only HEAD; do not confuse Vercel quota status with code CI.
+3. Confirm both checkpoint files contain this exact task and merge SHA.
+
+## Phase B — manual review status
+- First candidate scan reviewed: Commons identifies 1891 edition, author 1850–1896, 79-page/2.35 MB scan, and marks the mechanical scan public domain.
+- Wikisource index says all pages corrected but some not proofread; full transclusion. The text includes editorial/paratext notes and historical copyright wording.
+- Commons scan rights and Wikisource transcription CC BY-SA 4.0 are separate. Scan is reader fixture only; no transcription import is approved.
+
+## Phase B — complete manual review of the 38 Arabic Wikisource candidates
 Read `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md` and download artifact `wikisource-candidate-report` from run #42188045492 (artifact ID `13487204922`, expiry 2026-11-20).
 
 Verified facts:
