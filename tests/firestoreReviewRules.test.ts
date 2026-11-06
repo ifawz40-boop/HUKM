@@ -11,12 +11,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  getFirestore,
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
 import { after, before, test } from 'node:test';
 
 const PROJECT_ID = 'demo-hukm-library-review-rules';
+const DATABASE_ID = 'ai-studio-truthnovel-3ad0db13-ef5a-4d1c-98fc-3fa5b62e3d96';
 const REVIEW_COLLECTIONS = [
   'libraryEditorialStates',
   'libraryRightsStates',
@@ -48,7 +50,7 @@ before(async () => {
 
   await testEnvironment.clearFirestore();
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
-    const adminDb = context.firestore();
+    const adminDb = getFirestore(context.firestore().app, DATABASE_ID);
     for (const collectionName of REVIEW_COLLECTIONS) {
       await setDoc(doc(adminDb, `${collectionName}/existing`), {
         candidateId: 'sample-book',
@@ -75,7 +77,7 @@ test('all direct client reads and writes to review collections are denied for ev
   ];
 
   for (const { name, context } of contexts) {
-    const clientDb = context.firestore();
+    const clientDb = getFirestore(context.firestore().app, DATABASE_ID);
 
     for (const collectionName of REVIEW_COLLECTIONS) {
       const existingDocument = doc(clientDb, `${collectionName}/existing`);
