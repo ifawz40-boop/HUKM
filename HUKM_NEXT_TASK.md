@@ -134,3 +134,19 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Added tests for deletion, no quarantine, and fail-closed sync behavior. Final CI head `320c1c92e9df0d6d9b9c4b30c08cd0450f9dc2b1` passed tests, TypeScript and production build; documentation correction requires a fresh CI run.
 - Git history remains immutable; no history rewrite or force-push was performed.
 - Next: merge only after fresh CI passes on the exact final PR head; then audit the 23 pending candidates against author methodology and complete text before deciding which remain candidates and which are deleted. Keep all unapproved books hidden.
+
+
+## Owner-directed legacy library deletion — verified on main
+
+- PR #42 merged at `db17f43c0a42ec9fa543ea0072053ed46957ee6e`; post-merge main CI run #42242488156 passed.
+- The 24 rejected full-text files, archive catalogues and archive notice are absent from the current main tree. Public catalogue remains empty; approved IDs are zero; there is no quarantine registry.
+- Sync is disabled by default and requires a reviewed explicit source-ID allowlist; manual sync is blocked on `main`.
+- The review report retains title/reason only for audit. Git history was not rewritten; no force-push was used.
+
+## Firestore review rules — current working branch
+
+- Original PR #43 head `2f44f2e36622023c079d149c7b542e3629b4d1c2` passed run #42243164732, including emulator rules tests, TypeScript and build.
+- Rebased the six-file PR #43 diff on exact current main `db17f43c0a42ec9fa543ea0072053ed46957ee6e` as branch `feat/firestore-review-rules-emulator-v2`.
+- Explicitly deny client reads/writes to `libraryEditorialStates`, `libraryRightsStates`, and `libraryReviewEvents` for all roles, including owner. Emulator tests cover unauthenticated, reader, admin and owner contexts.
+- Current rebased branch must pass fresh CI before merge. Keep API routes unmounted and write operations disabled until the real Firebase Admin adapter and verified-owner middleware are separately reviewed.
+- Next: finish the emulator rules PR, then type-check the production repository adapter; continue candidate full-text reviews only from verified editions and keep every unapproved book hidden.
