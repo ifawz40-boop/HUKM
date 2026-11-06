@@ -32,7 +32,7 @@ test('editorial workflow requires an explicit review before approval', () => {
 test('editorial reopen requires a documented explanation', () => {
   assert.throws(
     () => transitionEditorialStatus('approved', 'in_review', 'reopen', evidence),
-    /REOPEN_REQUIRES_EXPLANATION/,
+    /REOPEN_REQUIRES_EXPLANATION_AND_EVIDENCE/,
   );
   assert.equal(
     transitionEditorialStatus('approved', 'in_review', decisionNote, evidence),
@@ -56,7 +56,15 @@ test('rights clearance is independent and requires evidence', () => {
 test('revoking or reopening a prior rights decision requires an explanation', () => {
   assert.throws(
     () => transitionRightsStatus('cleared', 'restricted', 'changed', evidence),
-    /RIGHTS_REVOCATION_REQUIRES_EXPLANATION/,
+    /RIGHTS_REVOCATION_REQUIRES_EXPLANATION_AND_EVIDENCE/,
+  );
+  assert.throws(
+    () => transitionRightsStatus('cleared', 'permission_requested', decisionNote, []),
+    /RIGHTS_REVOCATION_REQUIRES_EXPLANATION_AND_EVIDENCE/,
+  );
+  assert.throws(
+    () => transitionRightsStatus('restricted', 'permission_requested', decisionNote, []),
+    /RIGHTS_REVOCATION_REQUIRES_EXPLANATION_AND_EVIDENCE/,
   );
   assert.equal(
     transitionRightsStatus('cleared', 'restricted', decisionNote, evidence),
@@ -69,12 +77,15 @@ test('revoking or reopening a prior rights decision requires an explanation', ()
 });
 
 test('publication requires editorial approval, rights clearance and the Git allowlist', () => {
-  const current = { candidateFingerprint: 'a'.repeat(64), policyVersion: '1.0.0', allowlisted: true };
+  const snapshot = { candidateFingerprint: 'a'.repeat(64), policyVersion: '1.0.0' };
+  const current = { ...snapshot, allowlisted: true, editorialSnapshot: snapshot, rightsSnapshot: snapshot };
   assert.equal(isPublicLibraryEligible('approved', 'unknown', current), false);
   assert.equal(isPublicLibraryEligible('approved', 'cleared', { ...current, allowlisted: false }), false);
   assert.equal(isPublicLibraryEligible('in_review', 'cleared', current), false);
   assert.equal(isPublicLibraryEligible('approved', 'cleared', current), true);
   assert.equal(isPublicLibraryEligible('approved', 'public_domain_verified', current), true);
+  assert.equal(isPublicLibraryEligible('approved', 'cleared', { ...current, rightsSnapshot: { ...snapshot, candidateFingerprint: 'b'.repeat(64) } }), false);
+  assert.equal(isPublicLibraryEligible('approved', 'cleared', { ...current, editorialSnapshot: { ...snapshot, policyVersion: '0.9.0' } }), false);
 });
 
 test('review snapshots become stale when candidate metadata or policy changes', () => {
