@@ -84,6 +84,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
     assert.match(vercelConfig.buildCommand, /node scripts\/assert-library-ready\.mjs/);
+    assert.deepEqual(vercelConfig.git?.deploymentEnabled, { '*': false, main: true });
     assert.match(deploymentGate, /manifest\.minimumBooks/);
     assert.match(deploymentGate, /maximumWordsPerBook/);
     assert.match(deploymentGate, /maximumTotalWords/);
