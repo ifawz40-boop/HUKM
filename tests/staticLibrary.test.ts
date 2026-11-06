@@ -2,6 +2,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 
 const read = (relativePath: string) => fs.readFileSync(path.resolve(process.cwd(), relativePath), 'utf8');
 
@@ -28,6 +30,79 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(deploymentGate, /sourceHash/);
     assert.match(deploymentGate, /historyUrl/);
     assert.match(deploymentGate, /licenseQuote/);
+  });
+
+
+  it('must fail closed for an empty catalogue and pass a complete rights-screened fixture', () => {
+    const gatePath = path.resolve(process.cwd(), 'scripts/assert-library-ready.mjs');
+    const makeRoot = () => fs.mkdtempSync(path.join(os.tmpdir(), 'hukm-library-gate-'));
+    const write = (root: string, relativePath: string, value: unknown) => {
+      const target = path.join(root, relativePath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, JSON.stringify(value, null, 2), 'utf8');
+    };
+    const runGate = (root: string) => spawnSync(
+      process.execPath,
+      [gatePath, '--root', root],
+      { encoding: 'utf8' }
+    );
+
+    const emptyRoot = makeRoot();
+    try {
+      write(emptyRoot, 'src/data/library/manifest.json', {
+        minimumBooks: 1,
+        minimumWords: 10,
+        maximumWordsPerBook: 100,
+        minimumChapters: 3,
+        maximumTotalWords: 100,
+      });
+      write(emptyRoot, 'src/data/library/catalog.json', []);
+      const result = runGate(emptyRoot);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Expected at least 1 complete books; found 0/);
+    } finally {
+      fs.rmSync(emptyRoot, { recursive: true, force: true });
+    }
+
+    const validRoot = makeRoot();
+    try {
+      write(validRoot, 'src/data/library/manifest.json', {
+        minimumBooks: 1,
+        minimumWords: 10,
+        maximumWordsPerBook: 100,
+        minimumChapters: 3,
+        maximumTotalWords: 100,
+      });
+      write(validRoot, 'src/data/library/catalog.json', [{ id: 'book-1' }]);
+      write(validRoot, 'src/data/library/books/book-1.json', {
+        id: 'book-1',
+        title: 'كتاب تجريبي',
+        author: 'مؤلف تجريبي',
+        status: 'completed',
+        wordCount: 10,
+        chapters: [
+          { status: 'ready', content: ['نص الفصل الأول'] },
+          { status: 'ready', content: ['نص الفصل الثاني'] },
+          { status: 'ready', content: ['نص الفصل الثالث'] },
+        ],
+        rights: {
+          tier: 'cc-by-4-translation',
+          translationCovered: true,
+          originalTextStatus: 'public-domain',
+          license: 'CC BY 4.0 — الترجمة العربية',
+          bookUrl: 'https://example.org/book',
+          historyUrl: 'https://example.org/revision',
+          sourceHash: 'a'.repeat(64),
+          licenseQuote: 'CC BY 4.0',
+          attribution: 'Attribution fixture',
+        },
+      });
+      const result = runGate(validRoot);
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      assert.match(result.stdout, /PASS: 1 complete, rights-screened books/);
+    } finally {
+      fs.rmSync(validRoot, { recursive: true, force: true });
+    }
   });
 
   it('must bind Firestore rules to the exact named database used by every Admin SDK entry point', () => {

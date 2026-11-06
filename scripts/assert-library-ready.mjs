@@ -2,7 +2,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.cwd();
+let root = process.cwd();
+const args = process.argv.slice(2);
+if (args.length > 0) {
+  if (args.length !== 2 || args[0] !== '--root') {
+    console.error('[HUKM deployment gate] Usage: node assert-library-ready.mjs [--root <directory>]');
+    process.exit(2);
+  }
+  root = path.resolve(args[1]);
+}
 const manifestPath = path.join(root, 'src/data/library/manifest.json');
 const catalogPath = path.join(root, 'src/data/library/catalog.json');
 const booksDir = path.join(root, 'src/data/library/books');
@@ -68,7 +76,7 @@ try {
     if (!rightsPathIsValid || rights.originalTextStatus !== 'public-domain') {
       stop(`Book ${entry.id} does not meet an approved per-book rights path.`);
     }
-    if (!/CC BY 4\\.0|الملكية العامة/.test(String(rights.license || '')) ||
+    if (!/CC BY 4\.0|الملكية العامة/.test(String(rights.license || '')) ||
         !rights.bookUrl ||
         !rights.historyUrl ||
         !/^[a-f0-9]{64}$/i.test(String(rights.sourceHash || '')) ||
