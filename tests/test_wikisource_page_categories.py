@@ -145,6 +145,35 @@ class PageCategoryAuditTests(unittest.TestCase):
         self.assertEqual(report["page_audit_status"], "incomplete")
         self.assertEqual(report["missing_or_unreturned_page_count"], 1)
 
+    def test_missing_author_profile_also_makes_audit_incomplete(self):
+        candidate = {
+            "id": "book-3",
+            "title": "كتاب",
+            "source_pages": [{
+                "title": "صفحة موجودة",
+                "revision_id": 10,
+                "revision_timestamp": "2020-01-01T00:00:00Z",
+            }],
+            "persons": [{
+                "name": "مؤلف",
+                "role": "author",
+                "author_page": "مؤلف:غير موجود",
+            }],
+        }
+
+        def fake_fetcher(params):
+            pages = []
+            for title in params["titles"].split("|"):
+                if title == "صفحة موجودة":
+                    pages.append({"title": title, "pageid": 10, "lastrevid": 10, "categories": []})
+                else:
+                    pages.append({"title": title, "missing": True, "categories": []})
+            return {"query": {"pages": pages}}
+
+        report = AUDIT.audit_candidates([candidate], fetcher=fake_fetcher, pause_seconds=0)[0]
+        self.assertEqual(report["page_audit_status"], "incomplete")
+        self.assertEqual(report["missing_author_page_count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
