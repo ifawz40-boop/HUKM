@@ -93,6 +93,28 @@ After the library rights/provenance work:
 - Fix the confirmed rate-limit limitations only with a justified shared provider; do not misrepresent process-local rate limits.
 - Continue accessibility, responsive UI, performance, and production deployment readiness review.
 
+## Reader technology research for the next reading milestone
+
+Confirmed current state:
+- `package.json` has no PDF.js, epub.js, or EPUB/PDF reader dependencies.
+- `BookReaderView.tsx` currently renders the existing structured text-book format; there is no PDF or EPUB rendering path yet.
+
+Open-source candidates reviewed:
+- **PDF.js / `pdfjs-dist`** — Mozilla's browser PDF renderer, Apache-2.0. Use the package and locally pinned worker; build a HUKM-styled custom reader rather than copying the full generic viewer. Official project: https://github.com/mozilla/pdf.js
+- **epub.js** — BSD-2-Clause browser EPUB renderer. Its 0.3.88 release includes RTL-related fixes; it is a lighter fit for the current static React/Vite app than a full publication server. Project: https://github.com/futurepress/epub.js
+- **Readium Web / TS toolkit** — BSD-3-Clause and more standards-oriented, but the current web path is EPUB-focused and expects Web Publication Manifest/streaming infrastructure. Keep as a future option if HUKM later adds a publication service rather than making it the first static reader dependency. Project: https://github.com/readium/ts-toolkit
+
+Preliminary implementation choice (validate package health and security advisories before installation):
+1. PDF: `pdfjs-dist` with a local worker, page virtualization, zoom, page navigation, fit-width, text selection/search only when the PDF has an embedded text layer, and persistent page position/bookmarks.
+2. EPUB: `epub.js` with RTL direction, TOC navigation, CFI-based position, font scale, theme, pagination/scroll mode, and persistent reading position/bookmarks.
+3. Do not promise text search in scanned/image-only PDFs without OCR. Avoid adding OCR dependencies until there is a justified need and performance review.
+4. Test with Arabic RTL EPUB plus a legal PDF fixture before accepting the feature.
+
+Legal PDF fixture for the PDF reader:
+- `لسان غصن لبنان في انتقاد العربية العصرية` has an original 1891 scan on Wikimedia Commons: https://commons.wikimedia.org/wiki/File:كتاب_لسان_غصن_لبنان_في_انتقاد_العربية_العصرية.pdf
+- The Commons file page marks the scan as public domain (mechanical scan of a public-domain work), with 79 pages and about 2.35 MB; author Shaker Shuqair died in 1896. The separate Wikisource transcription is CC BY-SA 4.0. Keep these two rights paths distinct.
+- The PDF fixture is for reader validation only; it is not yet imported into HUKM.
+
 ## Safety and merge rules
 - `main` is the Google AI Studio target branch. Re-fetch before every write.
 - Keep `deploy/vercel-preparation` separate; it was 71 ahead / 146 behind and must not be merged wholesale.
