@@ -22,7 +22,7 @@ Re-fetch main before every write.
 
 ## Editorial policy
 
-Read docs/library/EDITORIAL_POLICY.md before approving any book.
+Read docs/library/EDITORIAL_POLICY.md and docs/library/AUTHOR_EVIDENCE_2026-11-06.md before approving any book.
 
 The library may contain only:
 - Sunni Islamic books by authors whose scholarly standing and methodology are verifiably consistent with the owner's stated preference.
@@ -33,6 +33,8 @@ The library may contain only:
 Do not claim to know an author's inner piety. Record biographical evidence, scholarly assessments, methodology and uncertainty. For travel writing, distinguish neutral historical description from endorsement; still screen all content against the owner's stated standard.
 
 ## Immediate next milestone — expand and verify the candidate set
+
+First review the author evidence file. Distinguish widely attested scholarly status from a claim of universal consensus or certainty about personal piety. Al-Albani and any disputed contemporary author must remain conditional until the owner confirms that the evidence fits his intended standard.
 
 1. Search Waqfeya and reputable Sunni sources for additional books in aqeedah, tafsir, hadith, fiqh, seerah, tazkiyah and Islamic critique of philosophy.
 2. Prioritize works by clearly documented Sunni scholars such as Ibn Taymiyyah, Ibn al-Qayyim, Ibn Rajab, al-Sa'di, Ibn Baz, Ibn Uthaymeen and al-Albani, but verify each work and edition rather than approving by author name alone.
