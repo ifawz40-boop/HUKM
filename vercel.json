@@ -3,7 +3,7 @@
   "version": 2,
   "framework": "vite",
   "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "bun run build",
+  "buildCommand": "node scripts/assert-library-ready.mjs && bun run build",
   "outputDirectory": "dist",
   "functions": {
     "api/index.ts": {
