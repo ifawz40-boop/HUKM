@@ -385,3 +385,19 @@
 - Main-only Git deployment policy remains `{"*": false, "main": true}`; the existing Vite build command, API function duration and API/SPA rewrites remain intact.
 - Combined Vercel status on the merge commit still reports `build-rate-limit`; no production deployment is confirmed. Google AI Studio synchronization remains unverified.
 - Next: manual browser/mobile/screen-reader accessibility audit; verify effective Vercel Project Settings; obtain an authorized complete edition before full-text review of *Fasl fi Tazkiyat al-Nafs*. Do not mark any of these complete without evidence.
+
+
+## Continuation update — PR #29 and PR #30 merged (2026-11-06)
+
+- Re-fetched repository state before this checkpoint. Current `main` HEAD: `1f5c98a918eb491db721270f14a6473dff50c39d`.
+- PR #29 (documentation checkpoint for PR #28) merged at `a53324a7bce17a65eff65bef96ea3aaa8b0d0af4`; its CI run #42237951013 passed.
+- PR #30 (sourced candidate review for *Mukhtasar Minhaj al-Qasidin*) merged at `1f5c98a918eb491db721270f14a6473dff50c39d`; post-merge main CI run #42238372655 passed on this exact main HEAD.
+- Exact main check run: `Tests, typecheck and production build` — completed successfully on `1f5c98a918eb491db721270f14a6473dff50c39d`.
+- Candidate inventory is now 23. `src/data/library/curation.json` still has zero approved IDs and 24 quarantined legacy IDs. Public text and PDF catalogues remain empty.
+- PR #30 adds `docs/library/CANDIDATE_REVIEWS/mukhtasar-minhaj-al-qasidin.md`, metadata for candidate `ibn-qudama-mukhtasar-minhaj-al-qasidin`, and regression assertions. It carefully distinguishes Nجم الدين أحمد بن عبد الرحمن بن قدامة (d. 689 AH) from موفق الدين عبد الله بن أحمد بن قدامة (d. 620 AH), صاحب `المغني`.
+- The candidate remains `metadata-verified-content-review-pending`; the 408-page edition, notes, inherited material from `إحياء علوم الدين`, hadith/athar, author-methodology and digital rights have not been fully reviewed. It is not approved and must not appear publicly.
+- PR #14 is confirmed merged at `175356b3632f1f054c6280e5c986761cf2d07059`; the 24 legacy titles remain quarantined rather than deleted.
+- Vercel Git deployment policy in `vercel.json` remains `{"*": false, "main": true}`. This file-level setting is verified; effective Vercel Project Settings and a production deployment are not verified. Earlier Vercel status reported `build-rate-limit`; do not claim production is deployed.
+- Google AI Studio synchronization remains unverified.
+- A new documentation-only continuation branch `docs/checkpoint-main-1f5c98a` was created from this exact main HEAD to refresh stale continuation records. No direct main write was made.
+
