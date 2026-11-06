@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, ExternalLink, Search, ShieldCheck, X } from 'lucide-react';
 import { filterLibraryCandidates, isSafeExternalUrl } from '../utils/libraryCuration';
 
@@ -76,6 +76,66 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
   const [category, setCategory] = useState('all');
   const [status, setStatus] = useState('all');
 
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      const first = focusable?.item(0);
+      const last = focusable?.item((focusable?.length || 1) - 1);
+
+      if (!first || !last) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      if (!dialogRef.current?.contains(document.activeElement) || document.activeElement === dialogRef.current) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+      if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    };
+  }, [isOpen]);
+
   const filteredCandidates = useMemo(
     () => filterLibraryCandidates(candidates, { query, category, status }),
     [query, category, status],
@@ -98,28 +158,7 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
         aria-labelledby="library-curation-title"
         aria-describedby="library-curation-description"
         tabIndex={-1}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.preventDefault();
-            onClose();
-            return;
-          }
-          if (event.key !== 'Tab') return;
-          const focusable = event.currentTarget.querySelectorAll<HTMLElement>(
-            'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
-          );
-          const first = focusable.item(0);
-          const last = focusable.item(focusable.length - 1);
-          if (!first || !last) {
-            event.preventDefault();
-          } else if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-          } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-          }
-        }}
+        ref={dialogRef}
         className="flex max-h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-[#c59b27]/35 bg-[#070d1e] shadow-2xl sm:rounded-3xl"
       >
         <header className="flex items-start justify-between gap-4 border-b border-white/10 bg-[#0a1329] px-4 py-4 sm:px-6">
@@ -138,7 +177,7 @@ export const LibraryCurationPanel: React.FC<LibraryCurationPanelProps> = ({ isOp
           </div>
           <button
             type="button"
-            autoFocus
+            ref={closeButtonRef}
             onClick={onClose}
             className="rounded-xl border border-white/10 p-2 text-slate-400 transition hover:border-white/20 hover:text-white"
             aria-label="إغلاق مركز مراجعة المكتبة"
