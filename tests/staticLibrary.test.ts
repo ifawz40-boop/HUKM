@@ -31,6 +31,9 @@ describe('HUKM — bundled Arabic library architecture', () => {
   it('must describe CC BY 4.0 accurately without adding a ShareAlike condition', () => {
     assert.match(libraryNotice, /CC BY 4\.0 does not impose a ShareAlike condition/);
     assert.doesNotMatch(libraryNotice, /share-alike-compatible/i);
+    assert.match(libraryNotice, /17 automatically selected, rights-screened books/);
+    assert.match(libraryNotice, /not yet a manually curated or individually proofread collection/);
+    assert.match(libraryNotice, /969 footnotes/);
   });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
