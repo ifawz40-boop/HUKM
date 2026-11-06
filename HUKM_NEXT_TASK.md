@@ -207,3 +207,16 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Avoid the criticized Muhammad Zuhri al-Najjar edition with unmarked additions/changes; compare the exact candidate edition against a verified manuscript-based print.
 - The work remains hidden and unapproved until full text comparison and digital rights clearance. Do not publish or copy PDFs based only on free online access.
 - Next: finish CI for the source review report, then obtain lawful access to the exact edition for full review; continue other candidate audits while preserving zero approved IDs until verified.
+
+
+## PR #49 — verified merge
+- PR #49 merged at `e1ff807d267e6199cd852a50dae705149d556645`; post-merge CI run #42246136834 passed.
+- Tafsir al-Sa'di is a strong hidden candidate with author/edition review documented; full text comparison and digital rights are still pending.
+
+## Current candidate addition — عمدة الأحكام
+- Branch: `docs/add-umdat-al-ahkam-candidate`; candidate inventory 24.
+- Author: Abd al-Ghani al-Maqdisi (541–600هـ), a Hanbali hadith scholar.
+- Work: legal hadith selected from Sahih al-Bukhari and Sahih Muslim; candidate edition reviewed/takhrij by Saeed al-Qahtani.
+- Report: `docs/library/CANDIDATE_REVIEWS/abd-al-ghani-al-maqdisi-umdat-al-ahkam.md`.
+- Remains hidden and unapproved pending full text, exact edition and rights review. No PDF is copied.
+- Next: CI and merge the candidate report; continue author/content audits. Keep approved IDs at zero until a complete review and rights clearance.
