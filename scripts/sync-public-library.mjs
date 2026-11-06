@@ -20,8 +20,17 @@ const licenseUrl = 'https://creativecommons.org/licenses/by/4.0/';
 const MAX_ATTEMPTS = 18;
 const REQUEST_TIMEOUT_MS = 30_000;
 
+function buildRequestUrl(endpoint, params) {
+  const base = /^https?:\\/\\//i.test(endpoint) ? endpoint : `${API}/${endpoint}`;
+  const url = new URL(base);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, String(value));
+  }
+  return url.toString();
+}
+
 async function requestJson(endpoint, params, label) {
-  const url = `${API}/${endpoint}?${new URLSearchParams(params).toString()}`;
+  const url = buildRequestUrl(endpoint, params);
   let lastError = '';
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
