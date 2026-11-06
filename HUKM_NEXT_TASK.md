@@ -594,3 +594,48 @@ Open PRs at checkpoint creation: none
 - Historical PR #14 sync-library: FAIL (missing pinned dataset revision in the old manifest); current ingestion path is disabled and guarded.
 - Vercel: `build-rate-limit`, production deployment not confirmed.
 - No manual deployment, source ingestion, or copyrighted full-text upload performed.
+
+
+---
+
+# CURRENT WORKING CHECKPOINT — 2026-11-06 (PR #55 expanded)
+
+Base main SHA: `ef93ba00db72604c4e473209c7d9183209b80c1e`  
+Working branch: `docs/checkpoint-after-pr54`  
+Open PR: #55 (checkpoint plus candidate 28)  
+Current candidate inventory on branch: 28  
+Approved public IDs: 0
+
+## New candidate 28 — درء تعارض العقل والنقل
+
+- Author: Ibn Taymiyyah; editor: Muhammad Rashad Salim; publisher: Imam Muhammad ibn Saud Islamic University.
+- Second edition 1411 AH/1991.
+- Category: Islamic philosophy critique.
+- Records disagree on 10 parts vs 11 volumes; no definitive volume count is stored until the exact printed set is selected.
+- Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-dar-taarud-al-aql-wa-al-naql.md`.
+- The first-volume editor's introduction describes manuscript collation and the book's subject. Full text and context review remain pending.
+- Candidate is hidden, not approved; no PDF/text copied.
+
+## Updated category balance
+
+- Religious: 15
+- Self-development: 6
+- Islamic philosophy critique: 4
+- Travel: 3
+- Total: 28; approved: 0
+
+## PR #55 validation
+
+- PR #55 is being expanded with candidate 28; previous CI head is obsolete after the latest branch commits.
+- Re-run tests, Firestore Emulator rules tests, TypeScript and production build on the final PR head.
+- Do not merge until exact-head CI passes.
+
+## Next actions
+
+1. Review complete text and edition details for candidate 28; do not infer approval from the editor's introduction.
+2. Avoid adding more Ibn Taymiyyah titles until existing works are reviewed and author balance improves.
+3. Continue full-text review of candidates #25–#27, especially the travelogue's political praise and shrine descriptions.
+4. Complete manual keyboard/mobile/screen-reader QA of the curation panel.
+5. Keep review API unmounted and Firestore client writes denied until production Admin adapter and verified-owner middleware are reviewed.
+6. Resolve Vercel `build-rate-limit` and verify dashboard settings without manual deployment.
+7. Confirm Google AI Studio synchronization to main.
