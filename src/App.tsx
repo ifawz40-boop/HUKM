@@ -37,6 +37,8 @@ import {
   updateUserBookmarksInFirestore,
   fetchUserReadingProgress,
   uploadGuestReadingProgressToFirestore,
+  fetchPublicNotificationsFromFirestore,
+  savePublicNotificationToFirestore,
 } from './firebase/firestoreService';
 import {
   HUKM_LOGO,
@@ -242,10 +244,46 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Dynamic Notifications State
-  const [notifications, setNotifications] = useState<AppNotification[]>(() =>
-    getStoredNotifications()
-  );
+  // Shared announcement content comes from Firestore; read state is isolated per account on this device.
+  const activeNotificationOwnerId = currentUser?.id ?? null;
+  const [notificationState, setNotificationState] = useState<{
+    ownerId: string | null;
+    items: AppNotification[];
+  }>(() => ({ ownerId: null, items: getStoredNotifications() }));
+  const notifications = notificationState.ownerId === activeNotificationOwnerId
+    ? notificationState.items
+    : [];
+
+  useEffect(() => {
+    setNotificationState({
+      ownerId: activeNotificationOwnerId,
+      items: getStoredNotifications(activeNotificationOwnerId || undefined),
+    });
+  }, [activeNotificationOwnerId]);
+
+  useEffect(() => {
+    if (notificationState.ownerId !== activeNotificationOwnerId) return;
+    let active = true;
+    const loadPublicAnnouncements = async () => {
+      const remote = await fetchPublicNotificationsFromFirestore();
+      if (!active || remote === null) return;
+      setNotificationState((current) => {
+        if (!active || current.ownerId !== activeNotificationOwnerId) return current;
+        const readState = new Map(current.items.map((item) => [item.id, item.read]));
+        return {
+          ownerId: activeNotificationOwnerId,
+          items: remote.map((item) => ({ ...item, read: readState.get(item.id) ?? false })),
+        };
+      });
+    };
+    void loadPublicAnnouncements();
+    return () => { active = false; };
+  }, [activeNotificationOwnerId, notificationState.ownerId]);
+
+  useEffect(() => {
+    if (notificationState.ownerId !== activeNotificationOwnerId) return;
+    saveStoredNotifications(notificationState.items, activeNotificationOwnerId || undefined);
+  }, [notificationState, activeNotificationOwnerId]);
 
   // The public-domain catalogue and its categories are bundled with the application.
   // They are immutable at runtime and never loaded from Firestore or localStorage.
@@ -354,10 +392,7 @@ export default function App() {
     showToast('تم تسجيل الخروج.');
   };
 
-  // Sync state
-  useEffect(() => {
-    saveStoredNotifications(notifications);
-  }, [notifications]);
+  // Notification read-state persistence is scoped to the active account above.
 
 
 
@@ -440,50 +475,71 @@ export default function App() {
   };
 
   // Bookmark Toggle with Cloud Sync & Guest Support
-  const handleToggleBookmark = (bookId: string) => {
+  const handleToggleBookmark = async (bookId: string) => {
     const bookTitle = books.find((b) => b.id === bookId)?.title || 'الكتاب';
 
     if (currentUser) {
       const updated = toggleUserBookmark(currentUser, bookId);
       setCurrentUser(updated);
       const isAdded = updated.bookmarks.includes(bookId);
-      showToast(isAdded ? `تمت إضافة «${bookTitle}» إلى محفوظاتك ومزامنتها سحابياً! ⭐` : `تمت إزالة «${bookTitle}» من المفضلة.`);
-
-      // Sync with Firestore
-      updateUserBookmarksInFirestore(currentUser.id, updated.bookmarks).catch((err) => {
-        console.warn('Could not sync bookmarks with Firestore:', err);
-      });
+      try {
+        const synced = await updateUserBookmarksInFirestore(currentUser.id, updated.bookmarks);
+        if (synced) {
+          showToast(isAdded
+            ? 'تمت إضافة «' + bookTitle + '» إلى محفوظاتك ومزامنتها مع حسابك. ⭐'
+            : 'تمت إزالة «' + bookTitle + '» من المفضلة ومزامنة التعديل.');
+        } else {
+          showToast(isAdded
+            ? 'تم حفظ «' + bookTitle + '» على هذا الجهاز، لكن تعذرت المزامنة السحابية.'
+            : 'تمت إزالة «' + bookTitle + '» محلياً، لكن تعذرت مزامنة التعديل.');
+        }
+      } catch (error) {
+        console.warn('Could not sync bookmarks with Firestore:', error);
+        showToast('حُفظ التغيير على هذا الجهاز، لكن تعذرت المزامنة السحابية.');
+      }
     } else {
-      // Guest reader bookmarking
       const updatedGuest = toggleGuestBookmark(bookId);
       setGuestBookmarks(updatedGuest);
       const isAdded = updatedGuest.includes(bookId);
-      if (isAdded) {
-        showToast(`تم حفظ «${bookTitle}» محلياً. سجّل دخولك لمزامنة مكتبتك سحابياً عبر كافة أجهزتك! ⭐`);
-      } else {
-        showToast(`تمت إزالة «${bookTitle}» من المفضلة.`);
-      }
+      showToast(isAdded
+        ? 'تم حفظ «' + bookTitle + '» محلياً. سجّل الدخول لمزامنة مكتبتك عبر أجهزتك. ⭐'
+        : 'تمت إزالة «' + bookTitle + '» من المفضلة.');
     }
   };
 
-  // Notifications Actions
+  // Notifications Actions — shared content is persisted; read state remains account-local.
   const handleSelectNotification = (notif: AppNotification) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
-    );
+    setNotificationState((current) => current.ownerId !== activeNotificationOwnerId
+      ? current
+      : {
+          ...current,
+          items: current.items.map((item) => item.id === notif.id ? { ...item, read: true } : item),
+        });
     if (notif.bookId) {
       handleOpenReader(notif.bookId, notif.chapterId);
     }
   };
 
   const handleMarkAllNotificationsAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    showToast('تم تحديد جميع الإشعارات كمقروءة.');
+    setNotificationState((current) => current.ownerId !== activeNotificationOwnerId
+      ? current
+      : { ...current, items: current.items.map((item) => ({ ...item, read: true })) });
+    showToast('تم تحديد جميع الإشعارات كمقروءة على هذا الحساب.');
   };
 
-  const handleSendAnnouncement = (newNotif: AppNotification) => {
-    setNotifications((prev) => [newNotif, ...prev]);
-    showToast(`تم إرسال التنبيه «${newNotif.title}» بنجاح لجميع القراء! 📢`);
+  const handleSendAnnouncement = async (
+    input: Pick<AppNotification, 'title' | 'message' | 'type' | 'bookId'>
+  ): Promise<boolean> => {
+    const saved = await savePublicNotificationToFirestore(input);
+    if (!saved) {
+      showToast('لم يتم إرسال التنبيه؛ تعذر تأكيد حفظه في قاعدة البيانات.');
+      return false;
+    }
+    setNotificationState((current) => current.ownerId !== activeNotificationOwnerId
+      ? current
+      : { ...current, items: [saved, ...current.items.filter((item) => item.id !== saved.id)] });
+    showToast('تم حفظ التنبيه «' + saved.title + '» وأصبح متاحاً للقراء. 📢');
+    return true;
   };
 
   // View Mode Switching (Strictly for verified Admins & Owner)
