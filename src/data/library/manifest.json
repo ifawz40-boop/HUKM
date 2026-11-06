@@ -36,5 +36,8 @@
   "targetWordsPerBook": 50000,
   "editorialPolicy": "docs/library/EDITORIAL_POLICY.md",
   "curationFile": "src/data/library/curation.json",
-  "allowEmptyDuringCuration": true
+  "allowEmptyDuringCuration": true,
+  "syncEnabled": false,
+  "editoriallyApprovedSourceIds": [],
+  "note": "Automatic source ingestion is disabled until each exact source ID has passed HUKM's complete editorial review and is explicitly approved in a reviewed change. Rights screening alone is not editorial approval."
 }
