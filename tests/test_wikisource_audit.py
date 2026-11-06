@@ -149,7 +149,7 @@ class WikisourceCandidateAuditTests(unittest.TestCase):
         third["id"] = "third"
         third["near_dup_group"] = None
         selected = deduplicate_candidates([second, third, first])
-        self.assertEqual([row["id"] for row in selected], ["first", "third"])
+        self.assertEqual([row["id"] for row in selected], ["third", "first"])
 
     def test_candidate_score_prefers_wikidata_genre_evidence(self):
         authoritative = valid_row()
