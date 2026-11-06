@@ -3,16 +3,18 @@
 ## Current verified checkpoint — 2026-11-06
 
 - Repository: `ifawz40-boop/HUKM`; default and Google AI Studio-linked branch: `main`.
-- Verified live `main` HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`.
-- PR #30 added the 23rd bibliographic candidate, *مختصر منهاج القاصدين*, with a source-review report and a regression test ensuring it remains outside the public allowlist.
-- PR #30 merge CI run #42238280875 passed on head `be1670acc299470f0cef7222ac2b9f030d4b14db`; post-merge main CI run #42238372655 passed on exact merge commit `1f5c98a918eb491db721270f14a6473dff50c39d` (tests, TypeScript and production build).
-- PR #28's curation-dialog focus restoration and background scroll lock are merged and verified; PR #29's checkpoint is merged and verified.
+- Verified live `main` HEAD after PR #37: `dfbe36e57b1804e3c9007adb1ffce50975c9d106`.
+- PR #28 merged and post-merge CI passed: curation dialog focus restoration, keyboard containment and background scroll lock.
+- PR #30 merged and post-merge CI passed: 23rd metadata-verified but content-review-pending book candidate, *مختصر منهاج القاصدين*; full-text and digital-rights review remain unresolved.
+- PR #33 merged: manual browser/device/assistive-technology accessibility test plan. Every manual item remains **Not run**.
+- PR #34 merged: static regression assertions for dialog role, modal semantics, accessible name/description and Arabic close label.
+- PR #37 merged: pure editorial and rights review state machines, tests, and an architecture RFC. PR CI #42239633204 passed on head `7e38b0fb08f41c347f895150f0fcec60421dfda1`; post-merge main CI #42239741378 passed on exact merge commit `dfbe36e57b1804e3c9007adb1ffce50975c9d106`.
+- The review workflow RFC is explicitly an architecture proposal pending owner approval. No Firestore review API, review write endpoint, status-changing UI, or client write was enabled.
 - Public catalogue and PDF shelf remain empty; `approvedBookIds` remains empty.
 - 23 bibliographic candidates are recorded; none is approved. 24 legacy books remain preserved in the archive and quarantined.
-- New candidate *مختصر منهاج القاصدين* is metadata-verified/content-review-pending; author identity is explicitly disambiguated from Muwaffaq al-Din Ibn Qudama; full-text review and digital rights remain unresolved.
-- Main-only Vercel Git deployment configuration remains `{"*": false, "main": true}`. Combined Vercel status on the latest main commit still reports `build-rate-limit`; no production deployment is confirmed.
+- Main-only Vercel Git deployment configuration remains `{"*": false, "main": true}`. Combined Vercel status on latest main still reports `build-rate-limit`; no production deployment is confirmed.
 - Google AI Studio synchronization and effective Vercel project-level deployment settings remain unverified.
-- Next: continue source research and authorized full-text review; perform manual browser/mobile/screen-reader accessibility audit; verify Vercel project settings without changing deployment settings or manually deploying.
+- Next: obtain explicit owner approval of the review-workflow RFC before implementing the server API; continue authorized full-text review and manual accessibility QA; verify effective Vercel settings without manual deployment.
 
 ## Current curation policy and candidate set
 - Policy: docs/library/EDITORIAL_POLICY.md.
@@ -415,3 +417,17 @@
 - No application runtime behavior, book approvals, candidate metadata, Firestore/API or deployment configuration changed in PR #33/#34.
 - Application/data HEAD remains PR #30's `1f5c98a918eb491db721270f14a6473dff50c39d`; latest main includes documentation and test-only commits through PR #34.
 
+
+
+## Editorial/rights review workflow core — merged and verified (2026-11-06)
+
+- PR #37 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/37
+- Merge commit / verified live `main` HEAD: `dfbe36e57b1804e3c9007adb1ffce50975c9d106`.
+- PR CI #42239633204 passed on final PR head `7e38b0fb08f41c347f895150f0fcec60421dfda1`; post-merge main CI #42239741378 passed on the exact merge commit `dfbe36e57b1804e3c9007adb1ffce50975c9d106` (full tests, TypeScript and production build).
+- Added `src/data/library/reviewWorkflow.ts` with separate editorial and rights state machines, bounded notes, HTTPS evidence validation, evidence requirements for decisions/reopens/revocations, snapshot staleness checks and fail-closed publication eligibility.
+- Added `src/data/library/reviewWorkflow.test.ts` and included it in the package test script.
+- Added `docs/library/REVIEW_WORKFLOW_RFC.md` describing append-only Firestore events, separate editorial/rights projections, owner-only authenticated APIs, transactional writes, idempotency, policy/candidate fingerprints, explicit deny rules and release gates.
+- RFC status is **architecture proposal pending owner approval**. No review endpoint, Firestore collection, status-changing UI or client write is enabled. The existing curation panel remains read-only.
+- Public release still requires separate editorial approval, exact-edition rights clearance, current review snapshots and a reviewed Git PR adding the candidate to `approvedBookIds`.
+- PR #33's manual accessibility plan and PR #34's semantic regression assertions remain preserved. All manual browser/device/screen-reader items remain Not run.
+- No public catalogue, Firestore data, authentication, deployment or Vercel configuration changed.
