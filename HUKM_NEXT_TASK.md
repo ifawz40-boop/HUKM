@@ -1,86 +1,99 @@
 # HUKM MEDIA — Exact Next Task
 
 **Current branch:** `main`  
-**Previous verified code/data HEAD:** `8368cf9825aeee8847ecc3113dbe9ef3ec39101b`  
-**Documentation-only commits since that code/data HEAD:** `355957d0db6d6362555eb98d389eccd48d9897a6`, `feae1b40674f58b2117372ee47f68424c4de85ca`, `acdb59691ba4e6316da452c0561aa33367d889b3`  
-**Start by re-fetching main. Do not assume either SHA is still HEAD.**
+**Current main HEAD at task creation:** `1951fcbf5f7726e5282fd4b29dc3f666951d2bfa`  
+**Last stable code merge:** `92b1251dd3dece8323cb32f9997e7817c5bc826d`  
+**Latest CI on code merge:** run #42188045609 — SUCCESS  
+**Latest pinned candidate audit:** run #42188045492 — SUCCESS  
+**Google AI Studio sync:** not independently verified.
 
-## Completed: initial Arabic Wikisource candidate discovery
-- Workflow run #3 succeeded: 40,782 rows scanned; 38 eligible candidates after the automated filter and deduplication; 11 filter tests passed.
-- Candidate list and limitations: `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md`.
-- No book is approved for import. The script's summary only prints five source pages per work and omits the full person/credit arrays.
-- Current CI run #484 passed 266 tests, TypeScript, and production build on `44e4001...`.
+## Phase A — verify latest docs checkpoint
+1. Re-fetch `main` and confirm the current HEAD.
+2. Verify CI for the documentation-only HEAD `1951fcb...`; do not treat a prior successful code commit as proof for a later commit.
+3. Confirm the current candidate report is present and links to the latest successful audit run.
 
-## Immediate task: full-record extraction and human review before any rights-model change
+## Phase B — complete manual review of the 38 Arabic Wikisource candidates
+Read `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md` and download artifact `wikisource-candidate-report` from run #42188045492 (artifact ID `13487204922`, expiry 2026-11-20).
 
-### Step 1 — Completed: inspect the actual audit run
-- Run: https://github.com/ifawz40-boop/HUKM/actions/runs/42183574861
-- Result: success; 11 filter tests passed.
-- 40,782 rows scanned; 38 eligible before and after deduplication.
-- Candidate summaries are preserved in `docs/library/WIKISOURCE_CANDIDATES_2026-11-06.md`.
+Verified facts:
+- 38 candidates from 40,782 rows; 11 filter tests passed.
+- All 38 are marked original works; 40 author credit records have Wikidata IDs and death-year evidence.
+- All source pages in the report have URLs, revision IDs and timestamps.
+- 18 candidates carry the category `نصوص مجهولة المصدر`; 2 carry `صفحات بوصلة غير موجودة`.
+- 16 candidates exceed the current `maximumWordsPerBook=120000`.
+- Only one candidate has scan proofreading signals: `لسان غصن لبنان في انتقاد العربية العصرية` (80 scan pages: 72 level 3 and 8 level 4).
+- All candidate rows report zero footnotes. 37/38 lack `publication_year`; 33/38 lack `first_publication_year`.
+- The source schema has no explicit `is_incomplete` field. A missing field is not proof of completeness.
+- All records list author credits only; unnamed contributors/editors may be absent.
 
-### Step 2 — Full-record extraction and independent candidate review
-- Workflow: `.github/workflows/audit-wikisource-candidates.yml`
-- Script: `scripts/audit-wikisource-candidates.py`
-- Tests: `tests/test_wikisource_audit.py`
-- Dataset: `Bayanat-Labs/arabic-wikisource-pd`
-- Config: `works-pd-core`
-- Pinned revision: `7f7de3a3e95e3f4e0e29c72588fd73ad2a636ccd`
-- Triggering source commits include `07285a3dea8c6dc9658e16f1ebd57aa112106386`, `9612dab17d40d87a30b0d484db18cbd8b5329f21`, `a3d6cfd3701468a768b61826e3049973d88abefe`, `d8e2770f5c4df7ab6d60b72e92db15730cdab056`, and `8368cf9825aeee8847ecc3113dbe9ef3ec39101b`.
-- Full job logs were read. No artifact was uploaded; the report is available in the run log and GitHub step summary.
-- Retrieve complete records from the pinned Parquet/JSONL source for all 38 candidates, including every `persons` entry, all `source_pages` and revision IDs, full text, completeness/quality indicators and hashes. Do not rely on the summary's first five source pages.
-- If no run output is available, state that explicitly; do not invent candidate counts or titles.
+### Provisional shortlist for manual source-text review (not an import allowlist)
+1. `لسان غصن لبنان في انتقاد العربية العصرية` — 17,568 words, 11 sections, the only candidate with scan-proofreading metadata.
+2. `فقه اللغة وسر العربية` — 43,183 words, 31 sections, high diacritization ratio (0.450175); current automatic genre is wrong (fiqh rather than language).
+3. `مقدمة ابن خلدون` — 73,202 words, 40 sections.
+4. `عيون الأنباء في طبقات الأطباء` — 56,551 words, 45 sections.
+5. `كتاب الاعتبار` — 41,071 words, 14 sections.
+6. `رقائق الحقائق في حساب الدرج والدقائق` — 17,324 words, 13 sections.
 
-### Step 3 — Independent candidate review
-For every candidate considered, record:
-- Arabic title and author
-- genre and why it is valuable for HUKM
-- exact source URL and history/revision evidence
-- author and all rights-relevant contributor death-year evidence
-- word and chapter counts
-- proofreading levels, missing scans, unresolved transclusions
-- source page URLs/revision IDs
-- near-duplicate group and deduplication decision
-- licence evidence and required attribution
+For each, verify the exact Wikisource edition, page/revision history, completeness, unclosed markup, text against source pages, attribution, author and contributor roles, death-year evidence, source provenance, and whether modern editorial material is included. The dataset's rights screen is not a legal guarantee. Do not rely only on the original author's death date.
 
-Exclude poetry, incomplete/malformed wikitext, Quran/scripture primary-text records, works outside the pinned PD-core tier, missing author evidence, and weak proofreading/source provenance. Do not assume a public-domain underlying work means the Wikisource transcription can be redistributed without complying with its CC BY-SA 4.0 terms.
+Defer or reject candidates with unresolved source/edition provenance, missing content, modern editorial material without rights evidence, or text-quality issues. Do not assume all candidates are suitable just because the automated filter accepted them.
 
-### Step 4 — Design, do not yet ingest, the separate rights model
-Inspect current `BookRights` types, catalogue/detail UI, `NOTICE.md` location and deployment gate before coding.
-Propose a separate CC BY-SA 4.0 rights tier that:
-- preserves source contributors and required attribution
-- stores source page URLs and revision IDs
-- includes licence URL and exact source licence statement
-- discloses adaptations/normalization and omitted media
-- enforces ShareAlike-compatible redistribution
-- does not weaken the existing Hindawi rights checks
+## Phase C — separate CC BY-SA 4.0 rights model (only after allowlist)
+Inspect and then extend:
+- `src/types/hukm.ts` (`BookRights`, `BookSourcePage`)
+- `scripts/sync-public-library.mjs`
+- `scripts/assert-library-ready.mjs`
+- `tests/staticLibrary.test.ts`
+- `src/data/library/NOTICE.md`
+- `src/components/BookOverviewView.tsx`
+- `src/components/BookReaderView.tsx`
 
-Do not import full texts until a human-reviewed allowlist is approved by evidence. Do not mislabel CC BY-SA content as CC BY 4.0 or public domain.
+Add a distinct rights tier such as `cc-by-sa-4-transcription`, never alias it to CC BY 4.0 or public domain. Require:
+- CC BY-SA 4.0 license URL and exact source licence statement.
+- Attribution to Arabic Wikisource contributors and dataset citation.
+- Every source page URL, revision ID and revision timestamp.
+- Source text hash and pinned dataset revision.
+- Original work public-domain evidence as a separate property.
+- All named rights-relevant contributors, roles, Wikidata evidence and death years; fail closed for unknown relevant credits.
+- Description of adaptations, normalization, omissions and any editorial changes.
+- ShareAlike redistribution notice and compatible derivative licensing.
+- A deployment gate that rejects missing attribution, incomplete source-page provenance, invalid hashes, and wrong license combinations.
 
-## Verification tasks
-- Latest confirmed CI: run #484 passed 266 tests, TypeScript and production build on commit `44e4001ca811b1ad3c2ae9b962b20371aa67842b`.
-- Candidate audit: run #3 passed; 38 candidates from 40,782 scanned rows. The latest docs-only commit still needs its own CI result.
-1. Inspect the current main head and exact-head GitHub Actions run.
-2. Run/verify all candidate-audit unit tests.
-3. Verify full project tests, TypeScript and production build for the exact current main commit.
-4. Re-fetch and independently review any changed rights/gate code.
-5. Verify the real library gate against all 24 current books.
-6. Do not interpret the Vercel `build-rate-limit` status as a code failure or a successful deployment.
+Do not modify the current Hindawi CC BY 4.0/public-domain rights paths except to add regression protection. Do not import any candidate until a human-reviewed allowlist exists.
 
-## Branch and release safety
-- `deploy/vercel-preparation` is 71 commits ahead and 146 behind main at the last comparison. Do not merge it wholesale.
-- Review any needed auth/email/Firebase/Admin changes individually against current main, with dedicated tests and a PR.
-- Keep `main` as the Google AI Studio target branch.
-- No force-push, history rewrite, bulk data deletion, or production credential changes.
-- Never claim Google AI Studio synchronization, Firebase rules deployment, owner bootstrap, or Vercel production deployment without direct evidence.
+## Phase D — multi-source reader provenance UI
+A confirmed issue exists:
+- `BookReaderView.tsx` hardcodes “مؤسسة هنداوي” in the rights footer.
+- `BookOverviewView.tsx` labels the source URL as a publisher page even when the source may be Wikisource.
+- The source-page disclosure shows at most the first 12 pages without clearly stating that the list is partial.
 
-## After this task
-Once the candidate audit output is reviewed and a small curated list is supported by complete rights evidence:
-1. Implement the separate CC BY-SA rights tier and attribution/NOTICE changes.
-2. Add unit and deployment-gate regression tests.
-3. Import only the manually approved selected works as separate lazy JSON assets.
-4. Run the real-library gate, all tests, TypeScript and build.
-5. Perform an independent review, fix any failures, and save a coherent checkpoint on main.
-6. Then resume the full Firestore/auth/API/accessibility/mobile UI audit.
+Make source labels dynamic using the book's rights metadata, change the generic source link label to “صفحة المصدر”, and clearly state when only a sample of source pages is displayed while linking to the complete source/history. Add tests for both Hindawi and Wikisource examples.
 
-**Do not start a new large ingestion batch before the candidate report is actually inspected.**
+## Phase E — resume full repository audit
+After the library rights/provenance work:
+- Review all Firebase Auth, Firestore rules, Storage rules and server API paths.
+- Verify owner/admin/writer/reader access enforcement server-side.
+- Inspect reader progress/bookmarks/annotations isolation and pending cloud sync.
+- Review the orphaned Writer Studio route and static publishing model.
+- Fix the confirmed rate-limit limitations only with a justified shared provider; do not misrepresent process-local rate limits.
+- Continue accessibility, responsive UI, performance, and production deployment readiness review.
+
+## Safety and merge rules
+- `main` is the Google AI Studio target branch. Re-fetch before every write.
+- Keep `deploy/vercel-preparation` separate; it was 71 ahead / 146 behind and must not be merged wholesale.
+- Use a focused branch/PR for code changes, run focused tests, full CI, independent diff review, and the candidate audit workflow where applicable.
+- Merge only after successful checks. Do not force-push.
+- Vercel currently reports a free-plan daily deployment quota error (`api-deployments-free-per-day`, more than 100 deployments/day); this is not proof of a code build failure. No production deployment or AI Studio sync has been verified.
+- Never import protected books or weaken the rights gate to make deployment pass.
+
+## HUKM_CHECKPOINT
+- LAST_COMPLETED_MILESTONE: Repository intelligence + Wikisource candidate discovery + full provenance report pipeline
+- LAST_COMPLETED_TASK: Merge PR #9; verify full CI and pinned candidate audit; publish full candidate artifact; document metadata quality findings
+- CURRENT_BRANCH: main
+- LAST_STABLE_COMMIT: 92b1251dd3dece8323cb32f9997e7817c5bc826d (CI + candidate audit passed)
+- CURRENT_MAIN_HEAD: 1951fcbf5f7726e5282fd4b29dc3f666951d2bfa (documentation checkpoint; CI pending)
+- TEST_STATUS: Full tests, TypeScript and build passed on merge commit; latest docs-head CI pending
+- MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
+- PENDING_TASKS: Verify docs-head CI; human-review shortlist; implement CC BY-SA rights tier after allowlist; fix generic source attribution UI; continue full repository audit
+- NEXT_ACTION: Verify CI for current main HEAD, then review the six provisional candidate texts and their complete source/edition provenance; no ingestion yet
+- KNOWN_ISSUES: Vercel daily deployment quota; branch divergence; no verified live deployment or AI Studio sync; candidate content still needs human review.
