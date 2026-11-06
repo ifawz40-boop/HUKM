@@ -3,10 +3,10 @@
 Last refreshed: 2026-11-06 — PR #33 and PR #34 merged
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-a11y-pr33-pr34` (checkpoint PR pending)
-Verified application/data HEAD after PR #30: `1f5c98a918eb491db721270f14a6473dff50c39d`
+Current documentation branch: `docs/checkpoint-review-workflow-rfc-merged` (checkpoint PR #38)
+Verified application/data HEAD after PR #37: `${base}`
 Documentation-only checkpoint PR #26 merge commit: `e1226e146401ad371d0f6280d0e095d1bd8bacfd`
-Latest main HEAD after PR #34: `d2596bfbeb4ceff76f4b6459ebf0e446b7e978f3`.
+Latest main HEAD after PR #37: `${base}`.
 At the start of every continuation, re-fetch the live `main` HEAD; later documentation-only merges may advance it without changing application code.
 
 ## Verified merge and CI state
@@ -99,6 +99,16 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Report: `docs/library/CANDIDATE_REVIEWS/mukhtasar-minhaj-al-qasidin.md`.
 - No full text or scan was copied, and the candidate is not in the public allowlist.
 
+## Latest merged feature — PR #37 editorial and rights review workflow
+
+- PR #37 merged: https://github.com/ifawz40-boop/HUKM/pull/37
+- Merge commit / verified main HEAD: `dfbe36e57b1804e3c9007adb1ffce50975c9d106`.
+- PR CI #42239633204 passed on `7e38b0fb08f41c347f895150f0fcec60421dfda1`; post-merge main CI #42239741378 passed on `dfbe36e57b1804e3c9007adb1ffce50975c9d106`.
+- Added pure editorial and rights state machines, tests, and `docs/library/REVIEW_WORKFLOW_RFC.md`.
+- Editorial approval and rights clearance are separate. Both must be current, and the candidate must be in the Git allowlist before it can be public.
+- RFC status is architecture proposal **pending owner approval**. Do not implement Firestore review APIs or status-changing UI until the owner approves the design.
+- The curation dialog remains read-only. PR #33 manual QA checklist is present; all browser/device/screen-reader checks remain **Not run**.
+
 ## Immediate next actions
 
 1. Obtain a complete, authorized copy of the 2018 edition (or written permission for private review) before attempting a page-by-page content and collation review. Do not place the full text or scan in the public repository.
@@ -107,7 +117,7 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 4. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, focus restoration, screen-reader labels, 320px layout, long Arabic titles and touch scrolling. The code-level focus restoration and background scroll lock are implemented in merged PR #28; do not mark the manual audit complete.
 5. Verify Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled; do not manually deploy or change settings without required access/approval.
 6. Continue with the next candidate only after the first review workflow is documented and repeatable.
-7. Design durable reviewer records and separate audited editorial approval and rights-clearance transitions before adding any status-changing controls.
+7. Review and explicitly approve or revise `docs/library/REVIEW_WORKFLOW_RFC.md`. Until owner approval, do not implement review write APIs or status-changing controls. After approval, implement the owner-only transactional API, append-only event log, Firestore deny rules, idempotency and emulator-backed security tests.
 
 ## Safety and continuation rules
 
