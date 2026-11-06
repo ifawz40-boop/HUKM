@@ -452,3 +452,11 @@
 - PR #41 — checkpoint for review repository and inert API core — merged at `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`; main CI run #42241425841 passed on that exact SHA.
 - The API core is intentionally not mounted in `server.ts` or `api/index.ts`; no review write endpoint is active in production. Firestore client access remains denied by default. Emulator-backed security tests and explicit Firestore rules are still required before enabling.
 - The deletion diff was rebuilt on `chore/remove-noncompliant-legacy-library-v5` from the exact latest main SHA above, preserving the PR #39 API files and PR #41 checkpoint. The old PR #40 is superseded; no force-push or main mutation was performed.
+
+
+## PR #42 validation checkpoint — 2026-11-06
+
+- PR #42 head before type fix: `e5fa521bed77aedd6f8a0c428fafd26c68e84f02`.
+- CI run #42241671729: full test suite passed (318 passed, 0 failed, 1 skipped). TypeScript failed only because the declaration `scripts/sync-public-library.d.mts` did not yet include the new `syncEnabled` and `editoriallyApprovedSourceIds` fields in `LibrarySelectionManifest`; production build was skipped after lint failure.
+- Fixed the declaration with optional fields matching the manifest. New exact branch head: `f6e68f05c7722e0140a349c13abb22b01ac3597f`.
+- CI must be re-run on the new exact head; do not merge until tests, TypeScript and production build all pass.
