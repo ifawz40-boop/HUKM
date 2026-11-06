@@ -301,3 +301,18 @@
 - Post-merge CI run #42234324080 succeeded on the exact merge commit: 293 tests, 292 passed, 0 failed, 1 skipped; TypeScript and production build passed.
 - Vercel still reports the free-plan deployment rate limit; no production deployment is confirmed.
 - Next: obtain an authorized complete edition for private page-by-page review, continue the dashboard accessibility audit, and verify Vercel project-level branch settings.
+
+
+## Curation dialog keyboard accessibility — merged and verified (2026-11-06)
+
+- PR #23 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/23
+- Merge commit / current main HEAD at checkpoint: `9f7ac3679062326f07543f2caaa95427527b096f`.
+- Added initial focus to the close control, Escape-to-close, Tab/Shift+Tab focus containment, accessible description wiring and scroll containment inside the dialog.
+- Added static regression assertions for keyboard operation and focus containment.
+- Added a static assertion for the Vercel Git deployment policy: wildcard false and main true.
+- PR CI run #42235061723 completed successfully: 294 tests, 293 passed, 0 failed, 1 skipped; TypeScript and production build passed.
+- Post-merge push CI run #42235175548 completed successfully on the exact merge commit.
+- Vercel status remains `build-rate-limit` due the free-plan deployment quota; no production deployment is confirmed.
+- Current library remains 22 candidates, zero approved, 24 legacy records quarantined.
+- The *Fasl fi Tazkiyat al-Nafs* report now includes historical author evidence and caveats about scholarly disagreement; full-text review remains incomplete.
+- Next: authorized full-text review, manual browser/screen-reader audit, and Vercel project settings verification.
