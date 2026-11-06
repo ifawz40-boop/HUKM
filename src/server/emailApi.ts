@@ -171,13 +171,11 @@ emailApiRouter.post('/send', sendEmailRateLimit, authenticateToken, async (req: 
           });
           // Broadcasts include one sender copy in the visible To field plus BCC recipients.
           // Exclude that sender copy when counting subscriber deliveries.
-          const acceptedRecipients = Array.isArray(info.accepted)
-            ? info.accepted.filter((entry) => {
-                const address = typeof entry === 'string' ? entry : entry.address;
-                return address.toLowerCase() !== providerConfig.user;
-              })
-            : batch;
-          acceptedCount = Math.min(batch.length, acceptedRecipients.length);
+          const acceptedCountFromSmtp = Array.isArray(info.accepted) ? info.accepted.length : batch.length;
+          // Broadcasts have one accepted sender copy in To; subtract it from the subscriber count.
+          acceptedCount = recipientTarget.kind === 'individual'
+            ? Math.min(batch.length, acceptedCountFromSmtp)
+            : Math.min(batch.length, Math.max(0, acceptedCountFromSmtp - 1));
           rejectedCount = Array.isArray(info.rejected) ? info.rejected.length : 0;
           messageId = info.messageId || '';
         } catch (providerError) {
