@@ -69,6 +69,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /rawDeathYear === null \|\| rawDeathYear === undefined/);
     assert.match(syncScript, /credit\.deathYear !== null && credit\.deathYear <= 1955/);
     assert.match(syncScript, /getRightsKind/);
+    assert.match(syncScript, /const datasetUrl = `https:\/\/huggingface\.co\/datasets\/\$\{DATASET\}`/);
+    assert.match(syncScript, /const datasetRevisionUrl = revisionUrl\(manifest\.datasetRevision\)/);
   });
 
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
