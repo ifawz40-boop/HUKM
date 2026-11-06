@@ -401,7 +401,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   it('must keep UI category IDs identical to the curated policy categories', () => {
     const uiCategoryIds = [...libraryIndex.matchAll(/id: '([^']+)'/g)].map((match) => match[1]);
     assert.deepEqual(uiCategoryIds, libraryManifest.allowedCategories);
-    assert.match(app, /book\.category === category\.id/);
+    assert.ok(app.includes('const categories: CategoryItem[] = PUBLIC_LIBRARY_CATEGORIES;'));
   });
 
   it('must ignore stale static-book loads after a newer book request or navigation', () => {
