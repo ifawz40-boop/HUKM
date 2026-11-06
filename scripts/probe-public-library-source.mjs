@@ -8,7 +8,7 @@ async function probe(label, url) {
     const body = await response.text();
     let payload = null;
     try { payload = JSON.parse(body); } catch { /* report the raw response below */ }
-    console.log('\\n[' + label + '] HTTP ' + response.status);
+    console.log('\n[' + label + '] HTTP ' + response.status);
     if (!response.ok) {
       console.log(body.slice(0, 900));
       return { ok: false, payload: null };
@@ -37,7 +37,7 @@ async function probe(label, url) {
     }
     return { ok: true, payload };
   } catch (error) {
-    console.log('\\n[' + label + '] ERROR: ' + (error?.name || 'Error') + ': ' + (error?.message || String(error)));
+    console.log('\n[' + label + '] ERROR: ' + (error?.name || 'Error') + ': ' + (error?.message || String(error)));
     return { ok: false, payload: null };
   }
 }
