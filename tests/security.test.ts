@@ -39,6 +39,13 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.ok(envExample.includes('EMAIL_FROM='));
       assert.equal(/RESEND_API_KEY="re_[^"]+"/.test(envExample), false);
     });
+
+    it('requires an explicit sender address and never falls back to an unverified domain', () => {
+      const emailApiContent = fs.readFileSync(path.resolve(process.cwd(), 'src/server/emailApi.ts'), 'utf-8');
+      assert.ok(emailApiContent.includes("const fromAddress = process.env.EMAIL_FROM?.trim()"));
+      assert.ok(emailApiContent.includes('متغير EMAIL_FROM غير موجود'));
+      assert.equal(emailApiContent.includes('updates@hukm.media'), false);
+    });
   });
 
   describe('Elevated role registry verification', () => {
