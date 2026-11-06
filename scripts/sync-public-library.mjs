@@ -302,7 +302,17 @@ function categoryLabel(category) {
 }
 
 export function selectBooks(metadata, manifest) {
+  if (manifest.syncEnabled !== true) {
+    throw new Error('LIBRARY_SYNC_DISABLED_PENDING_OWNER_EDITORIAL_REVIEW');
+  }
+  const approvedSourceIds = Array.isArray(manifest.editoriallyApprovedSourceIds)
+    ? new Set(manifest.editoriallyApprovedSourceIds.filter(isSafeBookId))
+    : new Set();
+  if (approvedSourceIds.size === 0) {
+    throw new Error('LIBRARY_SYNC_REQUIRES_EXPLICIT_EDITORIALLY_APPROVED_SOURCE_IDS');
+  }
   const eligible = metadata.filter((row) => {
+    if (!approvedSourceIds.has(row.book_id)) return false;
     const words = Number(row.n_words || 0);
     const chapters = Number(row.n_chapters || 0);
     return (
@@ -559,6 +569,15 @@ function toCatalogEntry(book) {
 
 async function main() {
   const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
+  if (manifest.syncEnabled !== true) {
+    throw new Error('Library sync is disabled. Do not enable it until each source book has passed full HUKM editorial review and is explicitly allowlisted in a reviewed PR.');
+  }
+  const approvedSourceIds = Array.isArray(manifest.editoriallyApprovedSourceIds)
+    ? manifest.editoriallyApprovedSourceIds.filter(isSafeBookId)
+    : [];
+  if (approvedSourceIds.length === 0 || new Set(approvedSourceIds).size !== approvedSourceIds.length) {
+    throw new Error('Library sync requires a non-empty, unique editorially approved source-ID allowlist.');
+  }
   const datasetUrl = `https://huggingface.co/datasets/${DATASET}`;
   const datasetRevisionUrl = revisionUrl(manifest.datasetRevision);
   await verifyDatasetRevision(manifest.datasetRevision);
