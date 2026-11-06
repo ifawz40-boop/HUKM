@@ -12,7 +12,9 @@
       "edition": "تحقيق فواز محمد العوضي",
       "pages": 68,
       "status": "metadata-verified-content-review-pending",
-      "reason": "رسالة في تزكية النفس وترك المحرمات وفعل المأمورات."
+      "reason": "رسالة في تزكية النفس وترك المحرمات وفعل المأمورات.",
+      "shamelaUrl": "https://shamela.ws/index.php/book/133364",
+      "initialSpotCheck": "The opening text frames purification as leaving prohibitions and doing commanded acts, and cites Qur'anic verses and early scholars. No issue identified in the inspected opening page; full text and editor's introduction remain unreviewed."
     },
     {
       "id": "ibn-al-qayyim-al-da-wal-dawa",
@@ -78,7 +80,9 @@
       "edition": "مؤسسة الرسالة",
       "pages": 94,
       "status": "metadata-verified-content-review-pending",
-      "reason": "آداب طالب العلم وطلبه وتلقيه وعلاقته بشيخه وزملائه."
+      "reason": "آداب طالب العلم وطلبه وتلقيه وعلاقته بشيخه وزملائه.",
+      "shamelaUrl": "https://shamela.ws/book/9884",
+      "initialSpotCheck": "The table of contents covers manners of the student, learning, teachers, peers, work and cautions. The inspected opening chapter stresses sincerity, knowledge as worship and avoiding ostentation. Full text and footnotes remain unreviewed."
     },
     {
       "id": "ibn-al-qayyim-zad-al-maad",
@@ -192,7 +196,9 @@
       "edition": "تحقيق أبي مالك الرياشي؛ مكتبة عباد الرحمن ومكتبة العلوم والحكم، 1429هـ/2008م",
       "pages": 168,
       "status": "metadata-verified-content-review-pending",
-      "reason": "متن عقدي في توحيد العبادة وأبواب الشرك."
+      "reason": "متن عقدي في توحيد العبادة وأبواب الشرك.",
+      "shamelaUrl": "https://shamela.ws/book/11318",
+      "initialSpotCheck": "The table of contents and inspected chapter explicitly warn against shirk and idolatry; references to idols and polytheism occur in a refutational context, not as promotion. Full text, hadith grading and edition comparison remain pending."
     },
     {
       "id": "ibn-taymiyyah-al-aqeedah-al-wasitiyyah",
@@ -204,7 +210,9 @@
       "edition": "تحقيق أشرف بن عبد المقصود أبو محمد؛ أضواء السلف، 1420هـ/1999م",
       "pages": 160,
       "status": "metadata-verified-content-review-pending",
-      "reason": "متن في أصول اعتقاد أهل السنة والجماعة."
+      "reason": "متن في أصول اعتقاد أهل السنة والجماعة.",
+      "shamelaUrl": "https://shamela.ws/index.php/book/18098",
+      "initialSpotCheck": "The table of contents addresses Sunni creed, including the Companions, Ahl al-Bayt and karamat of the awliya. This is a creed text, not a Sufi manual. Full text and edition comparison remain pending."
     },
     {
       "id": "ibn-uthaymeen-al-qawl-al-mufid",
