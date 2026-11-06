@@ -7,12 +7,14 @@ The production branch remains `main`. The preparation work is performed on `depl
 
 - Git repository: `ifawz40-boop/HUKM`
 - Production branch: `main` (do not change this during the preparation phase)
+- The preparation branch `deploy/vercel-preparation` is isolated from Google AI Studio's `main`; use it for a Preview deployment before any merge to Production
 - Root directory: repository root
 - Framework preset: Vite
 - Install command: `bun install --frozen-lockfile` (or Vercel's Bun auto-detected install command)
 - Build command: `bun run build`
 - Output directory: `dist`
 - Node.js runtime: use the current Vercel default supported Node.js runtime for the API function
+- API function max duration: 60 seconds (already pinned in `vercel.json`) to allow the awaited SMTP send path to finish
 
 The existing `vercel.json` routes `/api/*` to `api/index.ts` and sends the remaining application routes to `index.html`. Keep API routing ahead of the SPA fallback.
 
