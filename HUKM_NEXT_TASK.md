@@ -3,72 +3,70 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-curation-dashboard-merged`
-Verified main HEAD at checkpoint: `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`
+Current documentation branch: `docs/checkpoint-curation-tests-merged`
+Verified main HEAD: `bd99aac3e4cc47b4eb5b947961612f8312707dae`
 
-## Verified repository and merge state
+## Verified merge and CI state
 
-- PR #14 (Islamic library curation) is merged at `175356b3632f1f054c6280e5c986761cf2d07059`.
-- PR #15 (Vercel Git deployment branch configuration) is merged at `d9ffac968aac9f629c46b0a81f00fa7d877c2cd8`.
-- PR #16 (owner-only read-only library curation dashboard) is merged at `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
-- GitHub Actions push workflow #42232831631 completed successfully on the exact current main HEAD: 286 tests passed, 1 skipped, TypeScript check passed, and production build passed.
-- The combined Vercel status on the current main HEAD reports `failure` with the target `build-rate-limit`. Vercel's bot reports the free-plan limit of more than 100 deployments/day. This is a provider quota limitation, not a GitHub Actions test/build failure.
-- Vercel did not confirm a new production deployment for this merge. Do not claim the site is live from this CI result.
-- Important unresolved deployment check: PR #16 received a Vercel bot failure comment for the same deployment quota while the repo's `vercel.json` contains `git.deploymentEnabled: {"*": false, "main": true}`. Official Vercel documentation says this property controls which branches trigger deployments and supports minimatch patterns. The effective Vercel project behavior still needs confirmation in Project Settings; do not assume the JSON rule has been enforced until verified.
-- Google AI Studio synchronization remains unverified.
+- PR #14 — Islamic library curation — merged at `175356b3632f1f054c6280e5c986761cf2d07059`.
+- PR #15 — Vercel Git branch configuration — merged at `d9ffac968aac9f629c46b0a81f00fa7d877c2cd8`.
+- PR #16 — owner-only read-only candidate dashboard — merged at `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
+- PR #17 — documentation checkpoint after PR #16 — merged at `89dfb32b70c35d19acb9a309f56595fb3615f1cb`.
+- PR #18 — focused dashboard invariants and filtering tests — merged at `bd99aac3e4cc47b4eb5b947961612f8312707dae`.
+- PR #16 CI run #42232576073 succeeded; 286 tests passed, 1 skipped, TypeScript and production build passed.
+- PR #16 post-merge CI run #42232831631 succeeded.
+- PR #17 CI run #42233023231 and post-merge run #42233384294 succeeded.
+- PR #18 CI run #42233338320 and post-merge push run #42233459070 succeeded on current main. Exact test totals: 292 tests, 291 passed, 0 failed, 1 skipped; TypeScript check and production build passed.
+- The combined Vercel status on the current main commit remains `failure` with target `build-rate-limit`. Vercel's bot reports the free-plan limit (>100 deployments/day). This is a provider quota issue, not a failed GitHub test/build.
+- No production deployment is confirmed for the latest main commit. Do not claim the site is live.
+- The repo still has `git.deploymentEnabled: {"*": false, "main": true}`. PR #16/#18 produced Vercel quota-failure comments. Effective project behavior still needs verification in Vercel Project Settings; do not claim branch previews are disabled until checked.
+- Google AI Studio synchronization is not independently verified.
 
-## Current public-library state
+## Public library state
 
-1. All 24 legacy full-text books remain archived under `src/data/library/archive/books/`; their old catalogue and PDF fixture metadata are preserved in the archive.
-2. The public text catalogue and public PDF shelf are empty.
-3. `src/data/library/curation.json` has an empty `approvedBookIds` allowlist and 24 quarantined legacy IDs.
-4. The only allowed categories are `religious`, `self-development`, `travel`, and `islamic-philosophy-critique`.
-5. `src/data/library/candidates.json` contains 22 bibliographic candidates. All remain `metadata-verified-content-review-pending`; none is approved.
-6. Candidate metadata and opening-page spot checks are not full-text approval. Full text, footnotes, introductions, author methodology, editor and edition must be reviewed before a decision.
-7. The deployment gate allows the explicit empty-curation state. A populated public catalogue still requires at least 15 complete books and all editorial, integrity and rights checks.
-8. Legacy Hindawi synchronization remains manual-only.
+- 24 legacy books are preserved in the archive and quarantined from public display.
+- `src/data/library/curation.json` has zero approved IDs and 24 quarantined IDs.
+- Public text catalogue and public PDF shelf remain empty.
+- `src/data/library/candidates.json` contains 22 bibliographic candidates. All are `metadata-verified-content-review-pending`; none is approved.
+- Allowed categories: `religious`, `self-development`, `travel`, `islamic-philosophy-critique`.
+- Full-text, introduction, footnote, author-methodology, edition and rights review are still required for each candidate.
+- Legacy Hindawi synchronization remains manual-only.
 
-Read before changing candidate status:
+Editorial files to read before any candidate decision:
 - `docs/library/EDITORIAL_POLICY.md`
 - `docs/library/AUTHOR_EVIDENCE_2026-11-06.md`
 - `docs/library/CURRENT_LIBRARY_REVIEW_2026-11-06.md`
 
 ## Reader state
 
-- PDF.js reader is implemented with a locally bundled worker and lazy-loaded route.
-- PDF progress, bookmarks and notes are local-only; no cloud sync is implemented or claimed.
-- Arabic PDF text search is enabled only for files marked as having an extractable text layer.
-- The current scanned PDF fixture is image-only and correctly has `searchAvailable: false`; no OCR is claimed.
-- EPUB reader is not implemented. Readium preprocessing remains the preferred prototype direction; test Arabic RTL, TOC/CFI navigation, CSP and bundle size before selecting a runtime.
+- PDF.js reader is bundled with a local worker and lazy-loaded.
+- PDF progress/bookmarks/notes remain local-only; no cloud sync is claimed.
+- Arabic PDF text search is available only for extractable text PDFs. The scanned fixture has no OCR and `searchAvailable: false`.
+- EPUB is not implemented. Continue only with a bounded Readium preprocessing prototype after the curated library workflow stabilizes.
 
-## Completed latest milestone — owner-only curation dashboard
+## Completed curation dashboard and invariant tests
 
-- PR #16: https://github.com/ifawz40-boop/HUKM/pull/16
-- Merge commit: `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
-- Added `src/components/LibraryCurationPanel.tsx`.
-- Added an owner-only entry point to the admin micro-navigation in `HukmNavbar.tsx` and mounted the panel in `App.tsx`.
-- The panel lists the 22 candidates with category, edition/page metadata, status, reason, initial spot-check note and source links.
-- Search and category/status filters are available.
-- External source links are accepted only when HTTPS.
-- The panel is deliberately read-only. It has no approve/reject/publish action and performs no Firestore/API write.
-- Access is gated by the existing effective verified-owner check; ordinary admins, readers and owner preview mode do not receive the entry point or mounted panel.
-- Exact PR CI run #42232576073 succeeded on PR head `962ca4763e081f0b9946ae3462004a021bc3b4c0`: 286 tests passed, 1 skipped, TypeScript and production build passed.
-- Exact post-merge push CI run #42232831631 succeeded on main merge commit `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
+- PR #16 added `src/components/LibraryCurationPanel.tsx`, an owner-only read-only candidate panel with search, category/status filters, edition/page metadata, source links and review notes.
+- The entry point is visible only when `isEffectiveOwner` is true; the App mounts the panel only when the existing effective `isOwner` gate is true. Ordinary admins, readers and owner preview mode do not receive it.
+- No approve/reject/publish action or Firestore/API write exists in the panel.
+- Candidate links are HTTPS-only and reject embedded URL credentials.
+- PR #18 extracted pure helpers to `src/utils/libraryCuration.ts` and added tests in `src/utils/libraryCuration.test.ts` for safe URLs, Arabic search, combined filters and empty filters.
+- `tests/staticLibrary.test.ts` now checks owner-only mounting, read-only behavior and safe link attributes.
+- All code and regression tests are merged and passed post-merge CI.
 
 ## Immediate next actions
 
-1. Add focused regression coverage for the new curation panel: owner-only navigation gate, read-only behavior, candidate filtering, and HTTPS-only source links. Keep the test independent of Firebase and do not add approval mutations.
-2. Re-check the Vercel project Git settings to confirm the effective branch deployment rule. The desired behavior is Git-triggered deployments on `main` only; do not disable main production deployments. The current Vercel check is quota-limited and does not prove the rule works.
-3. Continue the independent accessibility/mobile audit of the curation modal: keyboard focus, Escape close, scroll containment, readable long Arabic titles and responsive filters.
-4. Begin private full-text review of the highest-priority candidates. Record review evidence per book; do not approve based on metadata or a title/preview alone.
-5. Design a durable reviewer record and separate audited transitions for editorial approval and rights clearance before adding any state-changing controls to the panel.
-6. Continue reader smoke tests and the EPUB Readium preprocessing prototype only after the curated text workflow is stable.
+1. Continue the accessibility/mobile audit of the curation dialog: focus placement and containment, Escape close, background scroll restoration, long Arabic titles and narrow-screen filters.
+2. Investigate Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered production deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled. Do not manually deploy or change settings without the required access/approval.
+3. Begin private full-text review of the highest-priority candidates. Record source/edition, introduction, footnotes, author methodology and concrete findings. Do not approve based on title, metadata, or opening-page spot checks.
+4. Design a durable review record and separate audited editorial-approval and rights-clearance transitions before adding any status-changing controls.
+5. Continue reader smoke tests and the isolated EPUB Readium prototype only after the curation pipeline is stable.
 
 ## Safety and continuation rules
 
 - Never edit `main` directly, force-push or rewrite history.
-- Never expose candidate texts as public books or mark any candidate approved without full review.
+- Never expose candidate texts as public books or approve a candidate without full review.
 - Never put unlicensed full texts or scans in the public repository.
 - Never weaken the deployment gate to make a build pass.
-- A successful GitHub Actions run or Vercel status does not by itself prove production deployment.
+- GitHub Actions success and Vercel status are separate; neither alone proves production is live.
 - Re-fetch `main`, branches, PRs and current file SHAs before every new write.
