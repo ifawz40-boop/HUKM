@@ -148,3 +148,15 @@ The large deployment branch has many commits ahead but its inspected key files (
 - Source files were re-fetched and inspected after the edits. GitHub Actions test/typecheck/build execution remains unverified via the available run-listing interface; Vercel combined status still reports its daily build API rate limit, not a code compilation result.
 - Resume from checkpoint section “Reader hardening and library deployment-gate integrity” in `docs/engineering/WORK_SESSION_CHECKPOINT.md`; first verify CI for `b17c69de5694d30df6471190696c9ea58e24232a`, then inspect the latest streaming sync run.
 
+
+
+## Continuation update — 2026-11-06 — First full-text library batch and performance follow-up
+
+- Fixed the streaming extractor's JSONL line split and aligned the regression test with the current contiguous chapter-index validator.
+- The pinned sync completed successfully: 17 rights-screened books, 441 sections, 1,499,436 words, 969 footnotes, 15.91 MiB; 17 catalogue records match 17 full-text JSON files.
+- Independently parsed all 17 Git blobs and checked catalogue parity, chapter ownership/order/counts, word totals, readiness, rights tier, colophon, attribution, source URLs and SHA-256 source hashes. No structural/rights-metadata failures were found. This does not constitute a human proofread.
+- Corrected CC BY 4.0 wording (attribution; no ShareAlike condition) and documented that the first batch is automatically selected, not yet manually curated or individually proofread. The notice records 87 omitted images, 2 SVG elements and 5 tables.
+- GitHub Actions run https://github.com/ifawz40-boop/HUKM/actions/runs/42181012044 passed 262 tests, TypeScript and production build, including the real generated-library deployment-gate test.
+- Build report: initial JS 344.09 kB / 74.57 kB gzip; per-book lazy JS chunks reach 1.39 MB / 412 kB gzip and trigger a 1.2 MB chunk warning. Next optimize book delivery using Vite ?url static JSON assets, preserving lazy loading and caching.
+- Vercel remains blocked by the previously reported build/deployment API rate limit; no production deployment is confirmed.
+- Resume next: (1) static JSON URL/fetch delivery and chunk-size verification, (2) explicit cleanup for reader restore/share timers, (3) manually reviewed book selection and source metadata/dedup schema, (4) original/rights-cleared covers and full visual library audit, (5) continue Firestore/account isolation and Writer Studio/API audit.
