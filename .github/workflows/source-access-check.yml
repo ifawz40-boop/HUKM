@@ -120,6 +120,12 @@ jobs:
               for category in str(row.get('category') or '').split(',')
               if category.strip()
           ).most_common(25))
+          for row in rows:
+              if row.get('booknr') in (13035305, 13050381):
+                  text = row.get('text') or ''
+                  print('TEXT_PREVIEW', row.get('booknr'), repr(text[:2200]))
+                  print('TEXT_PARAGRAPHS', row.get('booknr'), len([p for p in text.split('\\n\\n') if p.strip()]))
+                  print('TEXT_LINES', row.get('booknr'), len([line for line in text.splitlines() if line.strip()]))
           print('SAMPLE', [
               {
                   key: row.get(key)
