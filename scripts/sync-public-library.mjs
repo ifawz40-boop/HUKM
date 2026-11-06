@@ -64,6 +64,24 @@ async function requestJson(endpoint, params, label) {
   throw new Error(`Dataset Viewer failed for ${label} after ${MAX_ATTEMPTS} attempts: ${lastError}`);
 }
 
+async function verifyDatasetRevision(expectedRevision) {
+  const metadata = await requestJson(
+    `https://huggingface.co/api/datasets/${DATASET}`,
+    {},
+    'pinned dataset revision preflight'
+  );
+  const actualRevision = safeText(metadata.sha);
+  if (!actualRevision) {
+    throw new Error('Hugging Face Hub did not return a dataset commit SHA; refusing to claim a pinned source revision.');
+  }
+  if (actualRevision !== expectedRevision) {
+    throw new Error(
+      `Dataset HEAD changed: manifest pins ${expectedRevision}, but Hugging Face currently serves ${actualRevision}. Review the new revision and update the manifest before syncing.`
+    );
+  }
+  console.log(`Verified source dataset commit: ${actualRevision}`);
+}
+
 async function fetchAllMetadata() {
   const all = [];
   let total = null;
@@ -373,6 +391,7 @@ async function main() {
   const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
   const datasetUrl = `https://huggingface.co/datasets/${DATASET}`;
   const datasetRevisionUrl = revisionUrl(manifest.datasetRevision);
+  await verifyDatasetRevision(manifest.datasetRevision);
   await mkdir(OUTPUT_DIR, { recursive: true });
   console.log(`Loading ${DATASET} metadata; rights paths: explicit CC BY 4.0 Arabic translation + public-domain original, or conservative life+70 screen for public-domain original.`);
   const metadataRows = await fetchAllMetadata();
