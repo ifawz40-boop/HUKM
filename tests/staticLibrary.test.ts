@@ -284,8 +284,8 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('must expose book-card reading actions through keyboard-accessible controls', () => {
-    assert.match(bookCard, /<article[\s\S]*className=/);
-    assert.doesNotMatch(bookCard, /<article[\s\S]*onClick=\{onRead\}/);
+    assert.match(bookCard, /return \\(\\s*<article\\s+className=/);
+    assert.doesNotMatch(bookCard, /<article\\s+onClick=/);
     assert.match(bookCard, /<button[\s\S]*type="button"[\s\S]*onClick=\{onRead\}/);
     assert.match(bookCard, /aria-label=\{.*فتح كتاب.*book\.title/);
   });
