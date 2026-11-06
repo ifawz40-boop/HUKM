@@ -43,7 +43,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.deepEqual(curation.allowedCategories, ['religious', 'self-development', 'travel', 'islamic-philosophy-critique']);
     assert.ok(libraryNotice.includes('لا توجد حاليًا كتب معتمدة للعرض العام'));
     assert.ok(libraryNotice.includes('حُذفت ملفات الدفعة القديمة الأربعة والعشرين'));
-    assert.doesNotMatch(libraryNotice, /archive\\//);
+    assert.equal(libraryNotice.includes('archive/'), false);
     assert.match(libraryIndex, /selectCuratedPublicBooks/);
     assert.match(libraryIndex, /approvedBookIds/);
     assert.match(app, /المكتبة قيد إعادة الانتقاء/);
