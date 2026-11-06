@@ -107,8 +107,8 @@ After the library rights/provenance work:
 - CURRENT_BRANCH: main
 - LAST_STABLE_COMMIT: a6280120dc152c3c42fc04e018e66c21754581e0 (PR #10 merge; PR CI and full live page-category audit passed)
 - CURRENT_MAIN_HEAD: 1951fcbf5f7726e5282fd4b29dc3f666951d2bfa (documentation checkpoint; CI pending)
-- TEST_STATUS: Full tests, TypeScript and build passed on PR #10 head; both Wikisource audit test suites and 2,253-page live category audit passed; post-merge CI still needs verification
+- TEST_STATUS: Full tests, TypeScript and build passed on exact main docs HEAD `6c1be44352e20c31ecfecf7ac9bf0a2739f251cb` in run #42189485397; main candidate + page-category audit run #42189392657 passed with 2,253 pages, zero missing, zero API errors, zero revision drift
 - MAIN_SYNC_STATUS: GitHub main confirmed; Google AI Studio sync unverified
 - PENDING_TASKS: Human-review three-book shortlist; implement CC BY-SA rights tier after allowlist; fix generic source attribution UI; continue full repository audit
-- NEXT_ACTION: Verify post-merge CI/audit and latest docs-head CI; then manually review the three remaining candidates against exact source text/edition and contributor records; no ingestion yet
+- NEXT_ACTION: Re-fetch current main, then manually review the three remaining candidates against exact source text/edition and contributor records; no ingestion yet
 - KNOWN_ISSUES: Vercel daily deployment quota; branch divergence; no verified live deployment or AI Studio sync; candidate content still needs human review.
