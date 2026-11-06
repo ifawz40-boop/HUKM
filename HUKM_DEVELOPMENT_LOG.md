@@ -4,12 +4,12 @@
 - Date: 2026-11-06
 - Repository: `ifawz40-boop/HUKM`
 - Google AI Studio target branch (user-provided): `main`
-- Last verified code/data HEAD: `205211ab6238fdbf6835884bb5f3936d488e8a0b` (PR #11 merge; CI passed on the exact PR head).
-- Verification method: PR #11 CI run `42190539425` passed tests, TypeScript and build; `compare_commits(205211a... , main)` returned `identical` immediately after merge. Documentation checkpoint commits were separately verified.
+- Last verified code/data HEAD: `efe2847232762dfde37970223324573d06f65897` (PR #13 merge; exact-main CI run #42192746029 passed).
+- Verification method: PR #13 CI run `42192670662` passed 284 tests, TypeScript and build on the exact PR tree; push CI run `42192746029` passed on the exact merge commit; `main` was verified identical to the merge commit.
 - Repository permissions on connected account: Admin / Push.
 - Default branch: `main`.
-- Latest verified PR: #11, merged. PRs #1–#11 are merged/closed as of this checkpoint.
-- Latest verified docs-only CI HEAD: `28907a39b891ab3a86e4e10a8131f07c4f2f35b9`; push CI run #42190987662 passed tests, TypeScript and production build.
+- Latest verified PR: #13, merged. PRs #1–#13 are merged/closed as of this checkpoint.
+- Last docs-only CI-tested HEAD before the latest documentation refresh: `28907a39b891ab3a86e4e10a8131f07c4f2f35b9`; push CI run #42190987662 passed tests, TypeScript and production build. Latest code merge and CI are recorded below.
 - Repository branch inventory returned 14 branches across two pages. Relevant branches include `main`, `deploy/vercel-preparation`, `backup/main-after-deployment-gate-2026-11-06`, `fix/pinned-library-source-main`, and historical fix/test/docs branches.
 
 ## Architecture facts confirmed
