@@ -29,46 +29,26 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const libraryManifest = JSON.parse(read('src/data/library/manifest.json'));
   const libraryNotice = read('src/data/library/NOTICE.md');
 
-  it('must describe CC BY 4.0 accurately and keep generated batch totals in sync with the catalogue', () => {
-    assert.ok(libraryNotice.includes('CC BY 4.0 does not impose a ShareAlike condition'));
-    assert.equal(libraryNotice.includes('share-alike-compatible'), false);
-    assert.ok(libraryNotice.includes('automatically selected, rights-screened books'));
-    assert.ok(libraryNotice.includes('not yet manually curated or individually proofread'));
-
+  it('must quarantine the legacy batch and expose no book before editorial approval', () => {
     const catalog = JSON.parse(read('src/data/library/catalog.json'));
-    const batchLine = libraryNotice.split('\n').find((line) => line.includes('This HUKM batch contains '));
-    const batchCount = batchLine?.split('This HUKM batch contains ')[1]?.split(' automatically selected')[0];
-    assert.ok(batchCount, 'notice must state the generated book count');
-    assert.equal(Number(batchCount), catalog.length);
-
-    const totalsLine = libraryNotice.split('\n').find((line) => line.startsWith('- First-batch integrity totals:'));
-    assert.ok(totalsLine, 'notice must state generated books, sections, words and footnotes');
-    const totals = totalsLine.replace('- First-batch integrity totals: ', '').split(' ');
-    assert.equal(Number(totals[0]), catalog.length);
-    assert.equal(Number(totals[2].replaceAll(',', '')), catalog.reduce((sum: number, book: any) => sum + book.chapterCount, 0));
-    assert.equal(Number(totals[4].replaceAll(',', '')), catalog.reduce((sum: number, book: any) => sum + book.wordCount, 0));
-
-    const bookDirectory = path.resolve(process.cwd(), 'src/data/library/books');
-    const bookFiles = fs.readdirSync(bookDirectory).filter((file) => file.endsWith('.json'));
-    const actualFootnotes = bookFiles.reduce((sum, file) => {
-      const book = JSON.parse(fs.readFileSync(path.join(bookDirectory, file), 'utf8'));
-      return sum + book.chapters.reduce((chapterSum: number, chapter: any) => chapterSum + (chapter.footnotes?.length || 0), 0);
-    }, 0);
-    assert.equal(Number(totals[7].replaceAll(',', '')), actualFootnotes);
-
-    const duplicateLine = libraryNotice.split('\n').find((line) => line.startsWith('- Upstream chapter duplicate annotations are preserved'));
-    assert.ok(duplicateLine, 'notice must disclose preserved source duplicate annotations');
-    const duplicateCounts = duplicateLine.split(': ')[1].split(' ');
-    const exactDuplicateSections = bookFiles.reduce((sum, file) => {
-      const book = JSON.parse(fs.readFileSync(path.join(bookDirectory, file), 'utf8'));
-      return sum + book.chapters.filter((chapter: any) => chapter.exactDuplicateGroup).length;
-    }, 0);
-    const nearDuplicateSections = bookFiles.reduce((sum, file) => {
-      const book = JSON.parse(fs.readFileSync(path.join(bookDirectory, file), 'utf8'));
-      return sum + book.chapters.filter((chapter: any) => chapter.nearDuplicateGroup).length;
-    }, 0);
-    assert.equal(Number(duplicateCounts[0]), exactDuplicateSections);
-    assert.equal(Number(duplicateCounts[5]), nearDuplicateSections);
+    const curation = JSON.parse(read('src/data/library/curation.json'));
+    const archivedCatalog = JSON.parse(read('src/data/library/archive/catalog.json'));
+    const activeFiles = fs.readdirSync(path.resolve(process.cwd(), 'src/data/library/books')).filter((file) => file.endsWith('.json'));
+    const archivedFiles = fs.readdirSync(path.resolve(process.cwd(), 'src/data/library/archive/books')).filter((file) => file.endsWith('.json'));
+    assert.equal(catalog.length, 0);
+    assert.equal(activeFiles.length, 0);
+    assert.equal(archivedCatalog.length, 24);
+    assert.equal(archivedFiles.length, 24);
+    assert.equal(curation.approvedBookIds.length, 0);
+    assert.equal(curation.quarantinedBookIds.length, 24);
+    assert.deepEqual(curation.allowedCategories, ['religious', 'self-development', 'travel', 'islamic-philosophy-critique']);
+    assert.ok(libraryNotice.includes('لا توجد حاليًا كتب معتمدة للعرض العام'));
+    assert.ok(libraryNotice.includes('archive/books/'));
+    assert.ok(libraryNotice.includes('حقوق الكتب المرشحة لم تُحسم بعد'));
+    assert.match(libraryIndex, /selectCuratedPublicBooks/);
+    assert.match(libraryIndex, /approvedBookIds/);
+    assert.match(app, /المكتبة قيد إعادة الانتقاء/);
+    assert.match(app, /لن يظهر كتاب حتى تُراجع عقيدة مؤلفه ومنهجه ومحتواه كاملًا/);
   });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
@@ -110,6 +90,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     try {
       write(emptyRoot, 'src/data/library/manifest.json', {
         minimumBooks: 1,
+        allowedCategories: ['religious'],
         minimumWords: 10,
         maximumWordsPerBook: 100,
         minimumChapters: 3,
@@ -127,6 +108,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     try {
       write(validRoot, 'src/data/library/manifest.json', {
         minimumBooks: 1,
+        allowedCategories: ['religious'],
         minimumWords: 10,
         maximumWordsPerBook: 100,
         minimumChapters: 3,
@@ -136,7 +118,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
         id: 'book-1',
         title: 'كتاب تجريبي',
         author: 'مؤلف تجريبي',
-        category: 'literature',
+        category: 'religious',
         wordCount: 12,
         chapterCount: 3,
       }]);
@@ -145,7 +127,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
         title: 'كتاب تجريبي',
         author: 'مؤلف تجريبي',
         status: 'completed',
-        category: 'literature',
+        category: 'religious',
         wordCount: 12,
         chapterCount: 3,
         chapters: [
@@ -202,13 +184,13 @@ describe('HUKM — bundled Arabic library architecture', () => {
     const files = fs.existsSync(directory)
       ? fs.readdirSync(directory).filter((file) => file.endsWith('.json'))
       : [];
-    if (files.length === 0) {
-      context.skip('The source-library sync has not committed full-text books yet.');
-      return;
-    }
     const gatePath = path.resolve(process.cwd(), 'scripts/assert-library-ready.mjs');
     const result = spawnSync(process.execPath, [gatePath], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr || result.stdout);
+    if (files.length === 0) {
+      assert.match(result.stdout, /intentionally empty during editorial curation/);
+      return;
+    }
     assert.match(result.stdout, /PASS:/);
   });
 
@@ -304,32 +286,19 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /const datasetRevisionUrl = revisionUrl\(manifest\.datasetRevision\)/);
   });
 
-  it('must use exact upstream category identifiers and a balanced editorial mix', () => {
+  it('must use only the four HUKM editorial categories and preserve the target collection mix', () => {
     const quotas = libraryManifest.categories as Array<{ id: string; quota: number }>;
+    assert.deepEqual(libraryManifest.allowedCategories, [
+      'religious', 'self-development', 'travel', 'islamic-philosophy-critique',
+    ]);
+    assert.deepEqual(quotas.map((item) => item.id), libraryManifest.allowedCategories);
     assert.equal(quotas.reduce((sum, item) => sum + item.quota, 0), libraryManifest.targetBooks);
-    assert.ok(quotas.some((item) => item.id === 'religions'));
-    assert.ok(quotas.some((item) => item.id === 'social.sciences'));
-    assert.ok(libraryManifest.fallbackCategories.includes('travel.literature'));
-    assert.ok(libraryManifest.fallbackCategories.includes('science.fiction'));
-    assert.equal(quotas.some((item) => item.id === 'social_sciences' || item.id === 'religion'), false);
-    assert.match(syncScript, /'social\.sciences': 'العلوم الاجتماعية'/);
-    assert.match(syncScript, /religions: 'الدراسات الدينية'/);
+    assert.equal(libraryManifest.fallbackCategories.length, 0);
   });
 
-  it('must keep UI category IDs identical to the upstream source category IDs', () => {
-    const uiCategoryIds = libraryIndex.split('\n').filter((line) => line.includes("{ id: '")).map((line) => line.match(/id: '([^']+)'/)?.[1]).filter((id): id is string => Boolean(id));
-    const sourceCategoryIds = new Set([
-      ...libraryManifest.categories.map((category: { id: string }) => category.id),
-      ...(libraryManifest.fallbackCategories || []),
-    ]);
-    assert.ok(uiCategoryIds.length > 0);
-    for (const id of uiCategoryIds) {
-      assert.ok(sourceCategoryIds.has(id), `UI category ${id} does not match a source category ID`);
-    }
-    assert.ok(uiCategoryIds.includes('travel.literature'));
-    assert.ok(uiCategoryIds.includes('social.sciences'));
-    assert.ok(uiCategoryIds.includes('religions'));
-    assert.equal(uiCategoryIds.some((id) => ['travel', 'social_sciences', 'religion'].includes(id)), false);
+  it('must keep UI category IDs identical to the curated policy categories', () => {
+    const uiCategoryIds = [...libraryIndex.matchAll(/id: '([^']+)'/g)].map((match) => match[1]);
+    assert.deepEqual(uiCategoryIds, libraryManifest.allowedCategories);
     assert.match(app, /book\.category === category\.id/);
   });
 

@@ -46,6 +46,18 @@ try {
   const files = fs.existsSync(booksDir)
     ? fs.readdirSync(booksDir).filter((name) => name.endsWith('.json')).sort()
     : [];
+  if (files.length === 0 && manifest.allowEmptyDuringCuration === true) {
+    if (catalog.length !== 0) stop('The empty-curation mode requires an empty public catalogue.');
+    const curationPath = path.join(root, 'src/data/library/curation.json');
+    if (!fs.existsSync(curationPath)) stop('The curation allowlist is required when the public catalogue is intentionally empty.');
+    const curation = JSON.parse(fs.readFileSync(curationPath, 'utf8'));
+    if (!Array.isArray(curation.approvedBookIds) || curation.approvedBookIds.length !== 0) {
+      stop('An empty public catalogue cannot declare approved book IDs.');
+    }
+    console.log('[HUKM deployment gate] PASS: public catalogue intentionally empty during editorial curation; no unapproved books are exposed.');
+    process.exit(0);
+  }
+
   if (files.length < manifest.minimumBooks) {
     stop(`Expected at least ${manifest.minimumBooks} complete books; found ${files.length}. Refusing to publish an empty or incomplete library.`);
   }
@@ -53,6 +65,7 @@ try {
     stop(`Catalogue/file count mismatch: ${catalog.length} catalogue entries and ${files.length} full-text files.`);
   }
 
+  const allowedCategories = new Set(manifest.allowedCategories || []);
   const fileSet = new Set(files);
   const ids = new Set();
   let totalWords = 0;
@@ -69,6 +82,9 @@ try {
     const book = JSON.parse(fs.readFileSync(path.join(booksDir, filename), 'utf8'));
     if (book.id !== entry.id || !book.title || !book.author || book.status !== 'completed') {
       stop(`Book ${entry.id} has incomplete or mismatched identity metadata.`);
+    }
+    if (!allowedCategories.has(book.category)) {
+      stop('Book ' + entry.id + ' uses category "' + book.category + '" outside HUKM approved editorial policy.');
     }
     if (
       entry.title !== book.title ||
