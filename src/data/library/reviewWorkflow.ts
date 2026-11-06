@@ -19,6 +19,8 @@ export interface ReviewSnapshot {
 
 export interface CurrentReviewContext extends ReviewSnapshot {
   allowlisted: boolean;
+  editorialSnapshot: ReviewSnapshot;
+  rightsSnapshot: ReviewSnapshot;
 }
 
 const EDITORIAL_TRANSITIONS: Record<EditorialReviewStatus, readonly EditorialReviewStatus[]> = {
@@ -100,8 +102,8 @@ export function transitionEditorialStatus(
     requireDecisionEvidence(note, evidence);
   }
 
-  if ((current === 'approved' || current === 'rejected') && next === 'in_review' && note.length < MIN_DECISION_NOTE_LENGTH) {
-    throw new Error('REOPEN_REQUIRES_EXPLANATION');
+  if ((current === 'approved' || current === 'rejected') && next === 'in_review' && (note.length < MIN_DECISION_NOTE_LENGTH || evidence.length === 0)) {
+    throw new Error('REOPEN_REQUIRES_EXPLANATION_AND_EVIDENCE');
   }
 
   return next;
@@ -125,11 +127,13 @@ export function transitionRightsStatus(
   }
 
   if (
-    (current === 'cleared' || current === 'public_domain_verified') &&
-    (next === 'permission_requested' || next === 'restricted') &&
-    note.length < MIN_DECISION_NOTE_LENGTH
+    ((current === 'cleared' || current === 'public_domain_verified') &&
+      (next === 'permission_requested' || next === 'restricted')) ||
+    (current === 'restricted' && next === 'permission_requested')
   ) {
-    throw new Error('RIGHTS_REVOCATION_REQUIRES_EXPLANATION');
+    if (note.length < MIN_DECISION_NOTE_LENGTH || evidence.length === 0) {
+      throw new Error('RIGHTS_REVOCATION_REQUIRES_EXPLANATION_AND_EVIDENCE');
+    }
   }
 
   return next;
@@ -139,7 +143,7 @@ export function isReviewSnapshotCurrent(
   review: ReviewSnapshot,
   current: ReviewSnapshot,
 ): boolean {
-  return Boolean(review.candidateFingerprint) &&
+  return /^[a-f0-9]{64}$/i.test(review.candidateFingerprint) &&
     Boolean(review.policyVersion) &&
     review.candidateFingerprint === current.candidateFingerprint &&
     review.policyVersion === current.policyVersion;
@@ -154,7 +158,13 @@ export function isPublicLibraryEligible(
   rightsStatus: RightsClearanceStatus,
   context: CurrentReviewContext,
 ): boolean {
+  const currentSnapshot = {
+    candidateFingerprint: context.candidateFingerprint,
+    policyVersion: context.policyVersion,
+  };
   return editorialStatus === 'approved' &&
     (rightsStatus === 'cleared' || rightsStatus === 'public_domain_verified') &&
-    context.allowlisted === true;
+    context.allowlisted === true &&
+    isReviewSnapshotCurrent(context.editorialSnapshot, currentSnapshot) &&
+    isReviewSnapshotCurrent(context.rightsSnapshot, currentSnapshot);
 }
