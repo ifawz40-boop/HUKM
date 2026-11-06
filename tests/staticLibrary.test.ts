@@ -56,7 +56,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
     }, 0);
     assert.equal(Number(totals[7].replaceAll(',', '')), actualFootnotes);
 
-    const duplicateLine = libraryNotice.split('\\n').find((line) => line.startsWith('- Upstream chapter duplicate annotations are preserved'));
+    const duplicateLine = libraryNotice.split('\n').find((line) => line.startsWith('- Upstream chapter duplicate annotations are preserved'));
     assert.ok(duplicateLine, 'notice must disclose preserved source duplicate annotations');
     const duplicateCounts = duplicateLine.split(': ')[1].split(' ');
     const exactDuplicateSections = bookFiles.reduce((sum, file) => {
