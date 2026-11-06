@@ -157,11 +157,19 @@ export const BookOverviewView: React.FC<BookOverviewViewProps> = ({
     onShowToast(isNowRead ? 'تم تعليم الفصل كـ «مقروء» ✓' : 'تمت إزالة علامة القراءة عن الفصل.');
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopiedShare(true);
-    onShowToast('تم نسخ رابط الرواية بنجاح!');
-    setTimeout(() => setCopiedShare(false), 2000);
+  const handleShare = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API is unavailable in this browser context.');
+      }
+      await navigator.clipboard.writeText(window.location.href);
+      setCopiedShare(true);
+      onShowToast('تم نسخ رابط الكتاب بنجاح!');
+      setTimeout(() => setCopiedShare(false), 2000);
+    } catch {
+      setCopiedShare(false);
+      onShowToast('تعذر نسخ الرابط تلقائيًا. يمكنك نسخ عنوان الصفحة من شريط المتصفح.');
+    }
   };
 
   // Filter & Sort Chapters
