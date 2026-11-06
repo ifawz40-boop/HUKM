@@ -286,3 +286,18 @@
 - Vercel status remains quota-limited (>100 deployments/day); no latest production deployment is confirmed. Effective branch deployment behavior remains to be checked in Vercel Project Settings.
 - Current public library still has 22 candidates, zero approved IDs and 24 quarantined legacy records.
 - Next: accessibility/mobile audit of the dialog; verify Vercel project-level branch settings; continue private full-text editorial review.
+
+
+## Preliminary source audit — فصل في تزكية النفس (2026-11-06)
+
+- PR #20 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/20
+- Merge commit / main HEAD at this checkpoint: `3c1257557abc683cc5f257864ab9b317955255d8`.
+- Added `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.md` with a preliminary source/edition audit.
+- Corrected the candidate's bibliographic metadata: 63 printed pages in the text edition record vs 68 pages in the Waqfeya PDF scan; recorded Maktabat al-Nahj al-Wadih, Kuwait, first edition 1439 AH / 2018, and the attribution "اعتنى به فواز محمد العوضي".
+- Added the report link to the owner-only dashboard and displayed print pages, scan pages, publisher and publication year separately.
+- Added regression coverage to `tests/staticLibrary.test.ts` for the candidate's corrected metadata and review-report link.
+- The report distinguishes the editor's modern introduction from Ibn Taymiyyah's text and records the claim that the older *Majmuʿ al-Fatawa* excerpt omits a substantial part of the latter half. It does not treat this as proof of the full edition's accuracy.
+- The candidate remains `metadata-verified-content-review-pending`; no approval ID was added. Full-text collation, all footnotes, hadith/athar verification, author/editor evidence and rights clearance remain incomplete.
+- Post-merge CI run #42234324080 succeeded on the exact merge commit: 293 tests, 292 passed, 0 failed, 1 skipped; TypeScript and production build passed.
+- Vercel still reports the free-plan deployment rate limit; no production deployment is confirmed.
+- Next: obtain an authorized complete edition for private page-by-page review, continue the dashboard accessibility audit, and verify Vercel project-level branch settings.
