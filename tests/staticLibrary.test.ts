@@ -30,6 +30,10 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(deploymentGate, /public-domain-life70-screen/);
     assert.match(deploymentGate, /sourceHash/);
     assert.match(deploymentGate, /historyUrl/);
+    assert.match(deploymentGate, /chapterCount !== book\.chapters\.length/);
+    assert.match(deploymentGate, /countWords\(\(chapter\.content \|\| \[\]\)\.join\(' '\)\)/);
+    assert.match(deploymentGate, /isSafeBookId/);
+    assert.match(deploymentGate, /isSafeHttpUrl/);
     assert.match(deploymentGate, /licenseQuote/);
   });
 
@@ -185,6 +189,10 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /rawDeathYear === null \|\| rawDeathYear === undefined/);
     assert.match(syncScript, /credit\.deathYear !== null && credit\.deathYear <= 1955/);
     assert.match(syncScript, /getRightsKind/);
+    assert.match(syncScript, /countWords\(String\(row\.text_raw \|\| ''\)\)/);
+    assert.match(syncScript, /sourceChapters\.length !== Number\(metadata\.n_chapters/);
+    assert.match(syncScript, /new Set\(indices\)\.size !== indices\.length/);
+    assert.match(syncScript, /isSafeBookId\(row\.book_id\)/);
     assert.match(syncScript, /isExplicitlyOriginal/);
     assert.match(syncScript, /translatorCredits\.length > 0/);
     assert.match(syncScript, /credits\.every\(\(credit\) => credit\.deathYear !== null && credit\.deathYear <= 1955\)/);
