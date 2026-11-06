@@ -838,7 +838,7 @@ export default function App() {
               isOwner={isOwner}
               isBookmarked={checkIsBookmarked(currentBook.id)}
               currentUser={currentUser}
-              onBack={() => setCurrentView('home')}
+              onBack={() => { invalidatePendingBookLoad(); setCurrentView('home'); }}
               onOpenOverview={() => handleOpenBookOverview(currentBook.id)}
               onChapterViewed={handleChapterViewed}
               onToggleBookmark={() => handleToggleBookmark(currentBook.id)}
@@ -848,7 +848,7 @@ export default function App() {
             <div className="p-12 text-center text-white max-w-md mx-auto my-12" dir="rtl">
               <p className="text-lg font-bold text-[#f0cb69]">الكتاب أو الفصل المطلوب غير متوفر حالياً للقراءة.</p>
               <button
-                onClick={() => setCurrentView('home')}
+                onClick={() => { invalidatePendingBookLoad(); setCurrentView('home'); }}
                 className="mt-4 rounded-xl bg-[#c59b27] px-5 py-2.5 text-xs font-bold text-[#070d1e]"
               >
                 العودة إلى المكتبة
