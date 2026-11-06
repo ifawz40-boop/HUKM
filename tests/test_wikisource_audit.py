@@ -185,6 +185,8 @@ class WikisourceCandidateAuditTests(unittest.TestCase):
         self.assertEqual(summary["text_attribution"], "Arabic Wikisource contributors; transcribed text licensed CC BY-SA 4.0.")
         self.assertEqual(summary["dataset_revision"], AUDIT.DATASET_REVISION)
         self.assertIn("CC BY-SA 4.0", summary["dataset_citation"])
+        self.assertIn("persons", summary["source_record_fields"])
+        self.assertIn("text_raw", summary["source_record_fields"])
 
 
 if __name__ == "__main__":
