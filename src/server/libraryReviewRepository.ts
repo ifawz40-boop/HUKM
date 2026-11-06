@@ -292,17 +292,27 @@ export function createFirestoreLibraryReviewRepository(
     },
 
     async appendEvent(input) {
-      if (!isCandidateId(input.candidateId)) throw new LibraryReviewRepositoryError('INVALID_CANDIDATE_ID');
+      if (typeof input.candidateId !== 'string' || !isCandidateId(input.candidateId)) {
+        throw new LibraryReviewRepositoryError('INVALID_CANDIDATE_ID');
+      }
       if (!Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0) {
         throw new LibraryReviewRepositoryError('INVALID_EXPECTED_VERSION');
       }
-      if (!input.reviewerUid || input.reviewerRole !== 'owner') {
+      if (typeof input.reviewerUid !== 'string' || !input.reviewerUid.trim() || input.reviewerRole !== 'owner') {
         throw new LibraryReviewRepositoryError('REVIEWER_NOT_AUTHORIZED');
       }
-      if (!/^[a-f0-9]{64}$/i.test(input.candidateFingerprint) || !input.policyVersion.trim()) {
+      if (
+        typeof input.candidateFingerprint !== 'string' ||
+        !/^[a-f0-9]{64}$/i.test(input.candidateFingerprint) ||
+        typeof input.policyVersion !== 'string' ||
+        !input.policyVersion.trim()
+      ) {
         throw new LibraryReviewRepositoryError('INVALID_REVIEW_SNAPSHOT');
       }
-      if (!/^[A-Za-z0-9._:-]{16,128}$/.test(input.idempotencyKey)) {
+      if (input.dimension !== 'editorial' && input.dimension !== 'rights') {
+        throw new LibraryReviewRepositoryError('INVALID_REVIEW_DIMENSION');
+      }
+      if (typeof input.idempotencyKey !== 'string' || !/^[A-Za-z0-9._:-]{16,128}$/.test(input.idempotencyKey)) {
         throw new LibraryReviewRepositoryError('INVALID_IDEMPOTENCY_KEY');
       }
 
@@ -315,11 +325,7 @@ export function createFirestoreLibraryReviewRepository(
       const stateCollection = input.dimension === 'editorial' ? editorialCollection : rightsCollection;
       const stateReference = stateCollection.doc(input.candidateId);
 
-      if (input.dimension !== 'editorial' && input.dimension !== 'rights') {
-        throw new LibraryReviewRepositoryError('INVALID_REVIEW_DIMENSION');
-      }
-
-      return db.runTransaction(async (transaction) => {
+      const transactionResult = await db.runTransaction(async (transaction) => {
         const eventSnapshot = await transaction.get(eventReference);
         if (eventSnapshot.exists) {
           const existingEvent = eventSnapshot.data();
@@ -405,6 +411,20 @@ export function createFirestoreLibraryReviewRepository(
         transaction.set(stateReference, state as unknown as Record<string, unknown>);
         return { event, state, replayed: false };
       });
+
+      if (transactionResult.replayed) return transactionResult;
+      // Resolve Firestore serverTimestamp sentinels before returning an event to the HTTP layer.
+      const persistedEventSnapshot = await eventReference.get();
+      const persistedEventData = persistedEventSnapshot.data();
+      if (!persistedEventSnapshot.exists || !persistedEventData) {
+        throw new LibraryReviewRepositoryError('REVIEW_EVENT_PERSISTENCE_UNCONFIRMED');
+      }
+      const persistedEvent = toEvent(persistedEventData);
+      return {
+        event: persistedEvent,
+        state: makeStateFromEvent(persistedEvent),
+        replayed: false,
+      };
     },
   };
 }
