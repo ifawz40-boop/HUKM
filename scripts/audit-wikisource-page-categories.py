@@ -98,15 +98,18 @@ def fetch_batch(titles: list[str], fetcher=fetch_json) -> dict[str, dict]:
                 for item in (page.get("categories") or [])
                 if item.get("title")
             ]
-            result[normalize_title(title)] = {
+            key = normalize_title(title)
+            existing = result.setdefault(key, {
                 "title": title,
                 "page_id": page.get("pageid"),
                 "current_revision_id": page.get("lastrevid"),
                 "url": page.get("fullurl"),
                 "missing": bool(page.get("missing")),
-                "categories": sorted(set(categories)),
-                "flagged_categories": category_flags(categories),
-            }
+                "categories": [],
+                "flagged_categories": [],
+            })
+            existing["categories"] = sorted(set(existing["categories"] + categories))
+            existing["flagged_categories"] = category_flags(existing["categories"])
         continuation = payload.get("continue")
         if not continuation:
             break
