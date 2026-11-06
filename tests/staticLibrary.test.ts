@@ -232,7 +232,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('must keep UI category IDs identical to the upstream source category IDs', () => {
-    const uiCategoryIds = [...libraryIndex.matchAll(/\{ id: '([^']+)'/g)].map((match) => match[1]);
+    const uiCategoryIds = libraryIndex.split('\n').filter((line) => line.includes("{ id: '")).map((line) => line.match(/id: '([^']+)'/)?.[1]).filter((id): id is string => Boolean(id));
     const sourceCategoryIds = new Set([
       ...libraryManifest.categories.map((category: { id: string }) => category.id),
       ...(libraryManifest.fallbackCategories || []),
