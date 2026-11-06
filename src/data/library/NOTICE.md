@@ -11,7 +11,8 @@ The full book texts are bundled as one lazy-loaded JSON file per book under `boo
 - Selected books follow one of two rights paths: (1) explicit CC BY 4.0 colophon for the Arabic translation plus public-domain original; or (2) public-domain original with all credited rights-relevant persons recorded as deceased by 1955 (life+70 screen as of 2026).
 - CC BY 4.0 translations retain their required attribution and licence notices; CC BY 4.0 does not impose a ShareAlike condition. Public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.
 - Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.
-- The underlying source dataset contains 1,545 books, but this repository includes only the rights-screened curated subset listed below.
+- First-batch integrity totals: 17 books, 441 sections, 1,499,436 words and 969 footnotes. The source metadata records 87 omitted images, 2 omitted SVG elements and 5 omitted tables across this batch; these assets are not embedded in the reader.
+- The underlying source dataset contains 1,545 books. This first HUKM batch contains 17 automatically selected, rights-screened books from a 24-book target; the selector applies category quotas and completeness/word thresholds. It is not yet a manually curated or individually proofread collection. The book list below is the exact generated release.
 
 ## Included books
 
