@@ -19,6 +19,7 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const firebaseAdmin = read('src/server/firebaseAdmin.ts');
   const vercelConfig = JSON.parse(read('vercel.json'));
   const deploymentGate = read('scripts/assert-library-ready.mjs');
+  const libraryManifest = JSON.parse(read('src/data/library/manifest.json'));
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
     assert.match(vercelConfig.buildCommand, /node scripts\/assert-library-ready\.mjs/);
@@ -192,6 +193,18 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(syncScript, /manifest pins/);
     assert.match(syncScript, /const datasetUrl = `https:\/\/huggingface\.co\/datasets\/\$\{DATASET\}`/);
     assert.match(syncScript, /const datasetRevisionUrl = revisionUrl\(manifest\.datasetRevision\)/);
+  });
+
+  it('must use exact upstream category identifiers and a balanced editorial mix', () => {
+    const quotas = libraryManifest.categories as Array<{ id: string; quota: number }>;
+    assert.equal(quotas.reduce((sum, item) => sum + item.quota, 0), libraryManifest.targetBooks);
+    assert.ok(quotas.some((item) => item.id === 'religions'));
+    assert.ok(quotas.some((item) => item.id === 'social.sciences'));
+    assert.ok(libraryManifest.fallbackCategories.includes('travel.literature'));
+    assert.ok(libraryManifest.fallbackCategories.includes('science.fiction'));
+    assert.equal(quotas.some((item) => item.id === 'social_sciences' || item.id === 'religion'), false);
+    assert.match(syncScript, /'social\.sciences': 'العلوم الاجتماعية'/);
+    assert.match(syncScript, /religions: 'الدراسات الدينية'/);
   });
 
   it('must preserve full chapter text, footnotes, exact colophon, attribution and source hash', () => {
