@@ -64,7 +64,13 @@ describe('HUKM — bundled Arabic library architecture', () => {
     assert.match(curationPanel, /document\.body\.style\.overflow = 'hidden'/);
     assert.match(curationPanel, /document\.body\.style\.overflow = previousBodyOverflow/);
     assert.match(curationPanel, /overscroll-contain/);
+    assert.match(curationPanel, /role="dialog"/);
+    assert.match(curationPanel, /aria-modal="true"/);
+    assert.match(curationPanel, /aria-labelledby="library-curation-title"/);
     assert.match(curationPanel, /aria-describedby="library-curation-description"/);
+    assert.match(curationPanel, /id="library-curation-title"/);
+    assert.match(curationPanel, /id="library-curation-description"/);
+    assert.match(curationPanel, /aria-label="إغلاق مركز مراجعة المكتبة"/);
   });
 
   it('must keep Mukhtasar Minhaj al-Qasidin as an unapproved, sourced tazkiya candidate', () => {
