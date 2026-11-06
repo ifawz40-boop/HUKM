@@ -509,3 +509,20 @@
 - Limited text spot checks: opening Qur'anic verses on tawhid and the House; page 63 describes a visit to Cave of Thawr geographically without devotional acts in the excerpt; page 85 recounts the Farewell Hajj; the index labels the alleged graves of Eve and Fatima as `المزعوم`. These excerpts do not establish the safety of the full work.
 - Identified a separate 2026 two-volume edition from Dar al-Kutub wa al-Watha'iq al-Qawmiyya with a new introduction by Osama Talaat; rights for that edition and its editorial material require separate permission.
 - No PDF or full text was copied to the repository. The candidate is not added to `approvedBookIds` or the public catalogue.
+
+
+## PR #46 merged — Mirat al-Haramayn spot-check and rights update (2026-11-06)
+
+- PR #46 merged at `9a0653dd242adae2cbd8601ab72715eb4813b86f`.
+- Pre-merge CI run #42244433795 passed; post-merge main CI run #42244683279 passed on the exact merge SHA.
+- Added limited text spot checks from the opening, page 63, page 85 and the index of `مرآة الحرمين`; the book remains a hidden, unapproved candidate because the full two volumes and political content are not yet reviewed.
+- Recorded the separate 2026 two-volume edition from Dar al-Kutub wa al-Watha'iq al-Qawmiyya and the need for separate rights clearance.
+- No PDF or full text was copied to the repository; public catalogue and approved IDs remain empty.
+- Main tree remains free of `src/data/library/archive/`; only `.gitkeep` remains under the public books directory.
+
+## Ibn Jubayr travelogue — editorial concern discovered (2026-11-06)
+
+- Added a preliminary review at `docs/library/CANDIDATE_REVIEWS/ibn-jubayr-rihla.md` and linked it from the candidate record.
+- The author describes, in first person and positively, touching the Prophet's chamber, old minbar and a piece attributed to the palm trunk, while also describing people kissing it and rubbing their faces on it.
+- The excerpt does not invoke the relic or state that it has independent power; it must not be labelled automatically as major shirk. However, this is a devotional tabarruk practice that is disputed among Sunni scholars and may conflict with the owner's stricter editorial standard.
+- The candidate remains hidden and unapproved pending owner policy clarification. No public library file was added. If the owner excludes this practice, delete the candidate record and report from the current tree rather than archiving it.
