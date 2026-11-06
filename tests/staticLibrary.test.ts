@@ -54,15 +54,15 @@ describe('HUKM — bundled Arabic library architecture', () => {
   });
 
   it('must support keyboard-only operation, restore focus and lock background scrolling', () => {
-    assert.match(curationPanel, /closeButtonRef\\.current\\?\\.focus\\(\\)/);
-    assert.match(curationPanel, /event\\.key === 'Escape'/);
-    assert.match(curationPanel, /document\\.addEventListener\\('keydown', handleKeyDown\\)/);
-    assert.match(curationPanel, /document\\.removeEventListener\\('keydown', handleKeyDown\\)/);
-    assert.match(curationPanel, /last\\.focus\\(\\)/);
-    assert.match(curationPanel, /previousFocusRef\\.current\\?\\.isConnected/);
-    assert.match(curationPanel, /previousFocusRef\\.current\\.focus\\(\\)/);
-    assert.match(curationPanel, /document\\.body\\.style\\.overflow = 'hidden'/);
-    assert.match(curationPanel, /document\\.body\\.style\\.overflow = previousBodyOverflow/);
+    assert.match(curationPanel, /closeButtonRef\.current\?\.focus\(\)/);
+    assert.match(curationPanel, /event\.key === 'Escape'/);
+    assert.match(curationPanel, /document\.addEventListener\('keydown', handleKeyDown\)/);
+    assert.match(curationPanel, /document\.removeEventListener\('keydown', handleKeyDown\)/);
+    assert.match(curationPanel, /last\.focus\(\)/);
+    assert.match(curationPanel, /previousFocusRef\.current\?\.isConnected/);
+    assert.match(curationPanel, /previousFocusRef\.current\.focus\(\)/);
+    assert.match(curationPanel, /document\.body\.style\.overflow = 'hidden'/);
+    assert.match(curationPanel, /document\.body\.style\.overflow = previousBodyOverflow/);
     assert.match(curationPanel, /overscroll-contain/);
     assert.match(curationPanel, /aria-describedby="library-curation-description"/);
   });
