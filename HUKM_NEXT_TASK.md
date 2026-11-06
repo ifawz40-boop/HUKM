@@ -3,8 +3,8 @@
 Last refreshed: 2026-11-06
 Repository: `ifawz40-boop/HUKM`
 Default / Google AI Studio branch: `main`
-Current documentation branch: `docs/checkpoint-keyboard-a11y-merged`
-Verified main HEAD: `9f7ac3679062326f07543f2caaa95427527b096f`
+Current documentation branch: `docs/checkpoint-after-accessibility`
+Verified main HEAD: `943c80f80ecf5652d29ea40465bdd1b90ab4447e`
 
 ## Verified merge and CI state
 
@@ -15,14 +15,16 @@ Verified main HEAD: `9f7ac3679062326f07543f2caaa95427527b096f`
 - PR #18 — curation helpers and regression tests — merged at `bd99aac3e4cc47b4eb5b947961612f8312707dae`.
 - PR #19 — checkpoint after regression tests — merged at `c4787c00969dd6b88f3a089da9d48ebd8aac9b64`.
 - PR #20 — preliminary source audit for *Fasl fi Tazkiyat al-Nafs* — merged at `3c1257557abc683cc5f257864ab9b317955255d8`.
-- PR #21 — checkpoint after the source audit — merged at `567f5e6fb21e09ee55be4687e92c44d55235663b`.
+- PR #21 — source-audit checkpoint — merged at `567f5e6fb21e09ee55be4687e92c44d55235663b`.
 - PR #22 — historical author evidence for Ibn Taymiyyah — merged at `413d77eb11eb97490e22a1bce63a7e7cb1f53ff2`.
 - PR #23 — keyboard accessibility for the curation dialog — merged at `9f7ac3679062326f07543f2caaa95427527b096f`.
-- PR #23 CI run #42235061723 succeeded on its exact head: 294 tests, 293 passed, 0 failed, 1 skipped; TypeScript and production build passed.
-- Post-merge GitHub Actions run #42235175548 completed successfully on the exact current main HEAD.
-- The combined Vercel status on the current main commit remains `failure` with target `build-rate-limit`. Vercel's bot reports the free-plan limit (>100 deployments/day). This is a provider quota issue, not a failed GitHub test/build.
+- PR #24 — checkpoint after keyboard accessibility — merged at `943c80f80ecf5652d29ea40465bdd1b90ab4447e`.
+- PR #23 CI run #42235061723 succeeded; post-merge run #42235175548 succeeded.
+- PR #24 CI run #42235339268 succeeded.
+- Exact current main push workflow #42235430190 completed successfully on `943c80f80ecf5652d29ea40465bdd1b90ab4447e`: 294 tests, 293 passed, 0 failed, 1 skipped; TypeScript check and production build passed.
+- The combined Vercel status on the current main commit remains `failure` with target `build-rate-limit`. Vercel reports the free-plan limit (>100 deployments/day). This is a provider quota issue, not a failed GitHub test/build.
 - No production deployment is confirmed for the latest main commit. Do not claim the site is live.
-- `vercel.json` still contains `git.deploymentEnabled: {"*": false, "main": true}`. Vercel documents that this setting controls branch-triggered deployments, uses minimatch patterns, and that if a branch matches multiple rules at least one `true` causes deployment. The current configuration intentionally allows `main` and disables other branches. Project-level behavior still needs dashboard verification.
+- `vercel.json` contains `git.deploymentEnabled: {"*": false, "main": true}`. Vercel documents that this setting controls branch-triggered deployments, supports minimatch patterns, and that if a branch matches multiple rules at least one `true` causes deployment. The current configuration intentionally allows `main` and disables other branches. Project-level behavior still needs dashboard verification.
 - Google AI Studio synchronization remains unverified.
 
 ## Public library state
@@ -56,8 +58,8 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - No approval/rejection/publication action or Firestore/API write exists.
 - Pure helpers are in `src/utils/libraryCuration.ts`; unit tests cover URL safety, Arabic search, combined filters and empty filters.
 - Static regression tests cover owner-only mounting, read-only behavior, candidate metadata/report link and Vercel main-only deployment policy.
-- Keyboard accessibility: close button receives initial focus; Escape closes; Tab/Shift+Tab are contained within the dialog; scroll chaining is contained within the modal content.
-- PR #23 and post-merge CI passed. No accessibility browser/manual screen-reader audit has yet been performed.
+- Keyboard accessibility: close button receives initial focus; Escape closes; Tab/Shift+Tab are contained within the dialog; scroll chaining is contained inside modal content.
+- PR #23 and post-merge CI passed. A manual browser/screen-reader audit has not yet been performed.
 
 ## Reader state
 
@@ -70,7 +72,7 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 
 1. Obtain a complete, authorized copy of the 2018 edition (or written permission for private review) before attempting a page-by-page content and collation review. Do not place the full text or scan in the public repository.
 2. Review all 63 printed pages and the 68-page scan, distinguish the editor's introduction from the author's text, collate every marked omission/addition, and verify hadith/athar references and footnotes. Keep the candidate pending until this is complete.
-3. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, screen reader labels, 320px layout, long Arabic titles and touch scrolling.
+3. Perform a real browser/mobile accessibility audit of the curation dialog, including keyboard navigation, screen-reader labels, 320px layout, long Arabic titles and touch scrolling.
 4. Verify Vercel Project Settings and confirm the effective Git deployment policy. Desired behavior: Git-triggered deployments on `main` only, no preview deployments from development branches. Keep main production deployment enabled; do not manually deploy or change settings without required access/approval.
 5. Continue with the next candidate only after the first review workflow is documented and repeatable.
 6. Design durable reviewer records and separate audited editorial approval and rights-clearance transitions before adding any status-changing controls.
