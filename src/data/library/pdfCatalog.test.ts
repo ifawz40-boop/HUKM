@@ -9,6 +9,8 @@ test('PDF scan fixtures keep source and public-domain evidence separate from tra
   assert.equal(item.id, 'lisan-ghusn-lubnan-1891-scan');
   assert.equal(item.publicationYear, 1891);
   assert.equal(item.pageCount, 79);
+  assert.equal(item.sourceRevisionId, 1186958260);
+  assert.match(item.sourceUrl, /oldid=1186958260/);
   assert.equal(item.isScanned, true);
   assert.equal(item.searchAvailable, false);
   assert.match(item.fileUrl, /^https:\/\/upload\.wikimedia\.org\//);
