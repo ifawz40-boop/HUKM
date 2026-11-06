@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { AddressInfo } from 'node:net';
+import type { AddressInfo } from 'node:net';
 import express, { type RequestHandler } from 'express';
 import test from 'node:test';
 import {
