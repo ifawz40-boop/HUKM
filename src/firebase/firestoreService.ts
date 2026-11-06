@@ -73,6 +73,46 @@ export async function fetchPublicNotificationsFromFirestore(): Promise<AppNotifi
   }
 }
 
+export function subscribeToPublicNotifications(
+  onChange: (notifications: AppNotification[]) => void,
+  onError?: (error: unknown) => void
+): () => void {
+  const path = 'notifications';
+  const publicQuery = query(collection(db, path), where('targetRole', '==', 'all'));
+  return onSnapshot(publicQuery, (snapshot) => {
+    const notifications = snapshot.docs
+      .map((item) => {
+        const data = item.data();
+        if (
+          typeof data.title !== 'string' ||
+          typeof data.message !== 'string' ||
+          !PUBLIC_NOTIFICATION_TYPES.includes(data.type as NotificationType)
+        ) return null;
+        const serverDate = typeof data.createdAt?.toDate === 'function'
+          ? data.createdAt.toDate().toISOString()
+          : '';
+        const timestamp = serverDate || (typeof data.timestamp === 'string' ? data.timestamp : '');
+        return {
+          id: item.id,
+          title: data.title,
+          message: data.message,
+          type: data.type as NotificationType,
+          timestamp,
+          read: false,
+          ...(isSafeNotificationLinkId(data.bookId) ? { bookId: data.bookId } : {}),
+          ...(isSafeNotificationLinkId(data.chapterId) ? { chapterId: data.chapterId } : {}),
+          targetRole: 'all' as const,
+        };
+      })
+      .filter((item): item is AppNotification => item !== null)
+      .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+    onChange(notifications);
+  }, (error) => {
+    handleFirestoreError(error, OperationType.GET, path);
+    onError?.(error);
+  });
+}
+
 export async function savePublicNotificationToFirestore(
   input: Pick<AppNotification, 'title' | 'message' | 'type' | 'bookId' | 'chapterId'>
 ): Promise<AppNotification | null> {
