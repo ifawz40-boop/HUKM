@@ -108,7 +108,8 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
       assert.ok(fetchBlock.includes('read: false'));
       assert.ok(saveBlock.includes('createdBy: user.uid'));
       assert.ok(saveBlock.includes('targetRole: \'all\''));
-      assert.equal(saveBlock.includes('read: false'), false);
+      const persistedPayload = saveBlock.slice(saveBlock.indexOf('const payload'), saveBlock.indexOf('await setDoc'));
+      assert.equal(persistedPayload.includes('read:'), false);
     });
   });
 
