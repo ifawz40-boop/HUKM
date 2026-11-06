@@ -217,6 +217,42 @@
       "pages": null,
       "status": "metadata-verified-content-review-pending",
       "reason": "شرح عقدي لكتاب التوحيد؛ يلزم التحقق من عدد المجلدات والصفحات وحقوق الطبعة."
+    },
+    {
+      "id": "ibn-kathir-tafsir",
+      "title": "تفسير القرآن العظيم (تفسير ابن كثير)",
+      "author": "الحافظ إسماعيل بن عمر ابن كثير",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/تفسير-القرآن-العظيم-تفسير-ابن-كثير-ط-طيبة-a9419796dbfe447c8d790445a209bbe3",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق سامي بن محمد السلامة؛ دار طيبة، 1420هـ/1999م",
+      "pages": 4664,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "تفسير كامل للقرآن؛ يجب فحص مواضع الإسرائيليات والروايات وبيان المؤلف لموقفه منها قبل الاعتماد."
+    },
+    {
+      "id": "ibn-taymiyyah-al-furqan-awliya",
+      "title": "الفرقان بين أولياء الرحمن وأولياء الشيطان",
+      "author": "شيخ الإسلام ابن تيمية",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/الفرقان-بين-أولياء-الرحمن-وأولياء-الشيطان-ت-الأرناؤوط/4e543756beb247beb5e84b50331542d3",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق عبد القادر الأرناؤوط؛ مكتبة دار البيان ومكتبة المؤيد، 1405هـ/1985م",
+      "pages": 230,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "يفرق بين الولاية الشرعية والدعاوى الباطلة والكرامات المزعومة؛ يحتاج مراجعة كاملة للمادة التي ينقلها ويرد عليها."
+    },
+    {
+      "id": "albani-sahih-adab-mufrad",
+      "title": "صحيح الأدب المفرد",
+      "author": "الشيخ محمد ناصر الدين الألباني؛ أصل الكتاب للإمام البخاري",
+      "category": "religious",
+      "sourceUrl": "https://waqfeya.net/books/صحيح-الأدب-المفرد/91d331c7b222413597b0568969a9d592",
+      "source": "المكتبة الوقفية",
+      "edition": "تحقيق وتصحيح محمد ناصر الدين الألباني؛ مكتبة الدليل، 1414هـ/1994م",
+      "pages": 571,
+      "status": "metadata-verified-content-review-pending",
+      "reason": "أحاديث وآداب وأخلاق مع تخريج وتصحيح الألباني؛ يجب مراجعة النسخة والتخريج."
     }
   ]
 }
