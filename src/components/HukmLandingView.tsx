@@ -181,7 +181,7 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
                 <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-cover scale-105" />
               </div>
               <span className="text-xs font-bold text-[#f0cb69]">
-                مكتبة التراث العربي المفتوحة
+                منصة معرفية للبحث والقراءة
               </span>
             </div>
 
