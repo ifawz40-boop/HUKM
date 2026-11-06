@@ -135,6 +135,7 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 
 
 ### Latest validation result
-- Previous PR #42 head `e5fa521bed77aedd6f8a0c428fafd26c68e84f02`: 318 tests passed, 1 skipped; TypeScript failed on missing `LibrarySelectionManifest` fields; build skipped.
-- Fixed `scripts/sync-public-library.d.mts`; current branch head is `f6e68f05c7722e0140a349c13abb22b01ac3597f`.
-- Await fresh CI for the current head.
+- PR #42 head `e5fa521bed77aedd6f8a0c428fafd26c68e84f02`: 318 tests passed, 1 skipped; TypeScript failed on missing manifest type fields.
+- Head `f6e68f05c7722e0140a349c13abb22b01ac3597f`: 318 tests passed, 1 skipped; TypeScript then caught incomplete manifest fixtures.
+- Added the required fields to the declaration and replaced abbreviated fixtures with a complete `minimalManifest` object. Current branch head: `b1ccbc8bdecc30fc5474c439dc425ade533d5289`.
+- Await fresh CI for the exact current head.
