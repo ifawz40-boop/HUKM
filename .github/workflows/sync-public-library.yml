@@ -20,9 +20,9 @@ concurrency:
 
 jobs:
   sync-library:
-    # Legacy Hindawi sync is manual-only while HUKM rebuilds its curated catalogue.
-    # A push must never repopulate the quarantined 24-book batch.
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    # Disabled by default in manifest; manual dispatch is allowed only from a non-main development branch.
+    # This workflow must never write directly to main or publish without a reviewed source-ID allowlist.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref_name != 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
