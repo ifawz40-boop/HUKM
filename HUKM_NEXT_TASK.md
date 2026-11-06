@@ -195,3 +195,15 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Does HUKM exclude any book that positively endorses touching the Prophet's chamber/minbar or seeking blessing from attributed relics, even where this is disputed among Sunni scholars, or allow such material in historical travelogues provided it does not invoke or worship the object?
 - Until the owner decides, keep `رحلة ابن جبير` hidden and unapproved. If excluded, delete the candidate and report entirely from the current tree.
 - Next: continue the author/content audit of remaining candidates, starting with the concise spiritual-ethics work `مختصر منهاج القاصدين`, and keep all candidates unapproved until full-text review and rights clearance.
+
+
+## PR #48 — verified merge
+- PR #48 merged at `e4012233561af487d0d42bc6fae3605835dc7120`; post-merge CI run #42245635972 passed.
+- Ibn Jubayr remains hidden/unapproved pending owner policy clarification on positive endorsement of disputed tabarruk.
+
+## Current candidate: تفسير السعدي
+- Branch: `docs/review-tafsir-al-sadi`.
+- The candidate edition is Dar al-Salam, edited by Abd al-Rahman ibn Mualla al-Luwaihiq. The author is a recognized Sunni scholar; Ibn Uthaymeen praised the work.
+- Avoid the criticized Muhammad Zuhri al-Najjar edition with unmarked additions/changes; compare the exact candidate edition against a verified manuscript-based print.
+- The work remains hidden and unapproved until full text comparison and digital rights clearance. Do not publish or copy PDFs based only on free online access.
+- Next: finish CI for the source review report, then obtain lawful access to the exact edition for full review; continue other candidate audits while preserving zero approved IDs until verified.
