@@ -53,6 +53,24 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
     });
   });
 
+  describe('Authenticated cloud moderation enforcement', () => {
+    it('checks only the email asserted by the caller token against private Firestore bans', () => {
+      const authApi = fs.readFileSync(path.resolve(process.cwd(), 'src/server/authClaimsApi.ts'), 'utf-8');
+      const routeStart = authApi.indexOf("authClaimsRouter.get('/account-status'");
+      const route = authApi.slice(routeStart);
+      assert.ok(routeStart >= 0);
+      assert.ok(route.includes("where('email', '==', email)"));
+      assert.ok(route.includes('authenticateToken'));
+      assert.equal(route.includes('req.body'), false);
+    });
+
+    it('checks cloud moderation status before committing the authenticated user session', () => {
+      const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
+      assert.ok(appContent.includes("fetch('/api/auth/account-status'"));
+      assert.ok(appContent.includes('setActiveBan(accountBan)'));
+    });
+  });
+
   describe('Elevated role registry verification', () => {
     it('requires a verified claim and an exact matching active registry role', () => {
       assert.equal(resolveVerifiedUserRole('owner', true, 'owner'), 'owner');
