@@ -57,8 +57,17 @@ def fetch_json(params: dict, timeout: int = 8) -> dict:
     query.setdefault("format", "json")
     query.setdefault("formatversion", "2")
     query.setdefault("maxlag", "5")
-    url = API_URL + "?" + urlencode(query, doseq=True)
-    request = Request(url, headers={"User-Agent": USER_AGENT})
+    # POST avoids HTTP 414 errors when Arabic page titles expand to long
+    # percent-encoded query strings. This endpoint is read-only.
+    body = urlencode(query, doseq=True).encode("utf-8")
+    request = Request(
+        API_URL,
+        data=body,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+    )
     last_error = None
     for attempt in range(3):
         try:
