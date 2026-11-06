@@ -536,3 +536,19 @@
 - The reviewed passage shows Ibn Jubayr personally and positively describing touching the Prophet's chamber, old minbar and an attributed piece of the palm trunk, and describes people kissing/rubbing faces on it.
 - This is a disputed tabarruk practice among Sunni scholars. The reviewed excerpt does not invoke the relic or state it has independent power, so it is not automatically labelled major shirk. The candidate remains hidden and unapproved pending the owner's policy decision.
 - If the owner excludes this practice, remove the candidate record and report from the current project tree; do not move it to an archive.
+
+
+## PR #48 merged — Ibn Jubayr policy checkpoint (2026-11-06)
+
+- PR #48 merged at `e4012233561af487d0d42bc6fae3605835dc7120`.
+- Pre-merge CI run #42245392623 passed; post-merge main CI run #42245635972 passed on the exact merge SHA.
+- The Ibn Jubayr travelogue remains hidden and unapproved. The report distinguishes its first-person endorsement of disputed tabarruk from explicit invocation or worship; the owner decision is still pending.
+- No book text or PDF was added to the public library. The public catalogue and approved IDs remain empty.
+
+## Tafsir al-Sa'di candidate review — 2026-11-06
+
+- New report branch: `docs/review-tafsir-al-sadi`.
+- Added a source-based review for `تيسير الكريم الرحمن`, identifying the candidate edition as Dar al-Salam, edited by Abd al-Rahman al-Luwaihiq.
+- Author methodology is strongly supported by biographical and scholarly sources: al-Sa'di is a recognized Sunni scholar; Ibn Uthaymeen was among his students and praised the commentary.
+- Important edition warning: avoid confusing the candidate edition with the Muhammad Zuhri al-Najjar version, which has documented additions and textual changes not clearly distinguished. The report records safer manuscript-based alternatives.
+- The Tafsir remains hidden and unapproved until the exact 1150-page edition is textually compared and digital rights are cleared. No full text was copied.
