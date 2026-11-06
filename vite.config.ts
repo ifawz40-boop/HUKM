@@ -20,6 +20,9 @@ export default defineConfig(() => {
               if (id.includes('firebase')) {
                 return 'firebase-vendor';
               }
+              if (id.includes('pdfjs-dist')) {
+                return 'pdfjs-vendor';
+              }
               if (id.includes('lucide-react')) {
                 return 'icons-vendor';
               }

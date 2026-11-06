@@ -21,6 +21,8 @@ import { HukmHero } from './components/HukmHero';
 import { BookCard } from './components/BookCard';
 import { BookSpineShelf } from './components/BookSpineShelf';
 import { BookReaderView } from './components/BookReaderView';
+import { PDF_LIBRARY_ITEMS } from './data/library/pdfCatalog';
+import type { PdfLibraryItem } from './types/pdfLibrary';
 import { BookOverviewView } from './components/BookOverviewView';
 import { HukmSearchModal } from './components/HukmSearchModal';
 import { AuthModal } from './components/AuthModal';
@@ -72,6 +74,8 @@ import {
 import { subscribeToAuthState, logoutUser } from './firebase/authService';
 import { isEffectiveOwner, isAdmin as checkIsAdmin } from './services/permissionService';
 
+const PdfReaderView = React.lazy(() => import('./components/PdfReaderView'));
+
 export default function App() {
   // Default entry view is landing: Platform Introduction & Sign-in Portal
   const [currentView, setCurrentView] = useState<string>('landing');
@@ -79,6 +83,7 @@ export default function App() {
   const [libraryDisplayMode, setLibraryDisplayMode] = useState<'grid' | 'shelf'>('grid');
   const [selectedBookId, setSelectedBookId] = useState<string>('');
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
+  const [selectedPdfItem, setSelectedPdfItem] = useState<PdfLibraryItem | null>(null);
 
   // Real User Auth & Role State (null when unauthenticated visitor / guest)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -448,6 +453,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
+  const handleOpenPdfReader = (item: PdfLibraryItem) => {
+    setSelectedPdfItem(item);
+    setCurrentView('pdf-reader');
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  };
+
   const handleOpenReader = async (bookId: string, chapterId?: string) => {
     const targetBook = books.find((book) => book.id === bookId);
     if (!targetBook) {
@@ -800,6 +811,38 @@ export default function App() {
                   ))}
                 </div>
               )}
+
+              <section className="space-y-4 border-t border-white/5 pt-6" aria-labelledby="pdf-library-heading" dir="rtl">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-[#d4af37]">قارئ الملفات المصورة</p>
+                    <h3 id="pdf-library-heading" className="text-lg font-black text-white">الكتب والنسخ المصورة</h3>
+                    <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-400">قسم مستقل للنسخ المصورة. لا تُحتسب هذه المواد ضمن فهرس الكتب النصية، ولكل ملف مصدر وبيان حقوق منفصل.</p>
+                  </div>
+                  <span className="w-fit rounded-lg border border-[#c59b27]/20 bg-[#c59b27]/5 px-3 py-1.5 text-[10px] text-[#f0cb69]">{PDF_LIBRARY_ITEMS.length} نسخة مصورة تجريبية</span>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {PDF_LIBRARY_ITEMS.map((item) => (
+                    <article key={item.id} className="flex flex-col justify-between gap-4 rounded-2xl border border-white/10 bg-[#0a1329] p-5 transition-colors hover:border-[#c59b27]/35">
+                      <div className="flex gap-4">
+                        <div className="flex h-20 w-14 shrink-0 items-center justify-center rounded-lg border border-[#c59b27]/30 bg-gradient-to-br from-[#26334b] to-[#0a1329] text-[#d4af37] shadow-lg">
+                          <BookOpen className="h-7 w-7" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-black leading-6 text-white">{item.title}</h4>
+                          <p className="mt-1 text-xs text-slate-400">{item.author} · {item.publicationYear}</p>
+                          <p className="mt-2 text-[11px] leading-6 text-slate-300">{item.description}</p>
+                          <p className="mt-1 text-[10px] text-slate-500">{item.pageCount} صفحة · نسخة مصورة</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+                        <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-slate-400 underline underline-offset-4 hover:text-white">المصدر والحقوق</a>
+                        <button type="button" onClick={() => handleOpenPdfReader(item)} className="rounded-xl bg-[#c59b27] px-4 py-2.5 text-xs font-black text-[#070d1e] transition-colors hover:bg-[#e2bd54]">قراءة النسخة المصورة</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
             </div>
 
           </main>
@@ -856,6 +899,28 @@ export default function App() {
               >
                 العودة إلى المكتبة
               </button>
+            </div>
+          )
+        )}
+
+        {/* VIEW 4: PDF SCAN READER */}
+        {currentView === 'pdf-reader' && (
+          selectedPdfItem ? (
+            <React.Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-sm text-slate-400" dir="rtl">جارٍ تجهيز قارئ PDF…</div>}>
+              <PdfReaderView
+                item={selectedPdfItem}
+                currentUserId={currentUser?.id}
+                onBack={() => {
+                  setSelectedPdfItem(null);
+                  setCurrentView('home');
+                  window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+                }}
+              />
+            </React.Suspense>
+          ) : (
+            <div className="mx-auto my-12 max-w-md p-12 text-center text-white" dir="rtl">
+              <p className="text-lg font-bold text-[#f0cb69]">ملف PDF المطلوب غير متوفر.</p>
+              <button type="button" onClick={() => setCurrentView('home')} className="mt-4 rounded-xl bg-[#c59b27] px-5 py-2.5 text-xs font-bold text-[#070d1e]">العودة إلى المكتبة</button>
             </div>
           )
         )}
