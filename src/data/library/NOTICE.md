@@ -11,9 +11,9 @@ The full book texts are bundled as one lazy-loaded JSON file per book under `boo
 - Selected books follow one of two rights paths: (1) explicit CC BY 4.0 colophon for the Arabic translation plus public-domain original; or (2) public-domain original with all credited rights-relevant persons recorded as deceased by 1955 (life+70 screen as of 2026).
 - CC BY 4.0 translations retain their required attribution and licence notices; CC BY 4.0 does not impose a ShareAlike condition. Public-domain original texts remain public domain. The dataset metadata/attribution is CC BY 4.0.
 - Attribution is preserved verbatim per book. Each JSON retains the exact colophon quotation, source URL, source hash, credits and pinned dataset revision.
-- The underlying source dataset contains 1,545 books. This HUKM batch contains 23 automatically selected, rights-screened books from a 24-book target; selection uses category quotas and a target length of about 50,000 words. It is not yet manually curated or individually proofread.
+- The underlying source dataset contains 1,545 books. This HUKM batch contains 24 automatically selected, rights-screened books from a 24-book target; selection uses category quotas and a target length of about 50,000 words. It is not yet manually curated or individually proofread.
 - The selector keeps at most one book per upstream book-level near_duplicate_group; the group identifier is retained in each book's rights metadata.
-- First-batch integrity totals: 23 books, 517 sections, 1,090,998 words and 2,283 footnotes. The source metadata records 204 omitted images, 0 omitted SVG elements and 14 omitted tables across this batch; these assets are not embedded in the reader.
+- First-batch integrity totals: 24 books, 529 sections, 1,144,156 words and 2,283 footnotes. The source metadata records 204 omitted images, 0 omitted SVG elements and 14 omitted tables across this batch; these assets are not embedded in the reader.
 
 ## Included books
 
@@ -157,6 +157,16 @@ The full book texts are bundled as one lazy-loaded JSON file per book under `boo
 - Colophon: جميع حقوق النشر الخاصة بتصميم هذا الكتاب، وتصميم الغلاف، والترجمة العربية لنص هذا الكتاب مُرَخَّصة بموجب رخصة المشاع الإبداعي: نَسْبُ المُصنَّف، الإصدار ٤٫٠. جميع حقوق النشر الخاصة بنص العمل الأصلي خاضعة للملكية العامة.
 - Rights: CC BY 4.0 — الترجمة العربية؛ النص الأصلي في الملكية العامة
 
+### الرياح وأشجار الصفصاف
+- Author(s): كينيث جرام
+- Translator(s): أسامة إسماعيل عبد العليم
+- Category: قصص الأطفال (children.stories)
+- Length: 53,158 words; 12 sections.
+- Source: https://www.hindawi.org/books/72597415/
+- Attribution: «الرياح وأشجار الصفصاف» (author: كينيث جرام; translator: أسامة إسماعيل عبد العليم). Hindawi Foundation edition, https://www.hindawi.org/books/72597415/. Publisher's colophon: Arabic translation and book design CC BY 4.0; original text public domain. Via The Arabic E-Book Corpus (Andreas Hallberg, 2024, https://doi.org/10.5878/7rbh-gy93), CC BY 4.0. Split into chapters, footnotes separated and text normalised by Bayanat Labs.
+- Colophon: جميع حقوق النشر الخاصة بتصميم هذا الكتاب، وتصميم الغلاف، والترجمة العربية لنص هذا الكتاب مُرَخَّصة بموجب رخصة المشاع الإبداعي: نَسْبُ المُصنَّف، الإصدار ٤٫٠. جميع حقوق النشر الخاصة بنص العمل الأصلي خاضعة للملكية العامة.
+- Rights: CC BY 4.0 — الترجمة العربية؛ النص الأصلي في الملكية العامة
+
 ### مطالعات علمية
 - Author(s): علي مصطفى مشرفة
 - Translator(s): not specified
@@ -249,10 +259,10 @@ The full book texts are bundled as one lazy-loaded JSON file per book under `boo
 
 ## Build summary
 
-- Books: 23
-- Sections: 517
-- Words: 1,090,998
-- JSON payload: 11.99 MiB before compression.
+- Books: 24
+- Sections: 529
+- Words: 1,144,156
+- JSON payload: 12.53 MiB before compression.
 - Generated snapshot: 2026-11-04 (deterministic source snapshot)
 
 ## Limitations

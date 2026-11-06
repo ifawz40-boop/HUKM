@@ -407,6 +407,78 @@
     "chapters": []
   },
   {
+    "id": "hindawi-72597415",
+    "title": "الرياح وأشجار الصفصاف",
+    "subtitle": "ترجمة: أسامة إسماعيل عبد العليم",
+    "author": "كينيث جرام",
+    "category": "children.stories",
+    "coverImage": "",
+    "status": "completed",
+    "summary": "كتاب كامل من إصدار مؤسسة هنداوي، مقسّم إلى فصول وأقسام مع حفظ الحواشي وبيان حقوق النسخة العربية.",
+    "viewsCount": 0,
+    "wordCount": 53158,
+    "chapterCount": 12,
+    "createdAt": "2026-11-04T00:00:00.000Z",
+    "updatedAt": "2026-11-04T00:00:00.000Z",
+    "sources": [],
+    "quotes": [],
+    "socialLinks": {},
+    "rights": {
+      "license": "CC BY 4.0 — الترجمة العربية؛ النص الأصلي في الملكية العامة",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "attribution": "«الرياح وأشجار الصفصاف» (author: كينيث جرام; translator: أسامة إسماعيل عبد العليم). Hindawi Foundation edition, https://www.hindawi.org/books/72597415/. Publisher's colophon: Arabic translation and book design CC BY 4.0; original text public domain. Via The Arabic E-Book Corpus (Andreas Hallberg, 2024, https://doi.org/10.5878/7rbh-gy93), CC BY 4.0. Split into chapters, footnotes separated and text normalised by Bayanat Labs.",
+      "datasetName": "Bayanat-Labs/open-arabic-books",
+      "datasetVersion": "0.1.0",
+      "datasetUrl": "https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books",
+      "dumpDate": "2026-11-04",
+      "tier": "cc-by-4-translation",
+      "publicDomainRule": "translation_covered=true; original_text_status=public-domain; the publisher colophon explicitly licenses the Arabic translation and book design under CC BY 4.0.",
+      "authorDeathYear": null,
+      "latestDeathYear": null,
+      "sourceUrl": "https://www.hindawi.org/books/72597415/",
+      "historyUrl": "https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books/tree/39876c0e7f28c2d16887c7c139800e0df9f87263",
+      "sourcePages": [],
+      "sourceLicense": "CC BY 4.0 (Arabic translation); original work public domain",
+      "sourceLicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "datasetCitation": "Hallberg, A. (2024). The Arabic E-Book Corpus (Version 1), University of Gothenburg, https://doi.org/10.5878/7rbh-gy93; Bayanat Labs (2026). Open Arabic Books, v0.1.0, https://huggingface.co/datasets/Bayanat-Labs/open-arabic-books.",
+      "licenseQuote": "جميع حقوق النشر الخاصة بتصميم هذا الكتاب، وتصميم الغلاف، والترجمة العربية لنص هذا الكتاب مُرَخَّصة بموجب رخصة المشاع الإبداعي: نَسْبُ المُصنَّف، الإصدار ٤٫٠. جميع حقوق النشر الخاصة بنص العمل الأصلي خاضعة للملكية العامة.",
+      "publisher": "Hindawi Foundation",
+      "originalTextStatus": "public-domain",
+      "translationCovered": true,
+      "credits": [
+        {
+          "role": "author",
+          "roleAr": "تأليف",
+          "name": "كينيث جرام",
+          "deathYear": null
+        },
+        {
+          "role": "translator",
+          "roleAr": "ترجمة",
+          "name": "أسامة إسماعيل عبد العليم",
+          "deathYear": null
+        }
+      ],
+      "translators": [
+        "أسامة إسماعيل عبد العليم"
+      ],
+      "editors": [],
+      "sourceHash": "0a1a4da87cff049dd515fc3b05fe90e5e7bd5b3222dd33284c8809c1f5ef5fa5",
+      "sourceFile": "corpus-html/72597415.html",
+      "omissions": {
+        "images": 0,
+        "svgs": 0,
+        "tables": 0
+      },
+      "nearDuplicateGroup": null,
+      "bookId": "hindawi-72597415",
+      "hindawiId": "72597415",
+      "bookUrl": "https://www.hindawi.org/books/72597415/",
+      "corpusSource": "The Arabic E-Book Corpus, version 1 (Andreas Hallberg, University of Gothenburg, 2024)"
+    },
+    "chapters": []
+  },
+  {
     "id": "hindawi-58627085",
     "title": "الكيمياء عند العرب",
     "subtitle": "نص عربي أصلي",
