@@ -4,6 +4,7 @@ const MAX_ZOOM = 2.5;
 export interface PdfReaderProgress {
   page: number;
   zoom: number;
+  fitToWidth: boolean;
 }
 
 export function getPdfReaderProgressKey(documentId: string, userId?: string | null): string {
@@ -25,21 +26,23 @@ export function clampPdfZoom(value: number): number {
 }
 
 export function parsePdfReaderProgress(raw: string | null, totalPages: number): PdfReaderProgress {
-  if (!raw) return { page: 1, zoom: 1 };
+  if (!raw) return { page: 1, zoom: 1, fitToWidth: true };
   try {
     const value = JSON.parse(raw) as Partial<PdfReaderProgress>;
     return {
       page: clampPdfPage(Number(value.page), totalPages),
       zoom: clampPdfZoom(Number(value.zoom)),
+      fitToWidth: typeof value.fitToWidth === 'boolean' ? value.fitToWidth : true,
     };
   } catch {
-    return { page: 1, zoom: 1 };
+    return { page: 1, zoom: 1, fitToWidth: true };
   }
 }
 
-export function serializePdfReaderProgress(page: number, zoom: number): string {
+export function serializePdfReaderProgress(page: number, zoom: number, fitToWidth = true): string {
   return JSON.stringify({
     page: Math.max(1, Math.trunc(Number.isFinite(page) ? page : 1)),
     zoom: clampPdfZoom(zoom),
+    fitToWidth,
   });
 }
