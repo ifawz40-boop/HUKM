@@ -129,6 +129,12 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Cleared all quarantined IDs and removed the quarantine registry. Public catalogue remains empty; approved IDs remain zero.
 - The review report retains only titles/reasons for audit; no book content is retained there.
 - Disabled automatic corpus ingestion by default and added an explicit source-ID editorial allowlist guard. Workflow dispatch cannot run from `main`.
-- Added tests for deletion, no quarantine, and fail-closed sync behavior. Original PR #40's first CI run failed on malformed test regex; the syntax was corrected before rebuilding this branch on latest main. CI is the next gate; do not merge until it passes on the exact PR head.
+- Added tests for deletion, no quarantine, and fail-closed sync behavior. PR #42 CI run #42241671729 passed 318 tests but TypeScript caught missing declaration fields in `scripts/sync-public-library.d.mts`; those fields were added. Re-run CI on exact updated head before merge.
 - Git history remains immutable; no history rewrite or force-push was performed.
 - Next: run CI and review the exact diff; then audit the 23 pending candidates against author methodology and complete text before deciding which remain candidates and which are deleted. Keep all unapproved books hidden.
+
+
+### Latest validation result
+- Previous PR #42 head `e5fa521bed77aedd6f8a0c428fafd26c68e84f02`: 318 tests passed, 1 skipped; TypeScript failed on missing `LibrarySelectionManifest` fields; build skipped.
+- Fixed `scripts/sync-public-library.d.mts`; current branch head is `f6e68f05c7722e0140a349c13abb22b01ac3597f`.
+- Await fresh CI for the current head.
