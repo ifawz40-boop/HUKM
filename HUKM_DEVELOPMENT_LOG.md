@@ -16,7 +16,7 @@
 - Public PDF shelf is empty; the old linguistic scan fixture metadata is preserved in archive/pdfCatalog.json.
 - Four public categories are enforced: religious, self-development, travel, islamic-philosophy-critique.
 - Deployment gate permits only an explicitly empty curation state or a complete 15+ book collection passing editorial, integrity and rights checks.
-- 12 sourced Waqfeya candidates are recorded in src/data/library/candidates.json. All remain metadata-verified/content-review-pending; none is approved.
+- 22 sourced Waqfeya candidates are recorded in src/data/library/candidates.json. All remain metadata-verified/content-review-pending; none is approved.
 - PR #14 CI run #42219445177 passed 286 tests (1 skipped), TypeScript and production build before merge.
 
 ## Current curation policy and candidate set
