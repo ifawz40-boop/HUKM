@@ -3,7 +3,7 @@
 ## Current verified checkpoint — 2026-11-06
 
 - Repository: `ifawz40-boop/HUKM`; default and Google AI Studio-linked branch: `main`.
-- Verified live `main` HEAD after PR #38: `b8b6f2fb5de1bd1d418ef94d8b1d1d4028c7f798`.
+- Verified live `main` HEAD after PR #41: `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`.
 - PR #30 added the 23rd bibliographic candidate, *مختصر منهاج القاصدين*, with a source-review report and a regression test ensuring it remains outside the public allowlist.
 - PR #30 merge CI run #42238280875 passed on head `be1670acc299470f0cef7222ac2b9f030d4b14db`; post-merge main CI run #42238372655 passed on exact merge commit `1f5c98a918eb491db721270f14a6473dff50c39d` (tests, TypeScript and production build).
 - PR #28's curation-dialog focus restoration and background scroll lock are merged and verified; PR #29's checkpoint is merged and verified.
@@ -434,7 +434,7 @@
 
 ## Owner-directed legacy library deletion and sync safety — 2026-11-06
 
-- Work branch: `chore/remove-noncompliant-legacy-library`, based on exact `main` HEAD `b8b6f2fb5de1bd1d418ef94d8b1d1d4028c7f798` (after merged PR #37 and checkpoint PR #38).
+- Work branch: `chore/remove-noncompliant-legacy-library-v5`, based on exact `main` HEAD `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92` (after merged PR #39 and checkpoint PR #41).
 - Reviewed `docs/library/CURRENT_LIBRARY_REVIEW_2026-11-06.md`: all 24 legacy entries had been excluded for failing the four approved sections or the owner's content standards. Two entries marked "temporarily excluded" were also outside the allowed categories and therefore do not qualify under the owner's clarified strict policy.
 - Deleted all 24 full-text JSON book assets, `archive/catalog.json`, `archive/pdfCatalog.json`, and `archive/NOTICE.md` (27 deleted files total). Removed the single archived PDF sample metadata entry as well. The current Git tree contains no `src/data/library/archive/` files or directory.
 - Updated `src/data/library/curation.json`: no approved IDs and no quarantine registry. Updated `src/data/library/NOTICE.md` and the review report to state that rejected content is deleted; the review report retains titles and reasons only as an audit record, not book content.
@@ -443,4 +443,12 @@
 - Added regression coverage requiring no archive path, no quarantine registry, empty public catalogue, disabled source sync and explicit source-ID allowlisting.
 - Candidate list remains 23 bibliographic records, all still pending full editorial review; none is approved or publicly visible. No candidate is declared compliant solely from its title/category.
 - Git history was not rewritten (no force-push); deleted files are absent from the current tree and future main snapshots, while historical commits remain immutable.
-- CI for this deletion branch is pending PR creation and must pass tests, TypeScript and production build before merge. No deployment was requested or performed.
+- Original PR #40 failed its first CI attempt because of a malformed regex in the new static test; that exact syntax error was corrected. PR #40 was superseded to rebase the same 37-file diff cleanly on latest main after PR #39/#41 merged. No production deployment was requested or performed.
+
+
+## Main advanced during deletion work — PR #39 and PR #41 (2026-11-06)
+
+- PR #39 — inert owner-only review API core — merged at `e619ab711ea2682479c1789b4e720aa4512fd044`; CI run #42240951392 passed on the final PR head.
+- PR #41 — checkpoint for review repository and inert API core — merged at `d9fb9119d517f582d1986bb4ce7c6ef410ea3f92`; main CI run #42241425841 passed on that exact SHA.
+- The API core is intentionally not mounted in `server.ts` or `api/index.ts`; no review write endpoint is active in production. Firestore client access remains denied by default. Emulator-backed security tests and explicit Firestore rules are still required before enabling.
+- The deletion diff was rebuilt on `chore/remove-noncompliant-legacy-library-v5` from the exact latest main SHA above, preserving the PR #39 API files and PR #41 checkpoint. The old PR #40 is superseded; no force-push or main mutation was performed.
