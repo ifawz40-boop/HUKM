@@ -405,6 +405,26 @@ describe('HUKM MEDIA — Phase 2: Reader Experience & Cloud Sync Test Suite', ()
       assert.match(bookReaderContent, /const inFlightSync = annotationSyncPromisesRef\.current\.get\(annotation\.id\);\s*if \(inFlightSync\) await inFlightSync/);
     });
 
+    it('cleans up reader feedback timers when chapters change and when the reader unmounts', () => {
+      assert.ok(bookReaderContent.includes('const restoredNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);'));
+      assert.ok(bookReaderContent.includes('const copiedShareTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);'));
+      const cleanupStart = bookReaderContent.indexOf('useEffect(() => () => {');
+      const cleanupEnd = bookReaderContent.indexOf('useEffect(() => { onChapterViewedRef.current', cleanupStart);
+      const unmountCleanup = bookReaderContent.slice(cleanupStart, cleanupEnd);
+      assert.ok(unmountCleanup.includes('clearTimeout(restoredNoticeTimerRef.current)'));
+      assert.ok(unmountCleanup.includes('clearTimeout(copiedShareTimerRef.current)'));
+      const chapterStart = bookReaderContent.indexOf('// Track chapter view and restore its last position');
+      const chapterEnd = bookReaderContent.indexOf('// Keyboard navigation', chapterStart);
+      const chapterEffect = bookReaderContent.slice(chapterStart, chapterEnd);
+      assert.ok(chapterEffect.includes('clearTimeout(restoredNoticeTimerRef.current)'));
+      assert.ok(chapterEffect.includes('restoredNoticeTimerRef.current = setTimeout(() => {'));
+      const shareStart = bookReaderContent.indexOf('const handleShare = async () => {');
+      const shareEnd = bookReaderContent.indexOf('// Theme styling definitions', shareStart);
+      const shareBlock = bookReaderContent.slice(shareStart, shareEnd);
+      assert.ok(shareBlock.includes('clearTimeout(copiedShareTimerRef.current)'));
+      assert.ok(shareBlock.includes('copiedShareTimerRef.current = setTimeout(() => {'));
+    });
+
     it('computes stable offsets for Arabic text and trims selected edge whitespace', () => {
       const paragraph = 'قبل   النص المحدد   وبعده';
       const anchor = getReaderAnnotationOffsets(paragraph, 'قبل  ', ' النص المحدد ');
