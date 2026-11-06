@@ -280,10 +280,11 @@ export const PdfReaderView: React.FC<PdfReaderViewProps> = ({
           <div>
             <p className="font-bold text-[#f0cb69]">بيانات النسخة المصورة</p>
             <p>{item.attribution}</p>
+            {item.sourceRevisionId && <p className="text-[10px] text-slate-500">معرّف مراجعة صفحة المصدر: {item.sourceRevisionId}</p>}
             <p className="mt-1">حالة الملف: {item.license}</p>
           </div>
           <div className="flex flex-col gap-2 sm:items-start">
-            <p>هذه نسخة مصورة؛ البحث النصي وOCR غير متاحين في هذا الإصدار من القارئ.</p>
+            <p>هذه نسخة مصورة؛ البحث النصي وOCR غير متاحين في هذا الإصدار من القارئ. يُحفظ موضع القراءة محليًا على هذا الجهاز والحساب، دون مزامنة سحابية حاليًا.</p>
             <div className="flex flex-wrap gap-3">
               <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-[#f0cb69] underline underline-offset-4">صفحة المصدر</a>
               <a href={item.licenseUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">بيان الحقوق</a>
