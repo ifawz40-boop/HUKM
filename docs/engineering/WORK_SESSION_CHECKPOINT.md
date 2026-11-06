@@ -594,3 +594,35 @@ A stronger primary source was found after the first Wikisource sync attempt:
 7. Re-fetch main before every write batch; test, independently re-fetch/review, commit each coherent batch to main, and update this checkpoint. Do not claim deployment without a successful Vercel production URL/status.
 
 RESUME MARKER: Main is at 470983d2bc1b53bb319d6f8a0415f5513ac5836e. The 17-book library and integrity gate are verified in CI. Start with lazy JSON asset delivery and reader timer cleanup; then curate/expand the library.
+
+
+## Continuation checkpoint — 2026-11-06 — Static JSON asset delivery and reader timer lifecycle
+
+### Verified implementation commits on main
+- 443bd9dfb5224c80aceeb3677349f4ddb290d6ff — changed full-text delivery in src/data/library/index.ts from dynamic JSON module imports to Vite ?url static asset URLs and fetch(). Catalogue remains metadata-only; each book remains an independent static JSON asset.
+- d593a5193deeb577f455deaa6b76f61de404b95f — regression assertions require ?url asset delivery, fetch response checking, loaded-book caching, in-flight request de-duplication and prohibit the previous dynamic module loader.
+- 021de79e06df5bb1260bf64971b6b7eed7aa85a3 — added explicit timer refs and cleanup for restored-position notice and copied-share feedback; chapter changes clear the previous notice timer and unmount clears both timers.
+- ad556a3f8dcf7ed0c56acfd5adb65a1e6e44371f — regression test for chapter-change and unmount timer cleanup.
+
+### Independent source re-review
+- Re-fetched src/data/library/index.ts after the change. Confirmed Vite glob uses eager URL imports only (query ?url), fetch checks response.ok, JSON identity/chapter validation remains, successful books are cached, concurrent requests share one Promise, and failed requests are removed from the in-flight map so they can retry.
+- Re-fetched src/App.tsx. Existing request ID guard still ignores stale responses after a newer book request/navigation; fetch failures are caught and surfaced as an honest reader toast.
+- Re-fetched BookReaderView.tsx. Confirmed timer refs, chapter-change cancellation, rescheduling cancellation, and unmount cleanup for both reader feedback timers.
+- Re-fetched both regression test files and confirmed assertions for static JSON assets, response failure handling, caches and timer cleanup.
+
+### CI evidence and measured build result
+- GitHub Actions run https://github.com/ifawz40-boop/HUKM/actions/runs/42181303007 — SUCCESS for implementation commit ad556a3f8dcf7ed0c56acfd5adb65a1e6e44371f.
+- 263 tests passed; TypeScript check passed; production build passed.
+- Before the change, individual books were emitted as JavaScript chunks up to 1.39 MB (412 kB gzip), with a Vite chunk-size warning above 1.2 MB.
+- After the change, all 17 full-text books are emitted as independent .json assets (not book-specific JavaScript chunks). Largest JSON asset is about 1.46 MB / 417 kB gzip. The application entry JS is about 343.07 kB / 74.13 kB gzip; CSS is 93.67 kB / 14.21 kB gzip. No oversized book-JavaScript chunk warning remains.
+- GitHub combined status for the implementation commit still shows Vercel failure at https://vercel.com/ifawz40-boop?upgradeToPro=build-rate-limit. This is the previously observed deployment API quota block. No successful Vercel deployment is confirmed.
+
+### Exact next actions — resume here
+1. Inspect scripts/sync-public-library.mjs, manifest.json and the actual metadata schema to replace the current largest-first selection with a meaningful curated list. First understand category quotas and why only 17 of the 24 target slots were filled. Do not lower the minimum or weaken rights gates to inflate the count.
+2. Check whether the source metadata exposes duplicate work/edition fields. The public dataset card says duplicate chapters are marked rather than removed; no book-level exact/near duplicate field has been verified. Do not guess field names or merge distinct editions.
+3. Review the 17 book titles/authors/translators and categories for metadata quality, repeated themes and suitability. Add an explicit human-reviewed allowlist only after checking each candidate's rights evidence, attribution and completeness.
+4. Add original/rights-cleared cover artwork and upgrade BookCard/BookOverview/shelf visuals; current source covers are absent and BookCard uses a text-gradient fallback. Do not reuse Hindawi cover art without independent rights confirmation.
+5. Inspect the build/deployment environment and Vercel quota; keep CI as the source of truth for tests/build, and do not claim the live site updated until Vercel reports a successful deployment.
+6. Continue Firestore rules, reading progress and annotation account-isolation, Writer Studio, auth/admin/email APIs, accessibility and responsive route audits.
+
+RESUME MARKER: Last verified implementation commit is ad556a3f8dcf7ed0c56acfd5adb65a1e6e44371f (docs may be newer). Static JSON asset delivery and reader timer cleanup passed 263 tests, TypeScript and production build. Next: inspect and improve book selection without weakening rights or completeness gates.
