@@ -1,6 +1,33 @@
 # HUKM MEDIA — Development Log
 
-## Current verified checkpoint
+## Current verified checkpoint — supersedes all earlier library counts below
+
+- Date: 2026-11-06
+- Repository: ifawz40-boop/HUKM
+- Latest feature merge: PR #14 — Islamic editorial curation, merge commit 175356b3632f1f054c6280e5c986761cf2d07059.
+- Current main HEAD after workflow guard: 5f620a9114d0f6ca49c7932ab4e20c42da8b481a.
+- Main CI run #42219582761 passed 286 tests (1 skipped), TypeScript and production build on the PR #14 merge commit.
+- Main CI run #42219696273 passed 286 tests (1 skipped), TypeScript and production build on the workflow-guard HEAD.
+- Legacy automatic Hindawi sync run #42219582591 failed safely at dataset revision preflight (manifest.datasetRevision is intentionally absent); it did not reach the commit step and did not repopulate the catalogue.
+- Sync workflow is now manual-only; push events skip the legacy sync job.
+- Vercel check on 5f620a9114d0f6ca49c7932ab4e20c42da8b481a reports SUCCESS. The production URL was not independently opened/verified. Google AI Studio sync remains unverified.
+- 24 legacy text books moved intact to src/data/library/archive/books/; their old catalogue and notice are preserved under archive/.
+- Public text catalogue is intentionally empty. curation.json has 0 approved IDs and 24 quarantined IDs.
+- Public PDF shelf is empty; the old linguistic scan fixture metadata is preserved in archive/pdfCatalog.json.
+- Four public categories are enforced: religious, self-development, travel, islamic-philosophy-critique.
+- Deployment gate permits only an explicitly empty curation state or a complete 15+ book collection passing editorial, integrity and rights checks.
+- 12 sourced Waqfeya candidates are recorded in src/data/library/candidates.json. All remain metadata-verified/content-review-pending; none is approved.
+- PR #14 CI run #42219445177 passed 286 tests (1 skipped), TypeScript and production build before merge.
+
+## Current curation policy and candidate set
+- Policy: docs/library/EDITORIAL_POLICY.md.
+- Legacy review: docs/library/CURRENT_LIBRARY_REVIEW_2026-11-06.md.
+- Candidate metadata and bibliographic sources: src/data/library/candidates.json.
+- The 24-title review is explicitly preliminary; it used titles, indexes and targeted passages, not a full human line-by-line reading. The conservative action was to quarantine all titles rather than imply they had passed.
+- No new full-text material was copied from Waqfeya. Rights are a separate pre-publication workstream; do not publish copyrighted scans/transcriptions without permission.
+- For religious titles, verify the author's biography, creed/method and scholarly standing from reliable biographical sources. Do not claim certainty about personal piety; document the evidence and uncertainty.
+
+## Previous checkpoint record (historical)
 - Date: 2026-11-06
 - Repository: `ifawz40-boop/HUKM`
 - Google AI Studio target branch (user-provided): `main`
