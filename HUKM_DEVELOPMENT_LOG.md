@@ -498,3 +498,14 @@
 - Review API remains unmounted in `api/index.ts`; no Admin SDK review-write endpoint is enabled. This PR only locks down client access.
 - Vercel combined status still reports `build-rate-limit`; this is an external Vercel status, not a successful deployment. No manual deployment was run.
 - Original PR #43 was closed unmerged after rebasing; PR #44 contains the same six-file security change plus checkpoint updates on latest main.
+
+
+## PR #45 merged — preliminary source review for Mirat al-Haramayn (2026-11-06)
+
+- PR #45 merged at `2556b9fc266398b210ad856775300338dda5d613`.
+- Pre-merge CI run #42243937227 passed; post-merge main CI run #42244112706 passed on the exact merge SHA.
+- Added a source-based preliminary review and a link from the candidate record for `مرآة الحرمين`.
+- Verified the original 1925 edition metadata against Waqfeya and NYU Arabic Collections Online. The book remains `metadata-verified-content-review-pending`, hidden and unapproved.
+- Limited text spot checks: opening Qur'anic verses on tawhid and the House; page 63 describes a visit to Cave of Thawr geographically without devotional acts in the excerpt; page 85 recounts the Farewell Hajj; the index labels the alleged graves of Eve and Fatima as `المزعوم`. These excerpts do not establish the safety of the full work.
+- Identified a separate 2026 two-volume edition from Dar al-Kutub wa al-Watha'iq al-Qawmiyya with a new introduction by Osama Talaat; rights for that edition and its editorial material require separate permission.
+- No PDF or full text was copied to the repository. The candidate is not added to `approvedBookIds` or the public catalogue.
