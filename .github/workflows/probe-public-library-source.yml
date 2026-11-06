@@ -1,0 +1,32 @@
+name: Probe public book source access
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/probe-public-library-source.mjs"
+      - ".github/workflows/probe-public-library-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hukm-public-library-source-probe
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Probe Hugging Face dataset endpoints
+        run: node scripts/probe-public-library-source.mjs
