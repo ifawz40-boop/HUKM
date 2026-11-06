@@ -45,7 +45,7 @@ import {
 } from './data/hukmData';
 import { PUBLIC_LIBRARY_BOOKS, PUBLIC_LIBRARY_CATEGORIES, loadPublicLibraryBook } from './data/library';
 import { CategoryItem, BookProject } from './types/hukm';
-import { UserProfile, AppNotification } from './types/auth';
+import { UserProfile, AppNotification, BannedAccount } from './types/auth';
 import {
   incrementBookViews,
 } from './utils/hukmEngine';
@@ -80,6 +80,7 @@ export default function App() {
 
   // Real User Auth & Role State (null when unauthenticated visitor / guest)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [activeBan, setActiveBan] = useState<BannedAccount | null>(null);
   const [guestBookmarks, setGuestBookmarks] = useState<string[]>(() => getStoredBookmarks());
   const [isReaderPreviewMode, setIsReaderPreviewMode] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
@@ -100,6 +101,7 @@ export default function App() {
         const currentSessionId = ++authSessionIdRef.current;
 
         if (profile) {
+          setActiveBan(null);
           // ---------------------------------------------------------------
           // STEP 1: BOOKMARKS MIGRATION & LOCAL CACHE MERGE
           // ---------------------------------------------------------------
@@ -187,10 +189,32 @@ export default function App() {
           }
 
           // ---------------------------------------------------------------
-          // STEP 4: COMMIT FINAL ACTIVE STATE IF SESSION REMAINS MATCHED
+          // STEP 4: CHECK CLOUD MODERATION STATUS FOR THIS AUTHENTICATED USER
+          // ---------------------------------------------------------------
+          let accountBan = profile.email ? getActiveBanDetails(profile.email) : null;
+          try {
+            const token = await auth.currentUser?.getIdToken();
+            if (token) {
+              const response = await fetch('/api/auth/account-status', {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const payload = await response.json();
+              if (!response.ok || !payload.success) {
+                throw new Error('Account moderation status could not be verified.');
+              }
+              accountBan = payload.banned && payload.ban ? payload.ban as BannedAccount : null;
+            }
+          } catch (error) {
+            // Keep the local cache as a fallback if the cloud check is temporarily unavailable.
+            console.warn('Could not verify cloud moderation status:', error);
+          }
+
+          // ---------------------------------------------------------------
+          // STEP 5: COMMIT FINAL ACTIVE STATE IF SESSION REMAINS MATCHED
           // ---------------------------------------------------------------
           if (authSessionIdRef.current === currentSessionId) {
             profile.bookmarks = mergedBookmarks;
+            setActiveBan(accountBan);
             setCurrentUser(profile);
             setAuthLoading(false);
           }
@@ -198,6 +222,7 @@ export default function App() {
           // Logged out / unauthenticated: verify session before resetting to guest
           if (authSessionIdRef.current === currentSessionId) {
             setCurrentUser(null);
+            setActiveBan(null);
             setGuestBookmarks(getStoredBookmarks());
             setAuthLoading(false);
           }
@@ -269,9 +294,6 @@ export default function App() {
     return () => { cancelled = true; };
   }, [isOwner, currentUser?.id]);
 
-  // Active Ban verification for current session
-  const activeBan = currentUser?.email ? getActiveBanDetails(currentUser.email) : null;
-
   // In-app interactive Toast Banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -320,6 +342,7 @@ export default function App() {
     authSessionIdRef.current++;
     await logoutUser();
     setCurrentUser(null);
+    setActiveBan(null);
     setGuestBookmarks(getStoredBookmarks());
     showToast('تم تسجيل الخروج.');
   };
