@@ -163,3 +163,12 @@ Report: `docs/library/CANDIDATE_REVIEWS/ibn-taymiyyah-fasl-fi-tazkiyat-al-nafs.m
 - Added a preliminary source review for `مرآة الحرمين` by Ibrahim Rifaat. The source record supports its travel/geography category and edition metadata; complete text review and rights clearance remain pending.
 - The candidate remains hidden and unapproved. No book content has been copied into the repository.
 - Next: merge the report only after CI; continue candidate reviews from full verified editions, and delete any candidate that fails the owner's requirements rather than archiving it.
+
+
+## PR #45 — preliminary review of مرآة الحرمين
+- PR #45 merged at `2556b9fc266398b210ad856775300338dda5d613`; post-merge CI run #42244112706 passed.
+- Candidate record links to `docs/library/CANDIDATE_REVIEWS/ibrahim-rifaat-mirat-al-haramayn.md`.
+- It remains hidden and unapproved: metadata is verified, but the complete text, political content and digital rights are not yet fully reviewed.
+- Spot checks show historical/travel description, not proof of full compliance. The index calls the alleged graves of Eve and Fatima `المزعوم`; descriptions of caves are not automatically endorsements of worship.
+- A separate 2026 edition from Dar al-Kutub wa al-Watha'iq al-Qawmiyya exists; its new introduction and edition rights must be cleared separately.
+- Next: obtain/inspect the complete two volumes under lawful access, review all text and images against HUKM's policy, then either approve with rights clearance or delete the candidate entirely if it fails. Do not publish based on the preliminary samples.
