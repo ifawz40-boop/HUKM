@@ -30,19 +30,31 @@ describe('HUKM — bundled Arabic library architecture', () => {
   const libraryNotice = read('src/data/library/NOTICE.md');
 
   it('must describe CC BY 4.0 accurately and keep generated batch totals in sync with the catalogue', () => {
-    assert.match(libraryNotice, /CC BY 4\\.0 does not impose a ShareAlike condition/);
-    assert.doesNotMatch(libraryNotice, /share-alike-compatible/i);
-    assert.match(libraryNotice, /automatically selected, rights-screened books/);
-    assert.match(libraryNotice, /not yet manually curated or individually proofread/);
+    assert.ok(libraryNotice.includes('CC BY 4.0 does not impose a ShareAlike condition'));
+    assert.equal(libraryNotice.includes('share-alike-compatible'), false);
+    assert.ok(libraryNotice.includes('automatically selected, rights-screened books'));
+    assert.ok(libraryNotice.includes('not yet manually curated or individually proofread'));
+
     const catalog = JSON.parse(read('src/data/library/catalog.json'));
-    const bookCount = libraryNotice.match(/This HUKM batch contains (\\d+) automatically selected, rights-screened books/);
-    assert.ok(bookCount, 'notice must state the generated book count');
-    assert.equal(Number(bookCount[1]), catalog.length);
-    const totals = libraryNotice.match(/First-batch integrity totals: (\\d+) books, ([\\d,]+) sections, ([\\d,]+) words and ([\\d,]+) footnotes/);
-    assert.ok(totals, 'notice must state generated books, sections, words and footnotes');
-    assert.equal(Number(totals[1]), catalog.length);
+    const batchLine = libraryNotice.split('\\n').find((line) => line.includes('This HUKM batch contains '));
+    const batchCount = batchLine?.split('This HUKM batch contains ')[1]?.split(' automatically selected')[0];
+    assert.ok(batchCount, 'notice must state the generated book count');
+    assert.equal(Number(batchCount), catalog.length);
+
+    const totalsLine = libraryNotice.split('\\n').find((line) => line.startsWith('- First-batch integrity totals:'));
+    assert.ok(totalsLine, 'notice must state generated books, sections, words and footnotes');
+    const totals = totalsLine.replace('- First-batch integrity totals: ', '').split(' ');
+    assert.equal(Number(totals[0]), catalog.length);
     assert.equal(Number(totals[2].replaceAll(',', '')), catalog.reduce((sum: number, book: any) => sum + book.chapterCount, 0));
-    assert.equal(Number(totals[3].replaceAll(',', '')), catalog.reduce((sum: number, book: any) => sum + book.wordCount, 0));
+    assert.equal(Number(totals[4].replaceAll(',', '')), catalog.reduce((sum: number, book: any) => sum + book.wordCount, 0));
+
+    const bookDirectory = path.resolve(process.cwd(), 'src/data/library/books');
+    const bookFiles = fs.readdirSync(bookDirectory).filter((file) => file.endsWith('.json'));
+    const actualFootnotes = bookFiles.reduce((sum, file) => {
+      const book = JSON.parse(fs.readFileSync(path.join(bookDirectory, file), 'utf8'));
+      return sum + book.chapters.reduce((chapterSum: number, chapter: any) => chapterSum + (chapter.footnotes?.length || 0), 0);
+    }, 0);
+    assert.equal(Number(totals[7]), actualFootnotes);
   });
 
   it('must block Vercel deployment until the full static library passes rights and integrity checks', () => {
