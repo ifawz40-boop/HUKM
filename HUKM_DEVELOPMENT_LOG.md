@@ -345,3 +345,10 @@
 - Main-only Git deployment policy is present and statically tested; effective Vercel project settings still need verification.
 - Google AI Studio synchronization remains unverified.
 - Next: obtain an authorized complete edition for private review, perform manual browser/screen-reader audit, and verify Vercel Project Settings.
+
+
+## Checkpoint HEAD semantics — 2026-11-06
+
+- Clarified that `306bbc0bf9cd57e10d30f84bd5c6a79cc27d7709` is the verified application-code HEAD before the documentation-only PR #26 checkpoint.
+- PR #26's documentation-only merge commit is `e1226e146401ad371d0f6280d0e095d1bd8bacfd`.
+- The checkpoint now explicitly instructs the next session to re-fetch the live `main` HEAD rather than treating the recorded code HEAD as the current repository tip.
