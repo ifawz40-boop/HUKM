@@ -160,3 +160,14 @@ The large deployment branch has many commits ahead but its inspected key files (
 - Build report: initial JS 344.09 kB / 74.57 kB gzip; per-book lazy JS chunks reach 1.39 MB / 412 kB gzip and trigger a 1.2 MB chunk warning. Next optimize book delivery using Vite ?url static JSON assets, preserving lazy loading and caching.
 - Vercel remains blocked by the previously reported build/deployment API rate limit; no production deployment is confirmed.
 - Resume next: (1) static JSON URL/fetch delivery and chunk-size verification, (2) explicit cleanup for reader restore/share timers, (3) manually reviewed book selection and source metadata/dedup schema, (4) original/rights-cleared covers and full visual library audit, (5) continue Firestore/account isolation and Writer Studio/API audit.
+
+
+## Continuation update — 2026-11-06 — Static book assets and reader timer cleanup
+
+- Full-text delivery now uses Vite ?url static JSON assets plus fetch(), not JavaScript modules containing each book's text. The catalogue remains metadata-only; successful books and in-flight requests are cached in memory; HTTP failures and integrity failures remain explicit.
+- Reader restored-position and copied-share feedback timers now cancel before rescheduling, clear the old chapter notice on navigation, and clear on unmount.
+- Regression coverage added for asset URL loading/caching/error handling and timer cleanup.
+- GitHub Actions run https://github.com/ifawz40-boop/HUKM/actions/runs/42181303007 passed 263 tests, TypeScript and production build.
+- Build improvement: previous per-book JS chunks up to 1.39 MB / 412 kB gzip and chunk warning are gone. Full texts are separate JSON assets; largest is 1.46 MB / 417 kB gzip. App entry JS is 343.07 kB / 74.13 kB gzip.
+- Vercel deployment status remains blocked by the reported API build-rate-limit quota; no production deployment is confirmed.
+- Resume next: audit source metadata/selection, curate a rights-cleared library without lowering gates, investigate duplicates from actual schema, design cleared/original covers, then continue Firestore/account isolation and route/API audit.
