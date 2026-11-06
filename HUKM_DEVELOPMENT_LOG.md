@@ -460,3 +460,11 @@
 - CI run #42241671729: full test suite passed (318 passed, 0 failed, 1 skipped). TypeScript failed only because the declaration `scripts/sync-public-library.d.mts` did not yet include the new `syncEnabled` and `editoriallyApprovedSourceIds` fields in `LibrarySelectionManifest`; production build was skipped after lint failure.
 - Fixed the declaration with optional fields matching the manifest. New exact branch head: `f6e68f05c7722e0140a349c13abb22b01ac3597f`.
 - CI must be re-run on the new exact head; do not merge until tests, TypeScript and production build all pass.
+
+
+## PR #42 TypeScript fixture correction — 2026-11-06
+
+- On intermediate head `f6e68f05c7722e0140a349c13abb22b01ac3597f`, the full tests passed (318 passed, 1 skipped) but TypeScript correctly rejected two abbreviated test manifest objects missing required selection fields.
+- Replaced those objects with a complete typed `minimalManifest` fixture and reused it for the disabled/empty/unknown-ID fail-closed cases.
+- Current branch head after correction: `b1ccbc8bdecc30fc5474c439dc425ade533d5289`.
+- Await CI on this exact head. No merge until TypeScript and production build pass as well as tests.
