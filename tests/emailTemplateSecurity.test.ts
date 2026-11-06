@@ -9,7 +9,7 @@ import type { BookProject, BookChapter } from '../src/types/hukm.ts';
 
 describe('Email template output safety', () => {
   it('escapes signup-provided names and email addresses', () => {
-    const html = generateWelcomeEmailHtml('<img src=x onerror=alert(1)>', 'reader"><script>alert(1)</script>@example.com');
+    const html = generateWelcomeEmailHtml('<img src=x onerror=alert(1)>', 'reader"><script>alert(1)</script>@example.com', 'https://hukm.example');
     assert.equal(html.includes('<img src=x onerror=alert(1)>'), false);
     assert.equal(html.includes('<script>alert(1)</script>'), false);
     assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
@@ -35,14 +35,14 @@ describe('Email template output safety', () => {
       subtitle: '<img src=x onerror=alert(4)>',
     } as unknown as BookChapter;
 
-    const html = generateNewReleaseEmailHtml(book, chapter, '<b>reader</b>');
+    const html = generateNewReleaseEmailHtml(book, chapter, '<b>reader</b>', 'https://hukm.example');
     assert.equal(html.includes('<script>chapter</script>'), false);
     assert.equal(html.includes('<svg onload=alert(1)>'), false);
     assert.equal(html.includes('<iframe src=x onload=alert(3)>'), false);
     assert.equal(html.includes('<img src=x onerror=alert(4)>'), false);
     assert.equal(/(?:javascript:|data:text\/html)/i.test(html), false);
     assert.ok(html.includes('&lt;script&gt;chapter&lt;/script&gt;'));
-    assert.ok(html.includes('https://hukm.media?book='));
+    assert.ok(html.includes('https://hukm.example?book='));
   });
 
   it('escapes broadcast content and falls back from unsafe action URLs', () => {
@@ -50,14 +50,15 @@ describe('Email template output safety', () => {
       '<script>subject</script>',
       '<img src=x onerror=alert(1)>\n<script>body</script>',
       'javascript:alert(1)',
-      '<svg onload=alert(2)>'
+      '<svg onload=alert(2)>',
+      'https://hukm.example'
     );
     assert.equal(html.includes('<script>subject</script>'), false);
     assert.equal(html.includes('<img src=x onerror=alert(1)>'), false);
     assert.equal(html.includes('<script>body</script>'), false);
     assert.equal(html.includes('<svg onload=alert(2)>'), false);
     assert.ok(html.includes('&lt;script&gt;subject&lt;/script&gt;'));
-    assert.ok(html.includes('href="https://hukm.media"'));
+    assert.ok(html.includes('href="https://hukm.example"'));
   });
 
   it('keeps valid HTTPS action links working', () => {
