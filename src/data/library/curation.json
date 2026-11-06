@@ -2,7 +2,6 @@
   "policyVersion": "1.0.0",
   "lastReviewed": "2026-11-06",
   "approvedBookIds": [],
-  "quarantinedBookIds": [],
   "allowedCategories": [
     "religious",
     "self-development",
