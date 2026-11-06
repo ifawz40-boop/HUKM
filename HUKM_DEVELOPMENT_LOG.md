@@ -255,3 +255,20 @@
 - Files changed on the feature branch: `src/components/LibraryCurationPanel.tsx`, `src/components/HukmNavbar.tsx`, `src/App.tsx`.
 - Verification status for this feature: pending PR CI and independent diff review. Do not mark complete until the exact PR head passes tests, TypeScript and production build.
 - Next: review branch diff, open PR, verify CI, fix issues if found, then update this checkpoint with exact results. After merge, design a separately audited review-record workflow; do not approve candidates based on metadata or spot checks.
+
+
+## Owner-only library curation dashboard — merged and verified (2026-11-06)
+
+- PR #16 merged by squash: https://github.com/ifawz40-boop/HUKM/pull/16
+- Merge commit / current main HEAD at this checkpoint: `66a7f7cd5033aa9d92f3fc114dedfccd745a2d69`.
+- Feature branch: `feat/owner-library-curation-dashboard`; exact PR head: `962ca4763e081f0b9946ae3462004a021bc3b4c0`.
+- PR CI run #42232576073 completed successfully: 286 tests passed, 1 skipped, TypeScript check passed and production build passed.
+- Post-merge push CI run #42232831631 completed successfully on the exact merge commit: 286 tests passed, 1 skipped, TypeScript check passed and production build passed.
+- Added `src/components/LibraryCurationPanel.tsx` and owner-only navigation/mounting in `src/components/HukmNavbar.tsx` and `src/App.tsx`.
+- The panel reads the existing 22 metadata-only candidates, supports search and category/status filtering, shows source/edition/review metadata, and rejects non-HTTPS external links.
+- Independent diff review confirmed the panel has no approval/rejection/publication controls and performs no database/API writes. Both the navbar entry and App mount use the existing effective-owner gate, so normal admins/readers and owner preview mode do not see it.
+- Public library policy and allowlist are unchanged: 24 legacy records quarantined, zero approved IDs, 22 pending candidates.
+- Vercel combined status on the merge commit reports `build-rate-limit`; Vercel's bot explains the free-plan limit (>100 deployments/day). This is not a code CI failure and no production deployment is confirmed.
+- Vercel also posted a quota-failure comment on PR #16 despite the repository's `git.deploymentEnabled: {"*": false, "main": true}`. Official docs describe this property as branch deployment control with minimatch support. Effective project behavior must be checked in Vercel Project Settings before claiming branch previews are disabled.
+- Google AI Studio synchronization remains unverified.
+- Next: add focused regression tests for panel access/filtering/HTTPS/read-only invariants; investigate Vercel project settings without disabling main; continue the private full-text editorial review process.
