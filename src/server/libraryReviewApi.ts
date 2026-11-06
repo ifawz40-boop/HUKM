@@ -8,6 +8,7 @@ import {
   type LibraryReviewEvent,
   type LibraryReviewState,
 } from './libraryReviewRepository.ts';
+import type { EditorialReviewStatus, RightsClearanceStatus } from '../data/library/reviewWorkflow.ts';
 
 export interface ReviewableLibraryCandidate {
   id: string;
@@ -161,6 +162,11 @@ function mapReviewError(error: unknown, res: Parameters<RequestHandler>[1], next
     return;
   }
 
+  if (code === 'REVIEWER_NOT_AUTHORIZED') {
+    res.status(403).json({ success: false, code, message: 'هذه العملية مقتصرة على المالك الموثق.' });
+    return;
+  }
+
   if (CLIENT_ERROR_CODES.has(code)) {
     res.status(400).json({ success: false, code, message: 'بيانات المراجعة غير صالحة أو لا تتوافق مع انتقال الحالة المسموح.' });
     return;
@@ -215,14 +221,14 @@ export function createLibraryReviewRouter(dependencies: LibraryReviewRouterDepen
     }
   });
 
-  router.post('/:candidateId/events', async (req: AuthenticatedRequest, res, next) => {
+  router.post('/:candidateId/events', async (req, res, next) => {
     try {
       const candidate = dependencies.resolveCandidate(req.params.candidateId);
       if (!candidate) {
         return res.status(404).json({ success: false, code: 'CANDIDATE_NOT_FOUND', message: 'الكتاب المرشح غير موجود في قائمة المراجعة الحالية.' });
       }
 
-      const user = req.user;
+      const user = (req as AuthenticatedRequest).user;
       if (typeof user?.uid !== 'string' || !user.uid || user.role !== 'owner' || user.email_verified !== true) {
         return res.status(403).json({ success: false, code: 'REVIEWER_NOT_AUTHORIZED', message: 'هذه العملية مقتصرة على المالك الموثق.' });
       }
@@ -250,7 +256,7 @@ export function createLibraryReviewRouter(dependencies: LibraryReviewRouterDepen
       const result = await dependencies.repository.appendEvent({
         candidateId: candidate.id,
         dimension: dimension as LibraryReviewDimension,
-        targetStatus: targetStatus as LibraryReviewEvent['toStatus'] & (typeof targetStatus extends string ? never : never),
+        targetStatus: targetStatus as EditorialReviewStatus | RightsClearanceStatus,
         note: body.note,
         evidenceReferences: body.evidenceReferences,
         expectedVersion: Number(body.expectedVersion),
