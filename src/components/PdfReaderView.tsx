@@ -11,7 +11,7 @@ import {
   serializePdfReaderProgress,
 } from '../utils/pdfReaderProgress';
 
-type PdfDocument = Awaited<ReturnType<typeof getDocument>>['promise'];
+type PdfDocument = Awaited<ReturnType<typeof getDocument>['promise']>;
 
 interface PdfReaderViewProps {
   item: PdfLibraryItem;
