@@ -17,7 +17,7 @@ Re-fetch main before every write.
 5. The four allowed public categories are religious, self-development, travel, islamic-philosophy-critique.
 6. A book is visible only if its ID is explicitly listed in src/data/library/curation.json approvedBookIds and its category is in the allowed set.
 7. The deployment gate permits an explicitly empty catalogue during editorial curation. A populated catalogue must contain at least 15 complete books and pass all editorial category, integrity and rights metadata checks.
-8. Twelve candidate books and their Waqfeya bibliographic links are recorded in src/data/library/candidates.json. All are pending full-text review; none is approved.
+8. Eighteen candidate books and their Waqfeya bibliographic links are recorded in src/data/library/candidates.json. All are pending full-text review; none is approved.
 9. Legacy Hindawi sync is manual-only while the library is rebuilt. Never restore automatic sync of the old dataset.
 
 ## Editorial policy
