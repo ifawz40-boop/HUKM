@@ -940,3 +940,43 @@ Current branch HEAD at checkpoint: `5666a6d23b33e5cb78bae9086e2e48729f0a8aeb`
 - Audit branch CI: PENDING.
 - Vercel latest main status: `build-rate-limit`; production deployment not confirmed.
 - No manual deployment, Firebase production mutation, owner bootstrap or secret access performed.
+
+
+---
+
+# CURRENT CHECKPOINT AFTER PR #59 — 2026-11-07
+
+Repository: `ifawz40-boop/HUKM`  
+Main SHA: `f780188689609b4b9700111b48bc662df4c7f64a`  
+Commit: [release: harden HUKM for public-user readiness](https://github.com/ifawz40-boop/HUKM/commit/f780188689609b4b9700111b48bc662df4c7f64a)  
+Merged PR: [#59](https://github.com/ifawz40-boop/HUKM/pull/59)
+
+## Verified state
+
+- PR #59 exact head passed the full CI job twice; post-merge main run [#42348210206](https://github.com/ifawz40-boop/HUKM/actions/runs/42348210206) passed tests, Firestore Emulator rules tests, TypeScript and production build on the exact main SHA.
+- GitHub Vercel status on the exact main SHA: `success`. The dashboard/public alias has not been independently smoke-tested.
+- Open PRs: 0. Open issues: 0.
+- Public library: 0 books, 0 PDFs; 28 hidden metadata candidates; `catalog.json=[]`; `approvedBookIds=[]`; `manifest.syncEnabled=false`; `editoriallyApprovedSourceIds=[]`.
+- Main is configured for Vercel Git deployment on `main` only. No manual deploy or settings change.
+- Google AI Studio connection to this exact main SHA is not independently verified.
+
+## Book-library priorities — do not skip the rights gate
+
+1. Finish full-text review of the existing 28 candidates before adding new candidate records. Keep rejected works deleted from the current tree; do not create an archive/quarantine.
+2. Continue the exact queue above: full text of the al-Batnuni travel work; Ibn Jubayr context and the owner's actual standard for disputed tabarruk; complete edition/content/rights review of candidates #25 and #26; full text and quotation/context review of #28.
+3. Research the NYU [1905 combined scan of كتاب الصلاة وما يلزم فيها](https://sites.dlib.nyu.edu/viewer/books/aub_aco001006/display?lang=ar) as a possible public-domain source for the Ibn al-Qayyim work only after the current queue. The corrector is independently catalogued as Muhammad Badr al-Din al-Na'sani al-Halabi (1881–1943), and NYU states its belief that displayed materials are public domain. Still identify the exact split/page range, verify the entire text and edition, and record the rights rationale. This is a research lead, not an approved candidate or import.
+4. Do not use the Rufoof `عمدة الأحكام الكبرى` edition: its `1901` store metadata conflicts with its own 1430 AH / 2009 copyright page, which says all rights reserved.
+5. Before any Wikisource import, implement and test a distinct `cc-by-sa-4.0` rights tier. Preserve creator/contributor attribution, each source page URL and revision ID, snapshot date, all modifications, the CC BY-SA license link and ShareAlike obligations. Never collapse this tier into CC BY 4.0 or the public-domain tier.
+6. Keep `syncEnabled=false`, the approved source-ID list empty, and the public catalogue empty until complete text, source/edition, author methodology, editorial layers, category and exact redistribution rights pass review. All approved book JSON/PDF assets must live in the repository under `src/data/library/books/`, not Firebase.
+7. Review the moderation architecture: Firestore currently authorizes signed-in users to access their own profile and reading-progress records without a ban-state check. Propose a safe server/rules design, but do not change Firestore permissions or production rules without explicit approval.
+8. Independently open the public production alias and perform the live smoke-test checklist; a successful Vercel Git status is not by itself proof of every user flow.
+9. Verify that Google AI Studio is connected to this exact `main` SHA before claiming synchronization. Keep Firebase credentials, owner bootstrap and production environment verification separate; never request or expose secrets in chat.
+
+## Latest validation truth
+
+- Main SHA: `f780188689609b4b9700111b48bc662df4c7f64a`.
+- Main CI run [#42348210206](https://github.com/ifawz40-boop/HUKM/actions/runs/42348210206): PASS on the exact SHA.
+- Vercel Git status on the exact SHA: `success`; live public-alias smoke test: NOT VERIFIED.
+- Public library: 0 approved books / 0 approved PDFs; no ingestion performed.
+- Google AI Studio synchronization: NOT VERIFIED.
+- No secrets, roles, Firebase production data, Firestore rules or Vercel settings were changed.

@@ -725,3 +725,17 @@
 - Added `docs/deployment/PRODUCTION_READINESS_AUDIT_2026-11-06.md` with exact release blockers and live smoke-test checklist.
 - CI for this branch has not yet run; no claim of tests passing for these changes.
 - No deployment, Vercel settings change, Firestore rules deployment, owner bootstrap or secret access performed.
+
+
+## PR #59 merged — public-user readiness checkpoint (2026-11-07)
+
+- PR [#59](https://github.com/ifawz40-boop/HUKM/pull/59) was squash-merged to `main` at `f780188689609b4b9700111b48bc662df4c7f64a`.
+- Exact PR head `be3a9d6269f25719cc9dc5788600d2f1307a32a8` passed the full verification job twice (initial run and explicit rerun): application tests, Firestore Emulator rules tests, TypeScript and production build. Post-merge main run [#42348210206](https://github.com/ifawz40-boop/HUKM/actions/runs/42348210206) also passed all steps on the exact merge SHA.
+- The GitHub Vercel status check on this exact main SHA is now `success`; earlier `build-rate-limit` failures are no longer the current status. The Vercel dashboard and public production alias were not independently opened, so this is not a separate live-site smoke-test claim.
+- Open pull requests: 0. Open issues: 0.
+- Main still contains 28 hidden metadata-only candidates, `approvedBookIds=[]`, an empty `catalog.json`, and only `.gitkeep` under `src/data/library/books/`. `manifest.syncEnabled=false`; no full text or PDF was imported.
+- The current sync script and deployment gate support only the explicit CC BY 4.0 translation path and the conservative public-domain life+70 screen. They do not support CC BY-SA 4.0. The Arabic Wikisource corpus is CC BY-SA 4.0 and must remain a separate rights tier with attribution, page/revision lineage, change notices and ShareAlike compliance; do not map it to CC BY 4.0 or public domain.
+- Research-only source lead: the NYU Arabic Collections Online record for [كتاب الصلاة وما يلزم فيها](https://sites.dlib.nyu.edu/viewer/books/aub_aco001006/display?lang=ar) identifies a 1323 AH / circa 1905 combined scan containing works by Ahmad ibn Hanbal and Ibn al-Qayyim, corrected by Muhammad Badr al-Din al-Na'sani al-Halabi (1881–1943). NYU states that it believes displayed materials are public domain. This is not an approval: the combined volume must be split by exact page boundaries, the Ibn al-Qayyim text fully reviewed and compared, and the scan/edition rights assessed before adding any candidate or asset.
+- The apparent `1901` metadata for the Rufoof e-book `عمدة الأحكام الكبرى` is misleading: the preview identifies the actual edition as 1430 AH / 2009 and carries an all-rights-reserved notice. Do not redistribute that modern edition.
+- Security limitation retained for follow-up: the client now fails closed on moderation-status errors, but current Firestore rules still allow a signed-in user to read/update their own profile and reading-progress records. This does not revoke an existing Firebase token or create a server-side ban check in Firestore. Do not change production rules or permissions without explicit approval.
+- No secrets, owner roles, Firebase production data, Firestore rules, Vercel settings or manual deployment actions were changed in this checkpoint.
