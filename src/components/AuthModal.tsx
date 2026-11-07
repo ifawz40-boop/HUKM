@@ -140,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {tab === 'reset' && 'استعادة كلمة المرور'}
           </h2>
           <p className="text-xs text-[#94a3b8]">
-            منصة الروايات والكتب المعرفية الموثقة لـ HUKM MEDIA
+            منصة حُكم للبحث والقراءة والمعرفة
           </p>
         </div>
 

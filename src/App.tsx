@@ -34,7 +34,6 @@ import { HukmEmailModal } from './components/HukmEmailModal';
 import { BannedNoticeModal } from './components/BannedNoticeModal';
 import { LegacyLibraryPurgeModal } from './components/LegacyLibraryPurgeModal';
 import { HukmFooter } from './components/HukmFooter';
-import { getActiveBanDetails } from './utils/moderationTracker';
 import { auth } from './firebase/config';
 import {
   updateUserBookmarksInFirestore,
@@ -114,7 +113,7 @@ export default function App() {
 
           // Check the authenticated account's cloud moderation status before
           // migrating bookmarks or writing any reader progress to Firestore.
-          let accountBan = profile.email ? getActiveBanDetails(profile.email) : null;
+          let accountBan: BannedAccount | null = null;
           try {
             const token = await auth.currentUser?.getIdToken();
             if (!token) throw new Error('Missing Firebase ID token for account-status check.');
@@ -122,13 +121,39 @@ export default function App() {
               headers: { Authorization: `Bearer ${token}` },
             });
             const payload = await response.json();
-            if (!response.ok || !payload.success) {
+            const banPayload = payload?.ban;
+            const validBanPayload = payload?.banned === false
+              ? banPayload === null
+              : payload?.banned === true &&
+                typeof banPayload === 'object' &&
+                banPayload !== null &&
+                typeof banPayload.id === 'string' &&
+                typeof banPayload.email === 'string' &&
+                banPayload.email.trim().toLowerCase() === profile.email?.trim().toLowerCase() &&
+                typeof banPayload.name === 'string' &&
+                (banPayload.banType === 'temporary' || banPayload.banType === 'permanent') &&
+                typeof banPayload.reason === 'string' &&
+                typeof banPayload.bannedBy === 'string' &&
+                typeof banPayload.bannedAt === 'string' &&
+                banPayload.isActive === true;
+            if (!response.ok || !payload?.success || !validBanPayload) {
               throw new Error('Account moderation status could not be verified.');
             }
-            accountBan = payload.banned && payload.ban ? payload.ban as BannedAccount : null;
+            accountBan = payload.banned ? banPayload as BannedAccount : null;
           } catch (error) {
-            // Keep the local cache as a fallback if the cloud check is temporarily unavailable.
-            console.warn('Could not verify cloud moderation status:', error);
+            // Moderation status is authoritative server data. Never fall back to a stale,
+            // user-editable local cache or expose an authenticated session when verification fails.
+            console.error('Could not verify cloud moderation status; failing closed:', error);
+            if (authSessionIdRef.current !== currentSessionId) return;
+            authSessionIdRef.current += 1;
+            setCurrentUser(null);
+            setActiveBan(null);
+            setAuthLoading(false);
+            showToast('تعذر التحقق من حالة الحساب حاليًا. تم إيقاف تسجيل الدخول مؤقتًا حفاظًا على أمان المنصة؛ يمكنك التصفح كزائر والمحاولة لاحقًا.');
+            await logoutUser().catch((signOutError) => {
+              console.error('Could not clear unverified Firebase session:', signOutError);
+            });
+            return;
           }
 
           if (accountBan) {
@@ -295,9 +320,9 @@ export default function App() {
 
   // The public-domain catalogue and its categories are bundled with the application.
   // They are immutable at runtime and never loaded from Firestore or localStorage.
-  const categories: CategoryItem[] = PUBLIC_LIBRARY_CATEGORIES.filter((category) =>
-    PUBLIC_LIBRARY_BOOKS.some((book) => book.category === category.id)
-  );
+  // Keep all editorially approved category paths visible even while the public catalogue is empty.
+  // The allowlist controls book publication; category navigation must not depend on current book count.
+  const categories: CategoryItem[] = PUBLIC_LIBRARY_CATEGORIES;
   const [books, setBooks] = useState(PUBLIC_LIBRARY_BOOKS);
   const [loadedBook, setLoadedBook] = useState<BookProject | null>(null);
   const [isLoadingBook, setIsLoadingBook] = useState(false);
@@ -673,7 +698,7 @@ export default function App() {
             currentUser={currentUser}
             isOwner={isOwner}
             onLoginSuccess={(user) => {
-              setCurrentUser(user);
+              // The auth-state listener commits the session only after server-side moderation verification.
               showToast(`أهلاً بك يا ${user.name} في منصة حُكم.`);
             }}
             onEnterLibrary={() => {
@@ -819,7 +844,7 @@ export default function App() {
                     <h3 id="pdf-library-heading" className="text-lg font-black text-white">الكتب والنسخ المصورة</h3>
                     <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-400">قسم مستقل للنسخ المصورة. لا تُحتسب هذه المواد ضمن فهرس الكتب النصية، ولكل ملف مصدر وبيان حقوق منفصل.</p>
                   </div>
-                  <span className="w-fit rounded-lg border border-[#c59b27]/20 bg-[#c59b27]/5 px-3 py-1.5 text-[10px] text-[#f0cb69]">{PDF_LIBRARY_ITEMS.length} نسخة مصورة تجريبية</span>
+                  <span className="w-fit rounded-lg border border-[#c59b27]/20 bg-[#c59b27]/5 px-3 py-1.5 text-[10px] text-[#f0cb69]">{PDF_LIBRARY_ITEMS.length} نسخة مصورة</span>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {PDF_LIBRARY_ITEMS.map((item) => (
@@ -953,7 +978,7 @@ export default function App() {
         initialMode={authModalMode}
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={(user) => {
-          setCurrentUser(user);
+          // The auth-state listener commits the session only after server-side moderation verification.
           showToast(`مرحباً بك يا ${user.name}!`);
         }}
       />

@@ -21,14 +21,12 @@ import {
 } from 'lucide-react';
 import { HUKM_LOGO, HUKM_MOTTO, HUKM_DESCRIPTION } from '../data/hukmData';
 import { UserProfile } from '../types/auth';
-import { getActiveBanDetails, formatRemainingTime } from '../utils/moderationTracker';
 import {
   signInWithGoogle,
   loginWithEmail,
   registerWithEmail,
   resetPassword,
   formatAuthError,
-  logoutUser,
 } from '../firebase/authService';
 
 interface HukmLandingViewProps {
@@ -70,17 +68,6 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
     }
 
     const cleanEmail = email.trim().toLowerCase();
-
-    // Check moderation bans locally before sending request
-    const ban = getActiveBanDetails(cleanEmail);
-    if (ban) {
-      setErrorMsg(
-        `تم تعليق هذا الحساب لمخالفة المعايير (${
-          ban.banType === 'permanent' ? 'حظر دائم' : `متبقي: ${formatRemainingTime(ban.expiresAt)}`
-        }). السبب: ${ban.reason}`
-      );
-      return;
-    }
 
     setIsLoading(true);
 
@@ -141,18 +128,6 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
       const user = await signInWithGoogle();
       setIsLoading(false);
 
-      // Verify active ban on signed in email
-      const ban = getActiveBanDetails(user.email);
-      if (ban) {
-        await logoutUser();
-        setErrorMsg(
-          `هذا الحساب معلق لمخالفة المعايير (${
-            ban.banType === 'permanent' ? 'حظر دائم' : `متبقي: ${formatRemainingTime(ban.expiresAt)}`
-          }). السبب: ${ban.reason}`
-        );
-        return;
-      }
-
       onLoginSuccess(user);
       onShowToast(`تم تسجيل الدخول بحساب Google بنجاح: ${user.name}`);
       onEnterLibrary();
@@ -181,7 +156,7 @@ export const HukmLandingView: React.FC<HukmLandingViewProps> = ({
                 <img src={HUKM_LOGO} alt="حُكم" className="h-full w-full object-cover scale-105" />
               </div>
               <span className="text-xs font-bold text-[#f0cb69]">
-                مكتبة التراث العربي المفتوحة
+                منصة معرفية للبحث والقراءة
               </span>
             </div>
 

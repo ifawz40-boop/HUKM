@@ -78,6 +78,20 @@ describe('HUKM MEDIA — Phase 1.3 Security & Robustness Test Suite', () => {
         appContent.indexOf('STEP 1: BOOKMARKS MIGRATION')
       );
     });
+
+    it('fails closed on moderation API errors and never trusts a stale client-side ban cache', () => {
+      const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
+      const landingContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/HukmLandingView.tsx'), 'utf-8');
+      assert.ok(appContent.includes('failing closed'));
+      assert.ok(appContent.includes('typeof banPayload.id === \'string\''));
+      assert.ok(appContent.includes('banPayload.isActive === true'));
+      assert.ok(appContent.includes('await logoutUser().catch'));
+      assert.ok(appContent.includes('setCurrentUser(null)'));
+      assert.equal(appContent.includes('accountBan = profile.email ? getActiveBanDetails'), false);
+      assert.equal(landingContent.includes('getActiveBanDetails'), false);
+      assert.equal(landingContent.includes('formatRemainingTime'), false);
+      assert.doesNotMatch(appContent, /onLoginSuccess=\{\(user\) => \{\s*setCurrentUser\(user\)/);
+    });
   });
 
   describe('Public announcement isolation and publishing security', () => {

@@ -893,3 +893,50 @@ Open PRs at checkpoint creation: none
 - Vercel latest main status: `build-rate-limit`, production deployment not confirmed.
 - Historical PR #14 sync-library: FAIL in old workflow; current sync disabled and guarded.
 - No manual deployment, source ingestion or copyrighted full-text upload performed.
+
+
+---
+
+# PRODUCTION READINESS CHECKPOINT — 2026-11-06
+
+Repository: `ifawz40-boop/HUKM`  
+Baseline main: `fae1ff976a4f3b941ba3f8eb04b435b8f63cb9ed`  
+Working branch: `release/production-readiness-audit`  
+Current branch HEAD at checkpoint: `5666a6d23b33e5cb78bae9086e2e48729f0a8aeb`
+
+## Implemented in this branch (CI pending)
+
+1. All four editorial categories remain visible with an empty catalogue.
+2. Empty-library hero now explains that books are being reviewed instead of showing meaningless zero counters.
+3. Landing/sign-in/HTML metadata copy reflects the knowledge/research platform identity, not the retired novel-platform wording.
+4. Server moderation status is authoritative for sign-in. If the API check fails or returns malformed data, the app fails closed, does not commit the profile, invalidates the session and attempts Firebase sign-out.
+5. Removed stale client-local ban cache checks and removed direct `setCurrentUser` updates from sign-in callbacks.
+6. Regression assertions added for category presentation, branding and moderation fail-closed behavior.
+
+## Verified blockers
+
+- Latest main GitHub Actions run #42254352828 passed all configured tests, Firestore emulator rules tests, TypeScript and production build on main SHA `fae1ff976a4f3b941ba3f8eb04b435b8f63cb9ed`.
+- Latest main Vercel status remains `build-rate-limit`; no production deployment is confirmed.
+- 0 approved static books; 0 approved PDF scans. Candidate count remains 28, none public.
+- Vercel empty-curation build gate is currently allowed by `manifest.allowEmptyDuringCuration: true`; a deployment could therefore contain an empty public library.
+- Firebase Admin credentials, Gmail credentials, authorized domains/Google OAuth, production Firestore rules deployment, first-owner bootstrap and Google AI Studio sync are not verified.
+- `BookWriterStudio.tsx` is not mounted/imported by `src/App.tsx`; do not claim an operational public authoring workflow.
+
+## Next exact steps
+
+1. Open PR from `release/production-readiness-audit` to `main`.
+2. Wait for exact-head CI; inspect all job steps, tests, TypeScript and build.
+3. Review the full diff, especially auth session fail-closed flow and the new regression tests.
+4. Fix any CI failures before merge.
+5. Do not merge if tests fail or if the diff changes the Vercel main-only deployment policy.
+6. Resolve Vercel build quota independently; verify a real deployment and production alias only after a successful deployment exists.
+7. Verify Firebase/owner/environment setup using `docs/security/OWNER_BOOTSTRAP_RUNBOOK.md` and `docs/deployment/VERCEL_PREDEPLOYMENT.md`; never paste secrets into chat.
+8. Complete the live smoke tests listed in `docs/deployment/PRODUCTION_READINESS_AUDIT_2026-11-06.md`.
+9. Continue full-text review of the 28 hidden candidates. Do not approve books by metadata alone.
+
+## Validation truth
+
+- Main baseline CI: PASS.
+- Audit branch CI: PENDING.
+- Vercel latest main status: `build-rate-limit`; production deployment not confirmed.
+- No manual deployment, Firebase production mutation, owner bootstrap or secret access performed.

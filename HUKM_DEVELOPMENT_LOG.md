@@ -711,3 +711,17 @@
 - Latest Vercel status on this exact main SHA remains `failure` with `build-rate-limit`; no production deployment is confirmed.
 - Re-read main: 28 candidates, 0 approved public IDs. No public full-text files were added.
 - No manual deployment, source ingestion, Vercel setting change or copyrighted full-text upload performed.
+
+
+## Production-readiness audit branch — 2026-11-06
+
+- Baseline main SHA: `fae1ff976a4f3b941ba3f8eb04b435b8f63cb9ed`.
+- Working branch: `release/production-readiness-audit`.
+- Current branch HEAD before this checkpoint: `5666a6d23b33e5cb78bae9086e2e48729f0a8aeb`.
+- Kept all four curated categories visible even with zero public books; public publication still uses the explicit approval allowlist.
+- Improved the empty-library hero state and aligned landing/sign-in/HTML metadata with HUKM's knowledge-platform identity.
+- Hardened sign-in: server moderation verification is authoritative; on API failure or malformed response the app does not commit the authenticated profile, invalidates the session and attempts sign-out. Removed stale client-local ban cache as a sign-in authority and removed direct profile-state commits from sign-in callbacks.
+- Added regression assertions in `tests/staticLibrary.test.ts` and `tests/security.test.ts`.
+- Added `docs/deployment/PRODUCTION_READINESS_AUDIT_2026-11-06.md` with exact release blockers and live smoke-test checklist.
+- CI for this branch has not yet run; no claim of tests passing for these changes.
+- No deployment, Vercel settings change, Firestore rules deployment, owner bootstrap or secret access performed.
